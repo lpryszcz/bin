@@ -14,6 +14,10 @@ Barcelona, 5/11/2013
 
 """
 Fixes:
+-0.21:
+--Added Encoding quality check
+--Added output file prefixes
+
 -0.2
 --preformance:
 ---multiprocessing tested, but very little improvement
@@ -33,10 +37,44 @@ from datetime import datetime
 from Bio import SeqIO
 locale.setlocale(locale.LC_ALL, 'en_US.utf8')
 
+def checkQualityEncoding(inFile, number_reads, qual64offset, qseq):
+
+    iFile =  gzip.open(inFile, "rb") if inFile.endswith(".gz") else \
+      open(inFile, "rU")
+
+    ## We analyze the first 1000 reads to determine the format
+    counter, qualities = number_reads, []
+    while counter > 0:
+        read = (qseqparser(iFile) if qseq else fqparser(iFile)).next()
+        if read == None:
+            continue
+        name, seq, quals = read
+        ## We only consider quality scores between [33, 126] to compute whether
+        ## input quality encoding parameter have been properly selected or not
+        qualities += [ord(q) for q in quals if ord(q) < 127 and ord(q) > 32]
+        counter -= 1
+    iFile.close()
+
+    minQ,maxQ,medQ = np.min(qualities), np.max(qualities), np.median(qualities)
+
+    ## for PHRED+33, values will be 33-126 and for PHRED+64: 64/59-126.
+    if qual64offset and minQ < 59:
+        msg = ("\nERROR: Check quality encoding. Selected [PHRED+64]. MinQ: %d "
+            + "- MaxQ: %d - MedianQ: %d\n") % (minQ, maxQ, medQ)
+        return False, msg
+
+    if not qual64offset and (maxQ - 68) < minQ:
+        msg = ("\nERROR: Check quality encoding. Selected [PHRED+33]. MinQ: %d "
+            + "- MaxQ: %d - MedianQ: %d\n") % (minQ, maxQ, medQ)
+        return False, msg
+
+    return True, ""
+
 def qseqparser(handle):
     """Parse QSEQ fromat and yield name, sequence and qualities."""
     for l in handle:
         qseq_element = l[:-1].split('\t') #SOLEXA 90403 4 1 23 1566 0 1 ACCGCTCTCGTGCTCGTCGCTGCGTTGAGGCTTGCG `aaaaa```aZa^`]a``a``a]a^`a\Y^`^^]V` 1
+
         if len(qseq_element) != 11 or qseq_element[-1] != '1':
             yield
             continue
@@ -73,13 +111,19 @@ def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outfor
         zcat   = subprocess.Popen(['zcat', infile.name], bufsize=-1, stdout=subprocess.PIPE)
         handle = zcat.stdout
         #handle = gzip.open(infile.name)
-    #get parser
-    if qseq:
-        parser = qseqparser(handle)
-    else:
-        parser = fqparser(handle)
-    #process entries
-    for seqi, (name, seq, quals) in enumerate(parser, pi+1):
+
+    ## Get parser
+    parser = qseqparser(handle) if qseq else fqparser(handle)
+
+    ## Process entries
+    for seqi, read in enumerate(parser, pi+1):
+
+        ## Discard any unvalid read
+        if not read:
+            yield
+            continue
+        name, seq, quals = read
+
         #clip seq & quals @ N ( unknown base )
         seq, quals = _clipSeq(seq, quals, 'N')
         #check if correct length
@@ -160,8 +204,8 @@ def process_paired(inputs, qseq, outdir, outprefix, unpaired, minlen, minqual, \
     fnend = outformat = 'fasta' if fasta else 'fastq'
     prefix = ("%sq%s_l%s") % (outprefix, minqual, minlen)
 
-    outfnF     = os.path.join(outdir, '%s_1.%s'        % (prefix, fnend))
-    outfnR     = os.path.join(outdir, '%s_2.%s'        % (prefix, fnend))
+    outfnF     = os.path.join(outdir, '%s.1.%s'        % (prefix, fnend))
+    outfnR     = os.path.join(outdir, '%s.2.%s'        % (prefix, fnend))
     unpairedfn = os.path.join(outdir, '%s.unpaired.%s' % (prefix, fnend))
     combinedfn = os.path.join(outdir, '%s.combined.%s' % (prefix, fnend))
 
@@ -270,8 +314,8 @@ def main():
     parser = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true")
-    parser.add_argument("--version", action="version", default="0.2")
-    parser.add_argument("-i", "--inputs", nargs="+", type=file,
+    parser.add_argument("--version", action="version", default="0.21")
+    parser.add_argument("-i", "--inputs", nargs="+", type=str,
                         help="input file(s)")
     parser.add_argument("-o", "--outdir", default='outdir',
                         help="define where to store output files")
@@ -286,13 +330,13 @@ def main():
     parser.add_argument("-p", "--paired", default=False, action="store_true",
                         help="paired-end reads (qXX_1.fastq & qXX_2.fastq)")
     parser.add_argument("-u", "--unpaired", default=False, action="store_true",
-                        help="store orphaned reads > qXX.unpaired.fastq")
+                        help="store orphaned reads > PREFIXqXX_mYY.unpaired.fastq")
     parser.add_argument("-r", "--replace", default=False, action="store_true",
                         help="overwrite output files")
     parser.add_argument("-b", "--noSeparate", default=False, action="store_true",
-                        help="don't store separate fastQ for F & R reads > qXX_1.fastq qXX_2.fastq" )
+                        help="don't store separate fastQ for F & R reads > PREFIXqXX_mYY.1.fastq PREFIXqXX_mYY.2.fastq" )
     parser.add_argument("-c", "--combined", default=False, action="store_true",
-                        help="store combined fastQ for paired reads > qXX.combined.fastq [%(default)s]" )
+                        help="store combined fastQ for paired reads > PREFIXqXX_mYY.combined.fastq [%(default)s]" )
     parser.add_argument("-H", "--stripHeaders", default=False, action="store_true",
                         help="replace headers by int [%(default)s]" )
     parser.add_argument("--fasta", default=False, action="store_true",
@@ -300,15 +344,17 @@ def main():
 
     parser.add_argument("--prefix", default=None, type=str,
                         help="Add a prefix to output files")
+    parser.add_argument("--ignore_quality", default=True, action="store_false",
+                        help="Ignore Encoding Quality Check" )
 
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n" % str(o))
 
-    ## Check input files
+    ## Check if input files exist
     for inFile in o.inputs:
         if not os.path.isfile(inFile):
-            exit(("\nERROR: Check your input file '%s'\n") % (inFile))
+            exit(("\nERROR: Check input file '%s'\n") % (inFile))
 
     ## Create output directory if not present already
     if not os.path.isdir(o.outdir):
@@ -316,38 +362,28 @@ def main():
 
     ## Check if quality encoding correct
     ## Quality offset checking need to be done!
-
-    ## We analyze the first 1000 reads to determine the format
-    counter, qualities = 1000, []
-    while counter > 0:
-        n,s,q = qseqparser(o.inputs[0]) if o.qseq else fqparser(o.inputs[0])
-        qualities += q
-        counter -= 1
-
-    minQ,maxQ,medQ = np.min(qualities), np.max(qualities), np.median(qualities)
-
-    ## for PHRED+33, values will be 31-73 and for PHRED+64: 62-104.
-    if o.qual64offset and (minQ < 62 and maxQ < 74):
-        exit(("\nERROR: Check quality encoding. Selected [PHRED+64]. MinQ: %d -"
-            + "MaxQ: %d - MedianQ: %.2f") % (min, maxQ, medQ))
-
-    if not o.qual64offset and (minQ > 62 and maxQ > 74):
-        exit(("\nERROR: Check quality encoding. Selected [PHRED+33]. MinQ: %d -"
-            + "MaxQ: %d - MedianQ: %.2f") % (min, maxQ, medQ))
+    if o.ignore_quality:
+        state, msg = checkQualityEncoding(o.inputs[0], 1000, o.qual64offset, \
+            o.qseq)
+        if not state:
+            exit(msg)
 
     ## Check if prefix is endend with '.' or '_'. Otherwise, add '.' at the end
     if o.prefix != None and not o.prefix[-1] in ['.', '_']:
         o.prefix += '.'
 
+    ## We pass file descriptors to the main functions
+    inputs = [open(inFile, "r") for inFile in o.inputs]
+
     ## Gerald2fastq
     if o.paired:
-        process_paired(o.inputs, o.qseq, o.outdir, o.prefix, o.unpaired, \
+        process_paired(inputs, o.qseq, o.outdir, o.prefix, o.unpaired, \
             o.minlen, o.minqual, o.noSeparate, o.combined, o.qual64offset, \
             o.replace, o.stripHeaders, o.fasta, o.verbose)
     else:
-        process_single(o.inputs, o.qseq, o.outdir, o.prefix, o.minlen, \
+        process_single(inputs, o.qseq, o.outdir, o.prefix, o.minlen, \
             o.minqual, o.qual64offset, o.replace, o.stripHeaders, o.fasta, \
-            o.verbose )
+            o.verbose)
 
 if __name__=='__main__':
     t0=datetime.now()
