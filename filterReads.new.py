@@ -14,6 +14,9 @@ Barcelona, 5/11/2013
 
 """
 Fixes:
+-0.22:
+--Added Phix removal possibility
+
 -0.21:
 --Added Encoding quality check
 --Added output file prefixes
@@ -116,6 +119,7 @@ def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outfor
     parser = qseqparser(handle) if qseq else fqparser(handle)
 
     ## Process entries
+    phixs = 0
     for seqi, read in enumerate(parser, pi+1):
 
         ## Discard any unvalid read
@@ -124,13 +128,14 @@ def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outfor
             continue
         name, seq, quals = read
 
-        #clip seq & quals @ N ( unknown base )
+        ## Clip seq & quals @ N ( unknown base )
         seq, quals = _clipSeq(seq, quals, 'N')
         #check if correct length
         if not seq or len(seq) < minlen:
             yield
             continue
-        #return PHRED+33 quals (Sanger encoding)
+
+        ## Return PHRED+33 quals (Sanger encoding)
         if qual64offset:
             quals=''.join([chr(ord(q)-31) for q in quals])
         #cut sequence & quals @ quality
@@ -145,7 +150,17 @@ def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outfor
                 continue
             #clip seq and qual
             quals = quals[:len(seq)]
-        #define fastQ line
+
+        ## Check wether current read is not part of PhiX Sequence
+        if phixReads and seq[:minqual] in phixReads and phixSeq.find(seq) != -1:
+            phixs += 1
+            sys.stderr.write(("%s Detected a read [%d] mapping to PhiX sequence"
+                + "\r") % (locale.format("%d", i, grouping=True), phixs))
+            sys.stderr.flush()
+            yield
+            continue
+
+        ## Define fastQ line
         if stripHeaders:
             name = "@%s%s" % (seqi, pair)
         if outformat == "fasta":
@@ -342,8 +357,10 @@ def main():
     parser.add_argument("--fasta", default=False, action="store_true",
                         help="report fasta, not FastQ" )
 
-    parser.add_argument("--prefix", default=None, type=str,
+    parser.add_argument("--prefix", default="", type=str,
                         help="Add a prefix to output files")
+    parser.add_argument("--phix_seq", default=None, type=str,
+                        help="Input the PHIX Sequence to remove any suspicious read")
     parser.add_argument("--ignore_quality", default=True, action="store_false",
                         help="Ignore Encoding Quality Check" )
 
@@ -359,6 +376,15 @@ def main():
     ## Create output directory if not present already
     if not os.path.isdir(o.outdir):
         os.makedirs(o.outdir)
+
+    ## If define, read the PHIX Sequence files and fragment it into chunks of
+    ## min_length size
+    global phixReads, phixSeq
+    phixReads, phixSeq = set(), None
+    if o.phix_seq and os.path.isfile(o.phix_seq):
+        phixSeq = str((SeqIO.read(open(o.phix_seq, "rU"), "fasta")).seq)
+        end = len(phixSeq) - o.minlen + 1
+        phixReads = set([phixSeq[pos:pos+o.minlen] for pos in range(0, end)])
 
     ## Check if quality encoding correct
     ## Quality offset checking need to be done!
