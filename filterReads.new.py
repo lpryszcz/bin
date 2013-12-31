@@ -2,8 +2,8 @@
 desc="""Filter QSEQ/FastQ reads. Store output as FastQ.
 Reads are clipped at first undetermined base (. in qseq or N in fastq)
 and at first base having qual below -q.
-Reads (and their pairs if -p) not passing filtering are discarded. 
-Orphaned reads may be store optionally (-u). 
+Reads (and their pairs if -p) not passing filtering are discarded.
+Orphaned reads may be store optionally (-u).
 """
 epilog="""Author:
 Leszek Pryszcz
@@ -28,18 +28,16 @@ Fixes:
 --include reads with '.' bases -> 'N'
 """
 
-import argparse, gzip, os, sys
-import subprocess
+import argparse, locale, subprocess, gzip, os, sys, numpy as np
 from datetime import datetime
 from Bio import SeqIO
-import locale
 locale.setlocale(locale.LC_ALL, 'en_US.utf8')
 
 def qseqparser(handle):
     """Parse QSEQ fromat and yield name, sequence and qualities."""
     for l in handle:
         qseq_element = l[:-1].split('\t') #SOLEXA 90403 4 1 23 1566 0 1 ACCGCTCTCGTGCTCGTCGCTGCGTTGAGGCTTGCG `aaaaa```aZa^`]a``a``a]a^`a\Y^`^^]V` 1
-        if len(qseq_element) != 11 or qseq_element[-1] != '1': 
+        if len(qseq_element) != 11 or qseq_element[-1] != '1':
             yield
             continue
         #formatting
@@ -59,14 +57,14 @@ def fqparser(handle):
         name, seq, sep, quals = fqlist
         fqlist = []
         yield name, seq, quals
-        
+
 def _clipSeq(seq, quals, sep='.'):
     """Clip sequence at first sep base (. or N). Clip quals accordingly."""
     if sep in seq:
         pos = seq.index(sep)
         seq, quals = seq[:pos], quals[:pos]
     return seq, quals
-        
+
 def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi, pair=""):
     """Single process implementation of rawtrimmer.
     Open zcat subprocess and read from stdin."""
@@ -111,7 +109,7 @@ def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outfor
         else:
             fastq = '%s\n%s\n+\n%s\n' % (name, seq, quals)
         yield fastq
-    
+
 def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
                   stripHeaders, outformat, pi):
     """Filter paired reads."""
@@ -120,7 +118,7 @@ def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
     #define parsers rawtrimmer fqtrimmer
     fqparser1 = rawtrimmer(inF, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
     fqparser2 = rawtrimmer(inR, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
-    #process 
+    #process
     both = fori = revi = filtered = 0
     for i, rec1 in enumerate(fqparser1, pi+1):
         #will crash if len(fq1) > len(fq2)
@@ -131,7 +129,7 @@ def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
                 outF.write(rec1)
                 outR.write(rec2)
             #store combined output
-            if outCombined: 
+            if outCombined:
                 outCombined.write(rec1+rec2)
             both += 1
         elif outUnpaired and rec1:
@@ -144,7 +142,7 @@ def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
             outUnpaired.write(rec2)
         else:
             #count skipped reads
-            filtered += 1             
+            filtered += 1
         #print stats
         if not i % 10e3:
             info = "%9s processed [%6.2f%s ok] Both passed: %s Orphans F/R: %s/%s      \r" % (locale.format("%d", i, grouping=True), (i-filtered)*100.0/i, '%', both, fori, revi)
@@ -153,37 +151,39 @@ def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
     sys.stderr.write(info)
     return i, filtered, fori+revi
 
-def process_paired(inputs, qseq, outdir, unpaired, minlen, minqual, \
+def process_paired(inputs, qseq, outdir, outprefix, unpaired, minlen, minqual, \
                    noSeparate, combined, qual64offset, replace, \
                    stripHeaders, fasta, verbose):
     """Process paired libraries."""
-    #define output fnames
-    fnend = outformat = 'fastq'
-    if fasta:
-        fnend = outformat = 'fasta'
-    outfnF     = os.path.join(outdir, 'q%s_1.%s'        % (minqual, fnend))
-    outfnR     = os.path.join(outdir, 'q%s_2.%s'        % (minqual, fnend))
-    unpairedfn = os.path.join(outdir, 'q%s.unpaired.%s' % (minqual, fnend))
-    combinedfn = os.path.join(outdir, 'q%s.combined.%s' % (minqual, fnend))      
+
+    ## Define output fnames
+    fnend = outformat = 'fasta' if fasta else 'fastq'
+    prefix = ("%sq%s_l%s") % (outprefix, minqual, minlen)
+
+    outfnF     = os.path.join(outdir, '%s_1.%s'        % (prefix, fnend))
+    outfnR     = os.path.join(outdir, '%s_2.%s'        % (prefix, fnend))
+    unpairedfn = os.path.join(outdir, '%s.unpaired.%s' % (prefix, fnend))
+    combinedfn = os.path.join(outdir, '%s.combined.%s' % (prefix, fnend))
+
     #check if outfiles exists
     if not replace:
         if os.path.isfile(outfnF) or os.path.isfile(outfnR) or os.path.isfile(unpairedfn) or os.path.isfile(combinedfn):
             sys.stderr.write("At least one of the output files is present. Remove them or run with --replace parameter. Exiting!\n")
             sys.exit()
-            
+
     #open files for writting
     outF = outR = outCombined = outUnpaired = False
     if not noSeparate:
         outF = open(outfnF, 'w')
         outR = open(outfnR, 'w')
     #open out file for unpaired reads
-    if unpaired: 
+    if unpaired:
         outUnpaired = open(unpairedfn, 'w')
     #open out file for combined FastQ
-    if combined: 
+    if combined:
         outCombined = open(combinedfn, 'w')
     outfiles = (outF, outR, outCombined, outUnpaired)
-    
+
     #process all input files
     fpair = []
     i = pi = filtered = single = 0
@@ -194,7 +194,7 @@ def process_paired(inputs, qseq, outdir, unpaired, minlen, minqual, \
         #proces qseq files: GERALD->FASTA
         i, pfiltered, psingle = filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
         #print info
-        if verbose: 
+        if verbose:
             sys.stdout.write('[%s]  %s  %s  %s  %s\n' % (datetime.ctime(datetime.now()), fpair[0].name, fpair[1].name, i-pi, pfiltered))
         #update read counts
         pi        = i
@@ -202,12 +202,12 @@ def process_paired(inputs, qseq, outdir, unpaired, minlen, minqual, \
         single   += psingle
         #reset fnames
         fpair = []
-      
+
     #close outfiles
     for outfile in outfiles:
         if outfile:
             outfile.close()
-    #print info 
+    #print info
     sys.stdout.write('Processed pairs: %s. Filtered: %s. Reads pairs included: %s [%.2f%s]. Orphans: %s [%.2f%s]\n' % ( i,filtered, i-filtered, (i-filtered)*100.0/i, '%', single, single*100.0/i,'%'))
 
 def filter_single(infile, out, minlen, minqual, qual64offset, qseq, \
@@ -222,9 +222,9 @@ def filter_single(infile, out, minlen, minqual, qual64offset, qseq, \
         if rec:
             out.write(rec)
             both += 1
-        #nothing if both didn't pass filtering 
-        else: 
-            filtered += 1             
+        #nothing if both didn't pass filtering
+        else:
+            filtered += 1
         #print stats
         if not i % 10e3:
             info = "%9s processed [%6.2f%s ok]      \r" % (locale.format("%d", i, grouping=True), (i-filtered)*100.0/i, '%')
@@ -232,15 +232,16 @@ def filter_single(infile, out, minlen, minqual, qual64offset, qseq, \
     info = "%9s processed [%6.2f%s ok]       \n" % (locale.format("%d", i, grouping=True), (i-filtered)*100.0/i, '%')
     sys.stderr.write(info)
     return i, filtered
-    
-def process_single(inputs, qseq, outdir, minlen, minqual, qual64offset, \
-                   replace, stripHeaders, fasta, verbose):
+
+def process_single(inputs, qseq, outdir, outprefix, minlen, minqual, \
+                   qual64offset, replace, stripHeaders, fasta, verbose):
     """Process single end libraries."""
-    #define output fnames
-    fnend = outformat = 'fastq'
-    if fasta:
-        fnend = outformat = 'fasta'
-    outfn     = os.path.join(outdir, 'q%s.%s' % (minqual, fnend))
+
+    ## Define output fnames
+    fnend = outformat = 'fasta' if fasta else 'fastq'
+    prefix = ("%sq%s_l%s") % (outprefix, minqual, minlen)
+    outfn     = os.path.join(outdir, '%s.%s'        % (prefix, fnend))
+
     #check if outfiles exists
     if not replace:
         if os.path.isfile(outfn):
@@ -253,26 +254,26 @@ def process_single(inputs, qseq, outdir, minlen, minqual, qual64offset, \
         #proces qseq files: GERALD->FASTA
         i, pfiltered = filter_single(fn, out, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
         #print info
-        if verbose: 
+        if verbose:
             sys.stdout.write('[%s]   %s  %s  %s\n' % (datetime.ctime(datetime.now()), fn, i-pi, pfiltered))
         #update read counts
         pi        = i
         filtered += pfiltered
     #close outfile
     out.close()
-    #print info 
-    sys.stdout.write('Processed: %s. Filtered: %s. Reads included: %s [%.2f%s].\n' % (i, filtered, i-filtered, (i-filtered)*100.0/i, '%'))        
-    
+    #print info
+    sys.stdout.write('Processed: %s. Filtered: %s. Reads included: %s [%.2f%s].\n' % (i, filtered, i-filtered, (i-filtered)*100.0/i, '%'))
+
 def main():
-  
-    usage  = "%(prog)s -p -u -q10 -l31 -i sample_read1.fastq.gz sample_read2.fastq.gz -o sample [options]" 
+
+    usage  = "%(prog)s -p -u -q10 -l31 -i sample_read1.fastq.gz sample_read2.fastq.gz -o sample [options]"
     parser = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
-  
+
     parser.add_argument("-v", "--verbose", default=False, action="store_true")
     parser.add_argument("--version", action="version", default="0.2")
     parser.add_argument("-i", "--inputs", nargs="+", type=file,
                         help="input file(s)")
-    parser.add_argument("-o", "--outdir", default='outdir', 
+    parser.add_argument("-o", "--outdir", default='outdir',
                         help="define where to store output files")
     parser.add_argument("-g", "--qseq", action="store_true",  default=False,
                         help="input is QSEQ, not FastQ")
@@ -282,43 +283,73 @@ def main():
                         help="read is clipped @ first base having PHRED quality lower than [%(default)s]" )
     parser.add_argument("-t", dest="qual64offset", default=False, action='store_true',
                         help="use PHRED+64 (illumina/solexa) quality encoding [Sanger PHRED+33 encoding]")
-    parser.add_argument("-p", "--paired", default=False, action="store_true", 
+    parser.add_argument("-p", "--paired", default=False, action="store_true",
                         help="paired-end reads (qXX_1.fastq & qXX_2.fastq)")
-    parser.add_argument("-u", "--unpaired", default=False, action="store_true", 
-                        help="store orphaned reads > qXX.unpaired.fastq")                  
-    parser.add_argument("-r", "--replace", default=False, action="store_true", 
+    parser.add_argument("-u", "--unpaired", default=False, action="store_true",
+                        help="store orphaned reads > qXX.unpaired.fastq")
+    parser.add_argument("-r", "--replace", default=False, action="store_true",
                         help="overwrite output files")
-    parser.add_argument("-b", "--noSeparate", default=False, action="store_true", 
-                        help="don't store separate fastQ for F & R reads > qXX_1.fastq qXX_2.fastq" )                  
-    parser.add_argument("-c", "--combined", default=False, action="store_true", 
+    parser.add_argument("-b", "--noSeparate", default=False, action="store_true",
+                        help="don't store separate fastQ for F & R reads > qXX_1.fastq qXX_2.fastq" )
+    parser.add_argument("-c", "--combined", default=False, action="store_true",
                         help="store combined fastQ for paired reads > qXX.combined.fastq [%(default)s]" )
-    parser.add_argument("-H", "--stripHeaders", default=False, action="store_true", 
+    parser.add_argument("-H", "--stripHeaders", default=False, action="store_true",
                         help="replace headers by int [%(default)s]" )
-    parser.add_argument("--fasta", default=False, action="store_true", 
+    parser.add_argument("--fasta", default=False, action="store_true",
                         help="report fasta, not FastQ" )
-  
+
+    parser.add_argument("--prefix", default=None, type=str,
+                        help="Add a prefix to output files")
+
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n" % str(o))
-    
-    #create output directore if not present already
-    if not os.path.isdir(o.outdir): 
+
+    ## Check input files
+    for inFile in o.inputs:
+        if not os.path.isfile(inFile):
+            exit(("\nERROR: Check your input file '%s'\n") % (inFile))
+
+    ## Create output directory if not present already
+    if not os.path.isdir(o.outdir):
         os.makedirs(o.outdir)
 
-    #check if quality encoding correct
-    ##Quality offset checking need to be done!
-        
-    #gerald2fastq
+    ## Check if quality encoding correct
+    ## Quality offset checking need to be done!
+
+    ## We analyze the first 1000 reads to determine the format
+    counter, qualities = 1000, []
+    while counter > 0:
+        n,s,q = qseqparser(o.inputs[0]) if o.qseq else fqparser(o.inputs[0])
+        qualities += q
+        counter -= 1
+
+    minQ,maxQ,medQ = np.min(qualities), np.max(qualities), np.median(qualities)
+
+    ## for PHRED+33, values will be 31-73 and for PHRED+64: 62-104.
+    if o.qual64offset and (minQ < 62 and maxQ < 74):
+        exit(("\nERROR: Check quality encoding. Selected [PHRED+64]. MinQ: %d -"
+            + "MaxQ: %d - MedianQ: %.2f") % (min, maxQ, medQ))
+
+    if not o.qual64offset and (minQ > 62 and maxQ > 74):
+        exit(("\nERROR: Check quality encoding. Selected [PHRED+33]. MinQ: %d -"
+            + "MaxQ: %d - MedianQ: %.2f") % (min, maxQ, medQ))
+
+    ## Check if prefix is endend with '.' or '_'. Otherwise, add '.' at the end
+    if o.prefix != None and not o.prefix[-1] in ['.', '_']:
+        o.prefix += '.'
+
+    ## Gerald2fastq
     if o.paired:
-        process_paired(o.inputs, o.qseq, o.outdir, o.unpaired, o.minlen, o.minqual, \
-                       o.noSeparate, o.combined, o.qual64offset, o.replace, \
-                       o.stripHeaders, o.fasta, o.verbose)
+        process_paired(o.inputs, o.qseq, o.outdir, o.prefix, o.unpaired, \
+            o.minlen, o.minqual, o.noSeparate, o.combined, o.qual64offset, \
+            o.replace, o.stripHeaders, o.fasta, o.verbose)
     else:
-        process_single(o.inputs, o.qseq, o.outdir, o.minlen, o.minqual, \
-                       o.qual64offset, o.replace, \
-                       o.stripHeaders, o.fasta, o.verbose )
-                  
-if __name__=='__main__': 
+        process_single(o.inputs, o.qseq, o.outdir, o.prefix, o.minlen, \
+            o.minqual, o.qual64offset, o.replace, o.stripHeaders, o.fasta, \
+            o.verbose )
+
+if __name__=='__main__':
     t0=datetime.now()
     try:
         main()
