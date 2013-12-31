@@ -66,7 +66,7 @@ def checkQualityEncoding(inFile, number_reads, qual64offset, qseq):
             + "- MaxQ: %d - MedianQ: %d\n") % (minQ, maxQ, medQ)
         return False, msg
 
-    if not qual64offset and (maxQ - 68) < minQ:
+    if not qual64offset and minQ > 58 and (maxQ - 68) < minQ:
         msg = ("\nERROR: Check quality encoding. Selected [PHRED+33]. MinQ: %d "
             + "- MaxQ: %d - MedianQ: %d\n") % (minQ, maxQ, medQ)
         return False, msg
@@ -75,20 +75,26 @@ def checkQualityEncoding(inFile, number_reads, qual64offset, qseq):
 
 def qseqparser(handle):
     """Parse QSEQ fromat and yield name, sequence and qualities."""
+
     for l in handle:
-        qseq_element = l[:-1].split('\t') #SOLEXA 90403 4 1 23 1566 0 1 ACCGCTCTCGTGCTCGTCGCTGCGTTGAGGCTTGCG `aaaaa```aZa^`]a``a``a]a^`a\Y^`^^]V` 1
+        ## Example SOLEXA read
+        ## SOLEXA 90403 4 1 23 1566 0 1 ACCGCTCTCGTGCTCGTCGCTGCGTTGAGGCTTGCG `aaaaa```aZa^`]a``a``a]a^`a\Y^`^^]V` 1
+        qseq_element = l[:-1].split('\t')
 
         if len(qseq_element) != 11 or qseq_element[-1] != '1':
             yield
             continue
-        #formatting
-        name       = '@%s:%s:%s:%s:%s#%s/%s' % (qseq_element[0], qseq_element[2], qseq_element[3], qseq_element[4], qseq_element[5], qseq_element[6], qseq_element[7])
-        seq, quals = qseq_element[8], qseq_element[9]
-        seq        = seq.replace(".", "N")
+        ## Format input read following FASTQ standard
+        name = '@%s:%s:%s:%s:%s#%s/%s' % (qseq_element[0], qseq_element[2], \
+            qseq_element[3], qseq_element[4], qseq_element[5], qseq_element[6],\
+            qseq_element[7])
+        seq, quals = qseq_element[8].replace(".", "N"), qseq_element[9]
+
         yield name, seq, quals
 
 def fqparser(handle):
-    """Parse fastq format and yield name, sequence and qualities."""
+    """Parse FASTQ format and yield name, sequence and qualities."""
+
     fqlist = []
     for l in handle:
         fqlist.append(l[:-1])
@@ -106,14 +112,16 @@ def _clipSeq(seq, quals, sep='.'):
         seq, quals = seq[:pos], quals[:pos]
     return seq, quals
 
-def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi, pair=""):
+def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, \
+    outformat, pi, pair=""):
     """Single process implementation of rawtrimmer.
     Open zcat subprocess and read from stdin."""
     handle = infile
+
     if infile.name.endswith('.gz'):
-        zcat   = subprocess.Popen(['zcat', infile.name], bufsize=-1, stdout=subprocess.PIPE)
+        zcat = subprocess.Popen(['zcat', infile.name], bufsize=-1, \
+            stdout=subprocess.PIPE)
         handle = zcat.stdout
-        #handle = gzip.open(infile.name)
 
     ## Get parser
     parser = qseqparser(handle) if qseq else fqparser(handle)
@@ -154,9 +162,9 @@ def rawtrimmer(infile, minlen, minqual, qual64offset, qseq, stripHeaders, outfor
         ## Check wether current read is not part of PhiX Sequence
         if phixReads and seq[:minqual] in phixReads and phixSeq.find(seq) != -1:
             phixs += 1
-            sys.stderr.write(("%s Detected a read [%d] mapping to PhiX sequence"
+            logFile.write(("%s Detected a read [%d] mapping to PhiX sequence"
                 + "\r") % (locale.format("%d", i, grouping=True), phixs))
-            sys.stderr.flush()
+            logFile.flush()
             yield
             continue
 
@@ -174,13 +182,17 @@ def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
     """Filter paired reads."""
     inF, inR = fpair
     outF, outR, outCombined, outUnpaired = outfiles
-    #define parsers rawtrimmer fqtrimmer
-    fqparser1 = rawtrimmer(inF, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
-    fqparser2 = rawtrimmer(inR, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
-    #process
+
+    ## Define parsers rawtrimmer fqtrimmer
+    fqparser1 = rawtrimmer(inF, minlen, minqual, qual64offset, qseq, \
+        stripHeaders, outformat, pi)
+    fqparser2 = rawtrimmer(inR, minlen, minqual, qual64offset, qseq, \
+        stripHeaders, outformat, pi)
+
+    ## Process
     both = fori = revi = filtered = 0
     for i, rec1 in enumerate(fqparser1, pi+1):
-        #will crash if len(fq1) > len(fq2)
+        # will crash if len(fq1) > len(fq2)
         rec2 = fqparser2.next()
         if rec1 and rec2:
             #store paired output
@@ -192,11 +204,11 @@ def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
                 outCombined.write(rec1+rec2)
             both += 1
         elif outUnpaired and rec1:
-            #store F read if R didn't pass filtering and orphans requested
+            ## Store F read if R didn't pass filtering and orphans requested
             fori+=1
             outUnpaired.write(rec1)
         elif outUnpaired and rec2:
-            #store R read if F didn't pass filtering and orphans requested
+            ## Store R read if F didn't pass filtering and orphans requested
             revi+=1
             outUnpaired.write(rec2)
         else:
@@ -204,10 +216,18 @@ def filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, \
             filtered += 1
         #print stats
         if not i % 10e3:
-            info = "%9s processed [%6.2f%s ok] Both passed: %s Orphans F/R: %s/%s      \r" % (locale.format("%d", i, grouping=True), (i-filtered)*100.0/i, '%', both, fori, revi)
-            sys.stderr.write(info)
-    info = "%9s processed [%6.2f%s ok] Both passed: %s Orphans F/R: %s/%s      \n" % (locale.format("%d", i, grouping=True), (i-filtered)*100.0/i, '%', both, fori, revi)
-    sys.stderr.write(info)
+            info = "%9s processed [" % (locale.format("%d", i, grouping=True))
+            info += '%6.2f%s ok] Both passed: %s Orphans F/R: %s/%s      \r'\
+                % ((i-filtered)*100.0/i, '%', both, fori, revi)
+            logFile.write(info)
+            logFile.flush()
+
+    info = "%9s processed [" % (locale.format("%d", i, grouping=True))
+    info += '%6.2f%s ok] Both passed: %s Orphans F/R: %s/%s      \r' \
+        % ((i-filtered)*100.0/i, '%', both, fori, revi)
+    logFile.write(info)
+    logFile.flush()
+
     return i, filtered, fori+revi
 
 def process_paired(inputs, qseq, outdir, outprefix, unpaired, minlen, minqual, \
@@ -224,11 +244,14 @@ def process_paired(inputs, qseq, outdir, outprefix, unpaired, minlen, minqual, \
     unpairedfn = os.path.join(outdir, '%s.unpaired.%s' % (prefix, fnend))
     combinedfn = os.path.join(outdir, '%s.combined.%s' % (prefix, fnend))
 
-    #check if outfiles exists
+    ## Check if outfiles exists
     if not replace:
-        if os.path.isfile(outfnF) or os.path.isfile(outfnR) or os.path.isfile(unpairedfn) or os.path.isfile(combinedfn):
-            sys.stderr.write("At least one of the output files is present. Remove them or run with --replace parameter. Exiting!\n")
-            sys.exit()
+        if os.path.isfile(outfnF) or os.path.isfile(outfnR) or \
+            os.path.isfile(unpairedfn) or os.path.isfile(combinedfn):
+            logFile.write("At least one of the output files is present. Remove "
+                "them or run with --replace parameter. Exiting!\n")
+            logFile.flush()
+            exit(-3)
 
     #open files for writting
     outF = outR = outCombined = outUnpaired = False
@@ -250,11 +273,16 @@ def process_paired(inputs, qseq, outdir, outprefix, unpaired, minlen, minqual, \
         fpair.append(fn)
         if len(fpair) != 2:
             continue
-        #proces qseq files: GERALD->FASTA
-        i, pfiltered, psingle = filter_paired(fpair, outfiles, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
-        #print info
+
+        ## Process QSEQ files: GERALD->FASTA
+        i, pfiltered, psingle = filter_paired(fpair, outfiles, minlen, minqual,\
+            qual64offset, qseq, stripHeaders, outformat, pi)
+        ## Print info
         if verbose:
-            sys.stdout.write('[%s]  %s  %s  %s  %s\n' % (datetime.ctime(datetime.now()), fpair[0].name, fpair[1].name, i-pi, pfiltered))
+            logFile.write('[%s]  %s  %s  %s  %s\n' % \
+                (datetime.ctime(datetime.now()), fpair[0].name, fpair[1].name,\
+                i-pi, pfiltered))
+            logFile.flush()
         #update read counts
         pi        = i
         filtered += pfiltered
@@ -262,12 +290,15 @@ def process_paired(inputs, qseq, outdir, outprefix, unpaired, minlen, minqual, \
         #reset fnames
         fpair = []
 
-    #close outfiles
+    ## Close outfiles
     for outfile in outfiles:
         if outfile:
             outfile.close()
-    #print info
-    sys.stdout.write('Processed pairs: %s. Filtered: %s. Reads pairs included: %s [%.2f%s]. Orphans: %s [%.2f%s]\n' % ( i,filtered, i-filtered, (i-filtered)*100.0/i, '%', single, single*100.0/i,'%'))
+    ## Print info
+    logFile.write('Processed pairs: %s. Filtered: %s. Reads pairs included: %s '
+        +'[%.2f%s]. Orphans: %s [%.2f%s]\n' % ( i,filtered, i-filtered, \
+        (i-filtered)*100.0/i, '%', single, single*100.0/i,'%'))
+    logFile.flush()
 
 def filter_single(infile, out, minlen, minqual, qual64offset, qseq, \
                   stripHeaders, outformat, pi):
@@ -286,10 +317,15 @@ def filter_single(infile, out, minlen, minqual, qual64offset, qseq, \
             filtered += 1
         #print stats
         if not i % 10e3:
-            info = "%9s processed [%6.2f%s ok]      \r" % (locale.format("%d", i, grouping=True), (i-filtered)*100.0/i, '%')
-            sys.stderr.write(info)
-    info = "%9s processed [%6.2f%s ok]       \n" % (locale.format("%d", i, grouping=True), (i-filtered)*100.0/i, '%')
-    sys.stderr.write(info)
+            info = "%9s processed [%6.2f%s ok]      \r" % (locale.format("%d", \
+                i, grouping=True), (i-filtered)*100.0/i, '%')
+            logFile.write(info)
+            logFile.flush()
+    info = "%9s processed [%6.2f%s ok]       \n" % (locale.format("%d", i, \
+        grouping=True), (i-filtered)*100.0/i, '%')
+    logFile.write(info)
+    logFile.flush()
+
     return i, filtered
 
 def process_single(inputs, qseq, outdir, outprefix, minlen, minqual, \
@@ -304,24 +340,31 @@ def process_single(inputs, qseq, outdir, outprefix, minlen, minqual, \
     #check if outfiles exists
     if not replace:
         if os.path.isfile(outfn):
-            sys.stderr.write("File exists: %s. Remove them or run with --replace parameter. Exiting!\n"%outfn)
-            sys.exit()
+            logFile.write("File exists: %s. Remove them or run with --replace "
+                + "parameter. Exiting!\n"%outfn)
+            logFile.flush()
+            exit(-3)
     #process input files
     i = pi = filtered = 0
     out = open(outfn, 'w')
     for fn in inputs:
-        #proces qseq files: GERALD->FASTA
-        i, pfiltered = filter_single(fn, out, minlen, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
-        #print info
+        ## Process QSEQ files: GERALD->FASTA
+        i, pfiltered = filter_single(fn, out, minlen, minqual, qual64offset, \
+            qseq, stripHeaders, outformat, pi)
+        ## Print info
         if verbose:
-            sys.stdout.write('[%s]   %s  %s  %s\n' % (datetime.ctime(datetime.now()), fn, i-pi, pfiltered))
+            logFile.write('[%s]   %s  %s  %s\n' % \
+                (datetime.ctime(datetime.now()), fn, i-pi, pfiltered))
+            logFile.flush()
         #update read counts
         pi        = i
         filtered += pfiltered
     #close outfile
     out.close()
     #print info
-    sys.stdout.write('Processed: %s. Filtered: %s. Reads included: %s [%.2f%s].\n' % (i, filtered, i-filtered, (i-filtered)*100.0/i, '%'))
+    logFile.write('Processed: %s. Filtered: %s. Reads included: %s [%.2f%s].\n'\
+        % (i, filtered, i-filtered, (i-filtered)*100.0/i, '%'))
+    logFile.flush()
 
 def main():
 
@@ -329,7 +372,7 @@ def main():
     parser = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true")
-    parser.add_argument("--version", action="version", default="0.21")
+    parser.add_argument("--version", action="version", default="0.22")
     parser.add_argument("-i", "--inputs", nargs="+", type=str,
                         help="input file(s)")
     parser.add_argument("-o", "--outdir", default='outdir',
@@ -357,6 +400,8 @@ def main():
     parser.add_argument("--fasta", default=False, action="store_true",
                         help="report fasta, not FastQ" )
 
+    parser.add_argument("--log", default="", type=str,
+                        help="Dump log into a file rather than to the stdout/stderr")
     parser.add_argument("--prefix", default="", type=str,
                         help="Add a prefix to output files")
     parser.add_argument("--phix_seq", default=None, type=str,
@@ -365,13 +410,21 @@ def main():
                         help="Ignore Encoding Quality Check" )
 
     o = parser.parse_args()
+
+    global logFile
+    ## Define the output stream
+    logFile = open(o.log, "w") if o.log != "" else sys.stderr
+
     if o.verbose:
-        sys.stderr.write("Options: %s\n" % str(o))
+        logFile.write("Options: %s\n" % str(o))
+        logFile.flush()
 
     ## Check if input files exist
     for inFile in o.inputs:
         if not os.path.isfile(inFile):
-            exit(("\nERROR: Check input file '%s'\n") % (inFile))
+            logFile.write(("\nERROR: Check input file '%s'\n") % (inFile))
+            logFile.flush()
+            exit(-1)
 
     ## Create output directory if not present already
     if not os.path.isdir(o.outdir):
@@ -392,7 +445,9 @@ def main():
         state, msg = checkQualityEncoding(o.inputs[0], 1000, o.qual64offset, \
             o.qseq)
         if not state:
-            exit(msg)
+            logFile.write(msg)
+            logFile.flush()
+            exit(-2)
 
     ## Check if prefix is endend with '.' or '_'. Otherwise, add '.' at the end
     if o.prefix != None and not o.prefix[-1] in ['.', '_']:
@@ -418,4 +473,5 @@ if __name__=='__main__':
     except KeyboardInterrupt:
         sys.stderr.write("\nCtrl-C pressed!                \n")
     dt=datetime.now()-t0
-    sys.stderr.write("#Time elapsed: %s\n" % dt)
+    logFile.write("## Time elapsed: %s\n" % dt)
+    logFile.flush()
