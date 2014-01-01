@@ -295,9 +295,10 @@ def process_paired(inputs, qseq, outdir, outprefix, unpaired, minlen, minqual, \
         if outfile:
             outfile.close()
     ## Print info
-    logFile.write('Processed pairs: %s. Filtered: %s. Reads pairs included: %s '
-        +'[%.2f%s]. Orphans: %s [%.2f%s]\n' % ( i,filtered, i-filtered, \
-        (i-filtered)*100.0/i, '%', single, single*100.0/i,'%'))
+    ratio = (i-filtered)*(100.0/i)
+    logFile.write('Processed pairs: %s. Filtered: %s. Reads ' % (i, filtered))
+    logFile.write('pairs included: %s [%.2f%c]. ' % (i-filtered, ratio, '%'))
+    logFile.write('Orphans: %s [%.2f%c]\n' % (single, single*(100.0/i), '%'))
     logFile.flush()
 
 def filter_single(infile, out, minlen, minqual, qual64offset, qseq, \
