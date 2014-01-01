@@ -6,14 +6,16 @@ Reads (and their pairs if -p) not passing filtering are discarded.
 Orphaned reads may be store optionally (-u).
 """
 epilog="""Author:
-Leszek Pryszcz
-l.p.pryszcz@gmail.com
+Leszek Pryszcz/l.p.pryszcz@gmail.com
+Modified by Salvador Capella-Gutierrez/salcagu@gmail.com
 
-Barcelona, 5/11/2013
+Barcelona, 01/01/2014
 """
 
 """
 Fixes:
+-0.23:
+--Stable version after different new options
 -0.22:
 --Added Phix removal possibility
 
@@ -373,7 +375,7 @@ def main():
     parser = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true")
-    parser.add_argument("--version", action="version", default="0.22")
+    parser.add_argument("--version", action="version", default="0.23")
     parser.add_argument("-i", "--inputs", nargs="+", type=str,
                         help="input file(s)")
     parser.add_argument("-o", "--outdir", default='outdir',
