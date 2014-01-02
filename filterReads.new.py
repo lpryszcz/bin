@@ -16,6 +16,7 @@ Barcelona, 01/01/2014
 Fixes:
 -0.23:
 --Stable version after different new options
+
 -0.22:
 --Added Phix removal possibility
 
@@ -375,7 +376,7 @@ def main():
     parser = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true")
-    parser.add_argument("--version", action="version", default="0.23")
+    parser.add_argument("--version", action="version", version='%(prog)s 0.23')
     parser.add_argument("-i", "--inputs", nargs="+", type=str,
                         help="input file(s)")
     parser.add_argument("-o", "--outdir", default='outdir',
