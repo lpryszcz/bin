@@ -234,7 +234,7 @@ def main():
     libFn = get_libs( o.out,o.lib,o.libnames,tabFnames,o.libIS,o.libISStDev,o.orientations,o.verbose )
 
     #print sspace cmd
-    cmd = "perl ~/src/SSPACE-BASIC-2.0_linux-x86_64/SSPACE_Basic_v2.0.pl -l %s -a 0.7 -k %s -s %s -b %s > %s.sspace.log" % ( libFn,o.minlinks,o.fasta.name,o.out,o.out ); print cmd
+    cmd = "perl /users/tg/lpryszcz/src/SSPACE-BASIC-2.0_linux-x86_64/SSPACE_Basic_v2.0.pl -l %s -a 0.7 -k %s -s %s -b %s > %s.sspace.log" % ( libFn,o.minlinks,o.fasta.name,o.out,o.out ); print cmd
     os.system( cmd )
           
 if __name__=='__main__': 

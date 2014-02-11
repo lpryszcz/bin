@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """Annotate SNPs with gene(s) and functions
-
-
 """
 
 import os, sys
@@ -49,11 +47,11 @@ def process_alt( ref,alt,contig,pos,contig2position,gene2position,contig2fasta,t
                 if geneid in trans2pfam:
                     pfamAnn  = trans2pfam[geneid]
                 contig,CDSs,strand,function = gene2position[geneid]
-                outline += "%s\t%s\t%s\t%s\t%s\n" % ( l,coding_snp_info( contig2fasta[contig],geneid,CDSs,strand,ref,alt,pos ),function,fastaAnn,pfamAnn )
+                outline += "%s\t%s\t%s\t%s\t%s\n" % (l, coding_snp_info(contig2fasta[contig], geneid, CDSs, strand, ref, alt, pos), function, fastaAnn, pfamAnn)
             else:
-                outline += "%s\t%s\n" % ( l,feature )
+                outline += "%s\t%s\n" % (l, feature)
     else:
-        outline += "%s\tintergenic\n" % ( l, )
+        outline += "%s\tintergenic\n" % (l,)
     
     return outline
 
@@ -76,7 +74,8 @@ def parse_snps( fpath,outfn,contig2position,gene2position,contig2fasta,trans2ann
         ##
         lData = l[:-1].split("\t")
         if ':' in lData[0]:
-            coord,refCov,refBase,altBase = lData[:4]
+            #coord,refCov,refBase,altBase = lData[:4]
+            coord,refCov,refBase,refFreq,altCov,altBase,altFreq = lData[:7]
             #alter contig2fasta
             contig,pos = coord.split(':')
         else:
@@ -92,12 +91,14 @@ def parse_snps( fpath,outfn,contig2position,gene2position,contig2fasta,trans2ann
         
     # parse snp file
     snpsCount = indelsCount = 0
+    headeradded = 0
     for l in open(fpath):
         l = l.strip()
         if l.startswith("#") or not l:
-            if   l.startswith("##"):
+            if   l.startswith("##") or headeradded:
                 continue
             elif l.startswith("#"):
+                headeradded = 1 
                 l+="\tSNP type\tgene\tAA type\tAA position\tposition in codon\tref codon\tref AA\talt codon\talt AA\tfuntcion\tfasta annotation\tpfam\n"
             out1.write( l )
             continue
@@ -105,7 +106,7 @@ def parse_snps( fpath,outfn,contig2position,gene2position,contig2fasta,trans2ann
         snpsCount += 1
         lData = l[:-1].split("\t")
         if ':' in lData[0]:
-            coord,refCov,refBase,altBase = lData[:4]
+            coord,refCov,refBase,refFreq,altCov,altBase,altFreq = lData[:7]
             #alter contig2fasta
             contig,pos = coord.split(':')
         else:
