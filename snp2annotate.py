@@ -46,7 +46,7 @@ def process_alt( ref,alt,contig,pos,contig2position,gene2position,contig2fasta,t
                     fastaAnn = trans2ann[geneid]
                 if geneid in trans2pfam:
                     pfamAnn  = trans2pfam[geneid]
-                contig,CDSs,strand,function = gene2position[geneid]
+                contig,CDSs,strand,function,frame = gene2position[geneid]
                 outline += "%s\t%s\t%s\t%s\t%s\n" % (l, coding_snp_info(contig2fasta[contig], geneid, CDSs, strand, ref, alt, pos), function, fastaAnn, pfamAnn)
             else:
                 outline += "%s\t%s\n" % (l, feature)
