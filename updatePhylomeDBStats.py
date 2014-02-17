@@ -7,11 +7,10 @@ In addition, checks for web-serwer stats from last week i.e. the most common que
 
 """
 
-import os, sys
+import os, sys, time
 import locale
 #locale.setlocale(locale.LC_ALL, '')
 import MySQLdb
-import time
 from datetime import datetime
 from optparse import OptionParser
 #phylomedb wsgi
@@ -21,34 +20,35 @@ from phylomedb import PUBLIC_PHYLOMES
 def phylome_stats( ):
     """Generate database stats.
     """
-    conn=MySQLdb.connect(host="cgenomics.crg.es",user="phyReader",passwd="phyd10.-Reader",db='phylomedb_3')
-    c=conn.cursor()
+    conn = MySQLdb.connect(host="cgenomics.crg.es", user="phyReader", \
+                           passwd="phyd10.-Reader", db='phylomedb_4')
+    c = conn.cursor()
     
     #public phylomes are stored by python, not by mysql
     public = len(PUBLIC_PHYLOMES) #19 
     
     #trees
-    c.execute( "SELECT COUNT(*) FROM tree" ) 
+    c.execute("SELECT COUNT(*) FROM tree" ) 
     trees, = c.fetchone()
     
     #ml trees
-    c.execute( "SELECT COUNT(*) FROM tree WHERE method!='NJ'" )
+    c.execute("SELECT COUNT(*) FROM tree WHERE method!='NJ'")
     mltree,= c.fetchone()
 
     #algs
-    c.execute( "SELECT COUNT(*) FROM alignment" )
+    c.execute("SELECT COUNT(*) FROM alignment")
     algs,  = c.fetchone()
     
     #proteins
-    c.execute( "SELECT COUNT(*) FROM unique_protein" )
+    c.execute("SELECT COUNT(*) FROM unique_protein")
     prots, = c.fetchone()
     
     #species
-    c.execute( "SELECT COUNT(*) FROM species" )
+    c.execute("SELECT COUNT(*) FROM species")
     specs, = c.fetchone()
 
     #genomes
-    c.execute( "SELECT COUNT(*) FROM genome" )
+    c.execute("SELECT COUNT(*) FROM genome")
     genms, = c.fetchone()
     
     lines  = """<p><strong>Public Phylomes: </strong><a href="?q=phylomes">%s</a></p>
@@ -110,7 +110,7 @@ def webserver_stats( serverlog,days=31 ):
 
         if "seqid=" in request:
             seqid = request.split("seqid=")[1]
-            if not seqid: continue
+            if not seqid or seqid=="RANDOM": continue
             seqid = seqid.split()[0]
             seqid = seqid.split("&")[0]
             if seqid not in proteins:
@@ -143,10 +143,10 @@ def webserver_stats( serverlog,days=31 ):
     for ph in phylomes.keys():
         if not ph in PUBLIC_PHYLOMES:
             del phylomes[ph]
-    phylome = sorted( phylomes.keys(),key=lambda x: phylomes[x],reverse=True )[0]
-    tree    = sorted( trees.keys(),   key=lambda x: trees[x],   reverse=True )[0]
-    protein = sorted( proteins.keys(),key=lambda x: proteins[x],reverse=True )[0]
-    alg     = sorted( algs.keys(),    key=lambda x: algs[x],    reverse=True )[0]
+    phylome = sorted(phylomes.keys(), key=lambda x: phylomes[x], reverse=True )[0]
+    tree    = sorted(trees.keys(),    key=lambda x: trees[x],    reverse=True )[0]
+    protein = sorted(proteins.keys(), key=lambda x: proteins[x], reverse=True )[0]
+    alg     = sorted(algs.keys(),     key=lambda x: algs[x],     reverse=True )[0]
 
     lines = """
 <p><strong>The most popular (last %s days): </strong>
@@ -157,7 +157,12 @@ def webserver_stats( serverlog,days=31 ):
 <li><strong>protein:        </strong> <a href="/?q=seqinfo&seqid=%s">%s (%s)</a></li>
 </ul>
 </p>
-""" % ( days,phylome,phylome,phylomes[phylome],tree.split('|')[0],tree.split('|')[1],tree.split('|')[2],tree.split('|')[0],trees[tree],alg.split('|')[0],alg.split('|')[1],alg.split('|')[2],alg.split('|')[0],algs[alg],protein,protein,proteins[protein] )
+""" % (days, phylome, phylome, phylomes[phylome], \
+       tree.split('|')[0], tree.split('|')[1], tree.split('|')[2], \
+       tree.split('|')[0], trees[tree], \
+       alg.split('|')[0], alg.split('|')[1], alg.split('|')[2], \
+       alg.split('|')[0], algs[alg], \
+       protein, protein, proteins[protein])
     return lines
 
 def main():
@@ -174,15 +179,15 @@ def main():
     parser.add_option( "-d", dest="days",default=30,type=int,
                        help="how many days backwards to look [%default]")
     
-    ( o, args ) = parser.parse_args()
+    (o, args) = parser.parse_args()
     
     lines = ""
 
     #generate database stats
-    lines += phylome_stats( )
+    lines += phylome_stats()
     
     #generate last week access stats
-    lines += webserver_stats( o.serverlog,o.days )
+    lines += webserver_stats(o.serverlog, o.days)
     
     #add current date
     date   = datetime.ctime( datetime.now() )
@@ -190,8 +195,8 @@ def main():
 
     #save to file
     #print lines
-    out = open( o.outfile,'w' )
-    out.write( lines )
+    out = open(o.outfile, 'w')
+    out.write(lines)
     out.close()
 
 
