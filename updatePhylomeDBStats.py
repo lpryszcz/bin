@@ -62,7 +62,7 @@ def phylome_stats( ):
     return lines
 
 
-def webserver_stats( serverlog,days=31 ):
+def webserver_stats(serverlog, days=31):
     """Generate webserver stats i.e. most popular query
     """
     query=protein=tree=phylome = ""
@@ -72,7 +72,7 @@ def webserver_stats( serverlog,days=31 ):
     algs     = {}
     d2       = datetime.now()
     #parse log
-    for l in open( serverlog ):
+    for l in open(serverlog):
         if ' "GET /?q=' not in l:
             continue
 
@@ -103,6 +103,9 @@ def webserver_stats( serverlog,days=31 ):
                 phyid = int(phyid)
             except: 
                 print "Error: Wrong phyid: %s" % phyid
+                continue
+            #only public
+            if phyid not in PUBLIC_PHYLOMES:
                 continue
             if phyid not in phylomes:
                 phylomes[phyid] = 0
