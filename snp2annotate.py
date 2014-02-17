@@ -8,6 +8,16 @@ from optparse import OptionParser
 from datetime import datetime
 from genome_annotation import load_gtf,load_gff,genome2dict,coding_snp_info # bin/python_modules
 
+def load_tab(tabfn):
+    """Return gene/transcript annotation from TAB file ie interpor"""
+    gene2fun = {}
+    for l in open(tabfn):
+        gene, function = l[:-1].split('\t')[:2]
+        if gene not in gene2fun:
+            gene2fun[gene] = []
+        gene2fun[gene].append(function)
+    return gene2fun
+
 def load_pfam( pfam ):
     """Return gene/transcript to pfam matches dictionary."""
     sys.path.append( "/users/tg/lpryszcz/bin" )
@@ -32,7 +42,8 @@ def load_fasta_headers( fasta ):
 
     return gene2ann
 
-def process_alt( ref,alt,contig,pos,contig2position,gene2position,contig2fasta,trans2ann,trans2pfam,l ):
+def process_alt(ref, alt, contig, pos, contig2position, gene2position, contig2fasta, \
+                trans2ann, trans2pfam, trans2tab, l):
     """
     """
     outline = ""
@@ -41,13 +52,15 @@ def process_alt( ref,alt,contig,pos,contig2position,gene2position,contig2fasta,t
     if genes:
         for start,stop,feature,geneid in genes:
             if feature == 'gene':
-                fastaAnn = pfamAnn = ""
+                fastaAnn = pfamAnn = tabAnn = ""
                 if geneid in trans2ann:
                     fastaAnn = trans2ann[geneid]
                 if geneid in trans2pfam:
                     pfamAnn  = trans2pfam[geneid]
+                if geneid in trans2tab:
+                    tabAnn   = trans2tab[geneid]
                 contig,CDSs,strand,function,frame = gene2position[geneid]
-                outline += "%s\t%s\t%s\t%s\t%s\n" % (l, coding_snp_info(contig2fasta[contig], geneid, CDSs, strand, ref, alt, pos), function, fastaAnn, pfamAnn)
+                outline += "%s\t%s\t%s\t%s\t%s\t%s\n" % (l, coding_snp_info(contig2fasta[contig], geneid, CDSs, strand, ref, alt, pos), function, fastaAnn, pfamAnn, tabAnn)
             else:
                 outline += "%s\t%s\n" % (l, feature)
     else:
@@ -55,7 +68,7 @@ def process_alt( ref,alt,contig,pos,contig2position,gene2position,contig2fasta,t
     
     return outline
 
-def parse_snps( fpath,outfn,contig2position,gene2position,contig2fasta,trans2ann,trans2pfam,verbose ):
+def parse_snps(fpath, outfn, contig2position, gene2position, contig2fasta, trans2ann, trans2pfam, trans2tab, verbose):
     """
     """
     # select output
@@ -99,7 +112,7 @@ def parse_snps( fpath,outfn,contig2position,gene2position,contig2fasta,trans2ann
                 continue
             elif l.startswith("#"):
                 headeradded = 1 
-                l+="\tSNP type\tgene\tAA type\tAA position\tposition in codon\tref codon\tref AA\talt codon\talt AA\tfuntcion\tfasta annotation\tpfam\n"
+                l+="\tSNP type\tgene\tAA type\tAA position\tposition in codon\tref codon\tref AA\talt codon\talt AA\tfuntcion\tfasta annotation\tpfam\ttab annotation\n"
             out1.write( l )
             continue
         ##
@@ -118,8 +131,8 @@ def parse_snps( fpath,outfn,contig2position,gene2position,contig2fasta,trans2ann
             sys.stderr.write("Warining: Contig %s is not present in GTF!\n" % contig )
             continue
         
-        outline = process_alt( refBase,altBase,contig,pos,contig2position,gene2position,contig2fasta,trans2ann,trans2pfam,l )
-        out1.write( outline ) 
+        outline = process_alt(refBase, altBase, contig, pos, contig2position, gene2position, contig2fasta, trans2ann, trans2pfam, trans2tab, l)
+        out1.write(outline) 
 
     #sys.stderr.write( "SNPs:\t%s\nINDELs:\t%s\n" % ( snpsCount,indelsCount ) )
     sys.stderr.write( "SNPs:\t%s\n" % ( snpsCount, ) )
@@ -168,14 +181,16 @@ def main():
             sys.stderr.write( "Loaded annotation of %s CDS from %s\n" % ( len(id2gene),o.gtf ) )
 
     #load function annotation
-    trans2ann = trans2pfam = {}
+    trans2ann = trans2pfam = trans2tab = {}
     if o.faa:
         trans2ann = load_fasta_headers( o.faa )
     if o.pfam:
         trans2pfam = load_pfam( o.pfam )
-            
+    if o.tab:
+        trans2tab = load_tab(o.tab)
     # parse pileup
-    parse_snps( o.fpath,o.outfn,ctg2cds,id2gene,ctg2seq,trans2ann,trans2pfam,o.verbose )
+    parse_snps(o.fpath, o.outfn, ctg2cds, id2gene, ctg2seq, trans2ann, trans2pfam, \
+               trans2tab, o.verbose)
   
 if __name__=='__main__': 
   t0=datetime.now()
