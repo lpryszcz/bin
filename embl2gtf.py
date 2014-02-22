@@ -32,7 +32,7 @@ def _get_unique_id( gene_id,products,i=1 ):
   
   return new_id
 
-def embl2gtf( source='embl2gtf',allowedTypes=set(['gene','CDS']) ): #'tRNA','tmRNA','rRNA','ncRNA'
+def embl2gtf( source='embl2gtf',allowedTypes=set(['gene', 'CDS', 'tRNA', 'tmRNA', 'rRNA', 'ncRNA']) ): #'mRNA', 
   """
   """
   #make sure no duplicated products
@@ -52,12 +52,12 @@ def embl2gtf( source='embl2gtf',allowedTypes=set(['gene','CDS']) ): #'tRNA','tmR
         continue
       
       #generate comments field
-      if 'gene' in f.qualifiers:
-        #use gene name as gene_id/transcript_id
-        gene_id = transcript_id = f.qualifiers['gene'][0]
-      elif 'locus_tag' in f.qualifiers:
+      if 'locus_tag' in f.qualifiers:
         #use locul tag as gene_id/transcript_id
         gene_id = transcript_id = f.qualifiers['locus_tag'][0]
+      elif 'gene' in f.qualifiers:
+        #use gene name as gene_id/transcript_id
+        gene_id = transcript_id = f.qualifiers['gene'][0]
       elif 'product' in f.qualifiers:
         #use locul tag as gene_id/transcript_id
         gene_id = transcript_id = f.qualifiers['product'][0]
@@ -69,8 +69,8 @@ def embl2gtf( source='embl2gtf',allowedTypes=set(['gene','CDS']) ): #'tRNA','tmR
       if gene_id in products:
         sys.stderr.write( "Warning: Duplicated entry found: %s\n" % '; '.join( str(f).split('\n') ) )
         gene_id = transcript_id = _get_unique_id( gene_id,products ) #continue
-        
-      products.add( gene_id )
+      
+      products.add(gene_id)
       
       comments = 'gene_id "%s"; transcript_id "%s"' % ( gene_id,transcript_id )
       #if not 'systematic_id' in f.qualifiers:

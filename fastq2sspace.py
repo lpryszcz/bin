@@ -74,7 +74,7 @@ def _get_bowtie2_proc( fn1,fn2,ref,maxins,cores,upto,verbose,bufsize=-1):
     fformat = "-q"
     if fn1.endswith(('.fa','.fasta','.fa.gz','.fasta.gz')):
         fformat = "-f"
-    bwtArgs = ['bowtie2','--quiet','--very-fast','-p',str(cores),'-x',ref, fformat,"-1", fn1, "-2", fn2,"--maxins",str(maxins) ]
+    bwtArgs = ['bowtie2','--quiet','--very-fast-local','-p',str(cores),'-x',ref, fformat,"-1", fn1, "-2", fn2,"--maxins",str(maxins) ]
     if upto:
         bwtArgs += [ "--upto",str(upto) ]
     if verbose:
@@ -221,7 +221,7 @@ def main():
     libFn = get_libs( o.out,o.lib,o.libnames,tabFnames,o.libIS,o.libISStDev,o.orientations,o.verbose )
 
     #print sspace cmd
-    cmd = "perl ~/src/SSPACE-BASIC-2.0_linux-x86_64/SSPACE_Basic_v2.0.pl -l %s -a 0.7 -k %s -s %s -b %s > %s.sspace.log" % ( libFn,o.minlinks,o.fasta.name,o.out,o.out ); print cmd
+    cmd = "perl /users/tg/lpryszcz/src/SSPACE-BASIC-2.0_linux-x86_64/SSPACE_Basic_v2.0.pl -l %s -a 0.7 -k %s -s %s -b %s > %s.sspace.log" % ( libFn,o.minlinks,o.fasta.name,o.out,o.out ); print cmd
     os.system( cmd )
           
 if __name__=='__main__': 
