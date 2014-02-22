@@ -267,9 +267,9 @@ def load_gff(input):
             contig2gene[contig].append( gffData )
         elif feature == "CDS":
             if not id in gene2position:    # add cds info to gene2position
-                gene2position[ id ]=[ contig,[],strand,function ]
+                gene2position[ id ]=[ contig,[],strand,function,[] ]
             gene2position[ id ][1].append( coordinates ) 
-  
+            gene2position[ id ][4].append( frame )
     # sort contig2gene
     for contig in contig2gene:
         contig2gene[contig].sort()
