@@ -49,9 +49,8 @@ def ncbi_fetch(queries, taxids, ignored_taxids, db, rettype, batchSize, retmax, 
   
     #fecth all results in batch of batchSize entries at once
     for start in range(0, len(giList), batchSize):
-        #print info
-        tnow = datetime.now()
-        sys.stderr.write("[%s] %s / %s\n" % (datetime.ctime(tnow), start+1, len(giList)))
+        sys.stderr.write("[%s] %s / %s   \r" % (datetime.ctime(datetime.now()), \
+                                                start+1, len(giList)))
         #fetch entries
         error = 1
         #hmmm, this connection catching could be improved
@@ -92,7 +91,7 @@ def main():
                         help="output mode:        [%(default)s]" )
     parser.add_argument("-m", "--retmax",         default=100000000, type=int,
                         help="max to fetch        [%(default)s]" )         
-    parser.add_argument("-b", "--batchSize",      default=10, type=int,
+    parser.add_argument("-b", "--batchSize",      default=100, type=int,
                         help="fetched at once     [%(default)s]" ) 
     
     o = parser.parse_args()
@@ -108,4 +107,4 @@ if __name__=='__main__':
   t0=datetime.now()
   main()
   dt=datetime.now()-t0
-  sys.stderr.write( "#Time elapsed: %s\n" % dt )
+  sys.stderr.write("#Time elapsed: %s           \n"%dt)
