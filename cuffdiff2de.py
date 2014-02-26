@@ -194,7 +194,7 @@ def main():
     if o.verbose: 
         sys.stderr.write( "Options: %s\n" % str(o) )
 
-    report(o.files, o.pfam, o.annotation, o.pTh, o.verbose)
+    report(o.files, o.pfam, o.annotation, o.tab, o.pTh, o.verbose)
 
 if __name__=='__main__': 
   t0=datetime.now()
