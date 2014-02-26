@@ -157,10 +157,12 @@ def report(files, pfam, annotation, tab, pTh, verbose):
                 else:
                     for pfam,data in geneid2pfam[transid].iteritems():
                         annList.append( "%s [%s]" % (data[1],pfam) ) 
-            lineData.append( "; ".join(annList)  )#; print geneid2pfam[geneid]
+            lineData.append( "; ".join(annList))
             #add tab annotation
+            annList=[]
             if transid in geneid2tab:
                 annList.append(";".join(geneid2tab[transid]))
+            lineData.append( "; ".join(annList))
             #add Arabidopsis annotation
             if transid in geneid2annotation:
                 for ann in geneid2annotation[transid]:
