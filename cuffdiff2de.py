@@ -98,16 +98,16 @@ def load_cuffdiff(handle):
         
     return id2exp
 
-def report(files, pfam, annotation, pTh, verbose):
+def report(files, pfam, annotation, tab, pTh, verbose):
     """ """
     #load pfam annotation
     geneid2pfam, geneid2annotation = {},{}
     if pfam:
-        try:
-            geneid2pfam = load_pfam_tblout(pfam)
-        except:
-            geneid2pfam = load_annotation(open(pfam))
-        sys.stderr.write( " PFAMs for %s entries loaded.\n" % len(geneid2pfam) )
+        geneid2pfam = load_pfam_tblout(pfam)
+        sys.stderr.write(" PFAMs for %s entries loaded.\n" % len(geneid2pfam))
+    if tab:
+        geneid2tab = load_annotation(open(tab))
+        sys.stderr.write(" Tab annotation for %s entries loaded.\n" % len(geneid2tab))  
     if annotation:
         if annotation.endswith('.gff'):
             geneid2annotation = load_gff_annotation(open(annotation))
@@ -158,6 +158,9 @@ def report(files, pfam, annotation, pTh, verbose):
                     for pfam,data in geneid2pfam[transid].iteritems():
                         annList.append( "%s [%s]" % (data[1],pfam) ) 
             lineData.append( "; ".join(annList)  )#; print geneid2pfam[geneid]
+            #add tab annotation
+            if transid in geneid2tab:
+                annList.append(";".join(geneid2tab[transid]))
             #add Arabidopsis annotation
             if transid in geneid2annotation:
                 for ann in geneid2annotation[transid]:
@@ -182,7 +185,9 @@ def main():
                         help="P-value cut-off          [%(default)s]")
     parser.add_argument("-a", dest="annotation", default='',# type=file, 
                         help="annotation file          [%(default)s]" )
-    parser.add_argument("-b", dest="pfam", default='', #type=file,
+    parser.add_argument("-b", "--pfam", default='', #type=file,
+                        help="pfam annotation file     [%(default)s]" )
+    parser.add_argument("-t", "--tab", default='', #type=file,
                         help="pfam annotation file     [%(default)s]" )
   
     o = parser.parse_args()

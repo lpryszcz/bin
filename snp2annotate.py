@@ -60,7 +60,7 @@ def process_alt(ref, alt, contig, pos, contig2position, gene2position, contig2fa
                 if geneid in trans2tab:
                     tabAnn   = trans2tab[geneid]
                 contig,CDSs,strand,function,frame = gene2position[geneid]
-                outline += "%s\t%s\t%s\t%s\t%s\t%s\n" % (l, coding_snp_info(contig2fasta[contig], geneid, CDSs, strand, ref, alt, pos), function, fastaAnn, pfamAnn, tabAnn)
+                outline += "%s\t%s\t%s\t%s\t%s\t%s\n" % (l, coding_snp_info(contig2fasta[contig], geneid, CDSs, strand, ref, alt, pos), function, fastaAnn, pfamAnn, "; ".join(tabAnn))
             else:
                 outline += "%s\t%s\n" % (l, feature)
     else:
@@ -154,6 +154,8 @@ def main():
                       help="pfam tblout file") 
     parser.add_option("-q", dest="faa", default="", 
                       help="proteome fasta (to get protein annotation)") 
+    parser.add_option("-t", dest="tab", default="", 
+                      help="tab-delimited annotation") 
     parser.add_option("-v", dest="verbose",  default=False, action="store_true")
     
     ( o, args ) = parser.parse_args()
@@ -183,9 +185,9 @@ def main():
     #load function annotation
     trans2ann = trans2pfam = trans2tab = {}
     if o.faa:
-        trans2ann = load_fasta_headers( o.faa )
+        trans2ann = load_fasta_headers(o.faa)
     if o.pfam:
-        trans2pfam = load_pfam( o.pfam )
+        trans2pfam = load_pfam(o.pfam)
     if o.tab:
         trans2tab = load_tab(o.tab)
     # parse pileup
