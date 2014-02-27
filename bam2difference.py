@@ -61,11 +61,11 @@ def bam2difference(fnames, out, minCov, minFreq, homozygous, positions, verbose)
             out.write("%s:%s\t%s\n" % (contig, pos, "\t".join(data)))
     
 def main():
-    usage   = "usage: %(prog)s [options]"
-    parser  = argparse.ArgumentParser( usage=usage,description=desc,epilog=epilog )
+    usage   = "%(prog)s [options]"
+    parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
     
-    parser.add_argument("-v", dest="verbose",  default=False, action="store_true")
-    parser.add_argument('--version', action='version', version='1.0')
+    parser.add_argument("-v", "--verbose",  default=False, action="store_true")
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     parser.add_argument("-i", "--input", nargs="+", 
                         help="input BAM files")
     parser.add_argument("-o", "--output", default=sys.stdout, type=file,
@@ -86,7 +86,10 @@ def main():
     bam2difference(o.input, o.output, o.cov, o.freq, o.homozygous, o.positions, o.verbose)
 
 if __name__=='__main__': 
-  t0=datetime.now()
-  main()
-  dt=datetime.now()-t0
-  sys.stderr.write( "#Time elapsed: %s\n" % dt )
+    t0=datetime.now()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("\nCtrl-C pressed!      \n")
+    dt=datetime.now()-t0
+    sys.stderr.write( "#Time elapsed: %s\n" % dt )
