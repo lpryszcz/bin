@@ -63,7 +63,7 @@ def main():
                         help="input stream  [stdin]")
     parser.add_argument("-o", "--output_base", required=True, #default=sys.stdout, type=file,
                         help="output base name")
-    parser.add_argument("-n", "--minN", default=2, type=int, 
+    parser.add_argument("-n", "--minN", default=10, type=int, 
                         help="min N to call gap [%(default)s]")
     parser.add_argument("-e", "--evidence", default="paired-ends", 
                         help="evidence type [%(default)s]")
