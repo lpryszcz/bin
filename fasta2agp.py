@@ -47,7 +47,7 @@ def fasta2agp(handle, outbase, minN, evidence, verbose):
         #write contig
         c = r[pend:gstart]
         c.id = "%s.contig%s"%(r.id, j)
-        c.description = c.id
+        c.description = c.id 
         contigs.write(c.format("fasta"))
         #write agp
         agp.write(line%(r.id, pend+1, gstart, 2*j-1, "W", c.id, pend+1, gstart, "+"))
