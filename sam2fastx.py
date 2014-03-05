@@ -147,6 +147,11 @@ def main():
         
 if __name__=='__main__': 
     t0 = datetime.now()
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("\nCtrl-C pressed!      \n")
+    except IOError as e:
+        sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
     dt = datetime.now()-t0
     sys.stderr.write( "#Time elapsed: %s\n" % dt )    
