@@ -1,20 +1,20 @@
 #!/usr/bin/env python
-###
-#   Filter fasta file according to given filter.
-# USAGE: 
-# filter_fasta.py -iPL429-contigs.fa -l1000 > PL429-contigs.1000.fa
-###
+desc="""Filter fasta file according to given filter.
+"""
+epilog="""Author:
+l.p.pryszcz@gmail.com
 
-import getopt,numpy,os,sys
-from commands import getoutput
+Barcelona, 2012
+"""
+
+import argparse, numpy, os, sys
 from datetime import datetime
 from Bio import SeqIO
-from optparse import OptionParser
 
-def filter_fasta( fname,minLength=0,upper=0,simpleHeader=False,window=50 ):
+def filter_fasta(handle, minLength=0, upper=0, simpleHeader=False, window=50):
   """
   """
-  for r in SeqIO.parse( open(fname),'fasta' ):
+  for r in SeqIO.parse(handle, 'fasta'):
     if minLength and len(str(r.seq))<minLength: continue
     #
     j=0
@@ -27,40 +27,40 @@ def filter_fasta( fname,minLength=0,upper=0,simpleHeader=False,window=50 ):
     if simpleHeader:  print '>%s\n%s' % ( r.id,         seq )
     else:             print '>%s\n%s' % ( r.description,seq )
 
-def main( argv ):
-  """
-  """
-  parser = OptionParser() #allow_interspersed_args=True
+def main():
+
+    usage   = "%(prog)s -v"
+    parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
   
-  parser.add_option("-i", "--fpath", dest="fpath", default=False,
-                    help="mpileup file. if not specified, read from stdin (piping)")
-  parser.add_option("-l", "--minLength", dest="minLength", default=0, type=int,
-                    help="define minimal length of transcript", metavar="INT")
-  parser.add_option("-s", "--simpleHeader", action="store_true", dest="simpleHeader", default=False,
-                    help="simplify header f.e. '101751 length 5971 cvg_62.5_tip_0' > '101751' ")
-  parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
-                    help="don't print status messages to stdout")
-  parser.add_option("-u", "--upper", action="store_true", dest="upper", default=False, 
-                    help="save sequence in upper case" )
-  parser.add_option("-w", "--lineLenght", dest="lineLenght", default=70, type=int,
-                    help="define max seq line length", metavar="INT")              
-  parser.add_option("-r", "--replace", action="store_true", dest="replace", default=False,
-                    help="overwrite output files", metavar="TXT")
+    parser.add_argument("-i", "--input", default=sys.stdin,type=file, 
+                        help="input stream [stdin]")
+    parser.add_argument("-l", "--minLength", dest="minLength", default=0, type=int,
+                        help="define minimal length of transcript")
+    parser.add_argument("-s", "--simpleHeader", action="store_true", default=False,
+                        help="simplify header f.e. '101751 length 5971 cvg_62.5_tip_0' > '101751' ")
+    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+                        help="don't print status messages to stdout")
+    parser.add_argument("-u", "--upper", action="store_true", default=False, 
+                        help="save sequence in upper case" )
+    parser.add_argument("-w", "--lineLenght", default=70, type=int,
+                        help="define max seq line length")              
+    parser.add_argument("-r", "--replace", action="store_true",  default=False,
+                        help="overwrite output files")
   
-  ( options, fPaths ) = parser.parse_args()
-  if options.verbose: print options, fPaths   #fnames -> files of paired-ends reads in GERALD format (may be gzipped) ie. CDC37_6h_read1_qseq.txt.gz CDC37_6h_read2_qseq.txt.gz
-  if not options.fpath and not options.replace: 
-    sys.exit( " Parameter error: -i/--fpath has to be specified!" )
+    o = parser.parse_args()
+    if o.verbose:
+        sys.stderr.write("Options: %s\n"%str(o))
   
-  filter_fasta( options.fpath,options.minLength,options.upper,options.simpleHeader,options.lineLenght )
+    filter_fasta(o.input, o.minLength, o.upper, o.simpleHeader, o.lineLenght)
 
 if __name__=='__main__': 
-  t0=datetime.now()
-  try:
-    main( sys.argv[1:] )
-  except KeyboardInterrupt:
-    sys.stderr.write("\nCtrl-C pressed!      \n")
-  except IOError as e:
-    sys.stderr.write("\nI/O error({0}): {1}\n".format(e.errno, e.strerror))  
-  dt=datetime.now()-t0
-  #sys.stderr.write( "#Time elapsed: %s\n" % dt )
+    t0  = datetime.now()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("\nCtrl-C pressed!      \n")
+    except IOError as e:
+        sys.stderr.write("\nI/O error({0}): {1}\n".format(e.errno, e.strerror))  
+    dt  = datetime.now()-t0
+    #sys.stderr.write("#Time elapsed: %s\n" % dt)
+    
