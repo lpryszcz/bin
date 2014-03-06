@@ -14,12 +14,15 @@ from Bio import SeqIO, Seq
 aminos = 'ACDEFGHIKLMNPQRSTVWY'
 nucleotides = 'ACGT'
 
-def seq2diverged(seq, divergence, aminos):
+def seq2diverged(seq, divergence, loh, aminos):
     """Return diverged sequence"""
     seqlist = list(seq)
     #number of position to change
     k = int(round(divergence*len(seqlist)))
     positions = random.sample(xrange(len(seqlist)), k)
+    if loh:
+        #what is the distribution of LOH sizes?? poisson?
+        pass
     #change positions
     for i in positions:
         nb = seqlist[i]
@@ -43,6 +46,8 @@ def main():
                         help="divergence      [%(default)s]")
     parser.add_argument("--dna",             default=False, action='store_true',
                         help="DNA alphabet    [amino acids]")
+    parser.add_argument("--loh",             default=0.00, type=float, 
+                        help="level of LOH    [%(default)s]")
                         
     o = parser.parse_args()
     if o.verbose:
@@ -55,7 +60,7 @@ def main():
             alphabet = nucleotides
         else:
             alphabet = aminos
-        seq = seq2diverged(r.seq, o.divergence, alphabet)
+        seq = seq2diverged(r.seq, o.divergence, o.loh, alphabet)
         r.seq = Seq.Seq(seq)
         o.output.write(r.format('fasta'))
 
