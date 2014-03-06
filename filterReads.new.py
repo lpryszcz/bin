@@ -454,7 +454,7 @@ def main():
             exit(-2)
 
     ## Check if prefix is endend with '.' or '_'. Otherwise, add '.' at the end
-    if o.prefix != None and not o.prefix[-1] in ['.', '_']:
+    if o.prefix and not o.prefix[-1] in ['.', '_']:
         o.prefix += '.'
 
     ## We pass file descriptors to the main functions

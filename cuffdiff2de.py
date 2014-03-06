@@ -101,7 +101,7 @@ def load_cuffdiff(handle):
 def report(files, pfam, annotation, tab, pTh, verbose):
     """ """
     #load pfam annotation
-    geneid2pfam, geneid2annotation = {},{}
+    geneid2pfam, geneid2annotation, geneid2tab = {}, {}, {}
     if pfam:
         geneid2pfam = load_pfam_tblout(pfam)
         sys.stderr.write(" PFAMs for %s entries loaded.\n" % len(geneid2pfam))
@@ -160,7 +160,7 @@ def report(files, pfam, annotation, tab, pTh, verbose):
             lineData.append( "; ".join(annList))
             #add tab annotation
             annList=[]
-            if transid in geneid2tab:
+            if geneid2tab and transid in geneid2tab:
                 annList.append(";".join(geneid2tab[transid]))
             lineData.append( "; ".join(annList))
             #add Arabidopsis annotation

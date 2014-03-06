@@ -32,7 +32,7 @@ def _get_unique_id( gene_id,products,i=1 ):
   
   return new_id
 
-def embl2gtf( source='embl2gtf',allowedTypes=set(['gene', 'CDS', 'tRNA', 'tmRNA', 'rRNA', 'ncRNA']) ): #'mRNA', 
+def embl2gtf( source='embl2gtf',allowedTypes=set(['CDS', 'tRNA', 'tmRNA', 'rRNA', 'ncRNA']) ): #'mRNA', 'gene', 
   """
   """
   #make sure no duplicated products
@@ -67,8 +67,9 @@ def embl2gtf( source='embl2gtf',allowedTypes=set(['gene', 'CDS', 'tRNA', 'tmRNA'
       
       #make sure no duplicated entries in GTF  
       if gene_id in products:
-        sys.stderr.write( "Warning: Duplicated entry found: %s\n" % '; '.join( str(f).split('\n') ) )
-        gene_id = transcript_id = _get_unique_id( gene_id,products ) #continue
+        #sys.stderr.write( "Warning: Duplicated entry found: %s\n" % '; '.join( str(f).split('\n') ) )
+        continue
+        #gene_id = transcript_id = _get_unique_id( gene_id,products ) #continue
       
       products.add(gene_id)
       
