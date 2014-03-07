@@ -16,11 +16,6 @@ import numpy as np
 aminos = 'ACDEFGHIKLMNPQRSTVWY'
 nucleotides = 'ACGT'
 
-import scipy.special as special
-import scipy.optimize as optimize
-import numpy as np
-import mpmath
-
 def get_heterozygous(positions, divergence):
     """Return fraction of chromosome being heterozygous"""
     #count hetero SNPs within 100bp
