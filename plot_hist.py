@@ -12,7 +12,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 
-def histplot( x,handle,categories,title,xlab,ylab,log ):
+def histplot(out, x, handle, categories, title, xlab, ylab, log):
     """
     """
     fig = plt.figure()
@@ -39,15 +39,16 @@ def histplot( x,handle,categories,title,xlab,ylab,log ):
     #ax.set_ylim(0, 0.03)
     #plt.text(60, .025, r'mean=%.2f,stdev=%.2f' % (np.mean(x),np.std(x)))
     ax.grid(True)
-    if handle.name=='<stdin>':
+    if type(out) is file and out.name=='<stdout>':
     	plt.show()
     else:
-        fpath = handle.name+".png"
-        plt.savefig(fpath, orientation='landscape', format="png", transparent=False)
+        fpath = out #handle.name+".png"
+        fformat = fpath.split('.')[-1]
+        plt.savefig(fpath, orientation='landscape', format=fformat, transparent=False)
         print "Figure written to: %s" % fpath
  
 
-def plot_hist( handle,col,bins,title,xlab,ylab,log,vmax,vmin,verbose ):
+def plot_hist(handle, out, col, bins, title, xlab, ylab, log, vmax, vmin, verbose):
     """
     """
     if verbose:
@@ -67,7 +68,7 @@ def plot_hist( handle,col,bins,title,xlab,ylab,log,vmax,vmin,verbose ):
         sys.stderr.write( " %s values loaded.\n" % len(x) )
     #print( x[:10],min(x),max(x) )
 
-    histplot( x,handle,bins,title,xlab,ylab,log )
+    histplot(out, x, handle, bins, title, xlab, ylab, log)
     
 def main():
     
@@ -78,6 +79,8 @@ def main():
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument("-i", dest="input",   default=sys.stdin, type=file,
                         help="input           [stdin]")
+    parser.add_argument("-o", dest="output",  default=sys.stdout, 
+                        help="input           [stdout]")
     parser.add_argument("-b", dest="bins",    default=100, type=int,
                         help="number of bins  [%(default)s]")
     parser.add_argument("-c", dest="col",     default=0, type=int,
@@ -99,7 +102,8 @@ def main():
     if o.verbose:
         sys.stderr.write( "Options: %s\n" % str(o) )
 
-    plot_hist( o.input,o.col,o.bins,o.title,o.xlab,o.ylab,o.log,o.max,o.min,o.verbose )
+    plot_hist(o.input, o.output, o.col, o.bins, o.title, o.xlab, o.ylab, o.log, \
+              o.max, o.min, o.verbose)
               
 if __name__=='__main__': 
     t0  = datetime.now()
