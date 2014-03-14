@@ -33,6 +33,10 @@ def load_vcf(vcf, noindels, nohetero, verbose):
             #or select random
             if nohetero or random.randint(0, 1):
                 continue
+        if not set(alt).issubset(set('ACGT')):
+            info = " Warning: weird alternative base: %s:%s %s %s\n"
+            sys.stderr.write(info%(contig,pos,ref,alt))
+            continue
         #add chr to dict
         if not contig in chr2variants:
             chr2variants[contig]=[]
@@ -40,7 +44,7 @@ def load_vcf(vcf, noindels, nohetero, verbose):
         chr2variants[contig].append((pos, ref, alt))
     return chr2variants
 
-def variants2sequence( gene,seq,vof,qsorg,verbose ):
+def variants2sequence(gene, seq, vof, qsorg, verbose):
     """Introduce variants into sequence.
     Variants positions has to be 0-based (BED,python).
     TO DO: here don't use pos but qsorg - pos
@@ -57,19 +61,15 @@ def variants2sequence( gene,seq,vof,qsorg,verbose ):
         else:
             snps   += 1
         #check ref
-        if verbose and str(seq[pos:pos+len(ref)]) != ref:
-            sys.stderr.write(" Warning: variants2sequence: Orginal seq (%s) differs from variant ref (%s) in %s!\n" % ( seq[pos:pos+len(ref)],ref,gene ) )
+        if str(seq[pos:pos+len(ref)]) != ref:
+            info = " Warning: variants2sequence: Orginal seq (%s) differs from variant ref (%s) in %s!\n"
+            sys.stderr.write(info % (seq[pos:pos+len(ref)], ref, gene))
         #replace orginal seq
         #print seq
         seq = seq[:pos] + alt + seq[pos+len(ref):]
         if verbose:
-            sys.stderr.write( "%s: %s > %s\n" % (pos,ref,alt))
-        #print seq; print 
-
-    #report large indels
-    #if verbose and bigindels:
-    #    sys.stderr.write( " Big indels in %s: %s\n" % (gene,str(bigindels)) )
-    return ( str(seq),snps,indels )
+            sys.stderr.write( "%s: %s > %s\n" % (pos, ref, alt))
+    return (str(seq), snps, indels)
     
 def vcf2fasta(out, vcf, genome, noindels, nohetero, verbose):
     """
@@ -147,4 +147,3 @@ if __name__=='__main__':
         sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
     dt = datetime.now()-t0
     sys.stderr.write("#Time elapsed: %s\n"%dt)
-  

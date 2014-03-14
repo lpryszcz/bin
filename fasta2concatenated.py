@@ -11,7 +11,7 @@ import argparse, os, sys
 from datetime import datetime
 from Bio      import SeqIO, SeqRecord
 
-def fasta2concatenated( out,files,splitname,verbose ):
+def fasta2concatenated(out, files, splitname, verbose):
     """Concatenate multiple fasta entries into one.
     Concatenate multiple fasta files into one.
     """
@@ -28,13 +28,13 @@ def fasta2concatenated( out,files,splitname,verbose ):
             name = f.name.split(".")[0]
         #get all entries from fasta file
         seq = ""
-        for r in SeqIO.parse( f,"fasta" ):
+        for r in SeqIO.parse(f, "fasta"):
             seq += r.seq
         #create sequence record
-        sr = SeqRecord.SeqRecord( seq,id=name ) 
-        records.append( sr )
+        sr = SeqRecord.SeqRecord(seq, id=name) 
+        records.append(sr)
     #store all SeqRecords
-    SeqIO.write( records,out,"phylip" )
+    SeqIO.write(records, out, "phylip")
 
 def main():
 
