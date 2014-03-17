@@ -194,7 +194,8 @@ class SVs(object):
             #skip low quality alignments - alg.rname=-1 for unaligned
             #add each pair only once
             #ie transclocations read ref < mate ref
-            if alg.isize<0 or alg.mapq<self.mapq or alg.rname<0 or alg.mrnm < alg.rname:
+            if alg.isize<0 or alg.mapq<self.mapq or alg.rname<0 or alg.mrnm < alg.rname \
+               or alg.is_secondary:
                 continue
             #add read
             self.add_read(alg)
