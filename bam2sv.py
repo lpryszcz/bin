@@ -118,7 +118,7 @@ class SVs(object):
         else:
             return 0
         
-    def get_isize_stats(self, q=95.0, limit=1e6): 
+    def get_isize_stats(self, q=5.0, limit=1e6): 
         """Estimate insert size median, mean and stdev.
         Also count pair orientations and select main.
         """
@@ -138,8 +138,9 @@ class SVs(object):
             if len(isizes) >= limit:
                 break
         #get rid of right 5 percentile
-        maxins = np.percentile(isizes, q)
-        isizes = filter(lambda x: x<maxins, isizes)
+        maxins = np.percentile(isizes, 1.0-q)
+        minins = np.percentile(isizes, q)
+        isizes = filter(lambda x: minins<x<maxins, isizes)
         #store
         self.isize_median = np.median(isizes)
         self.isize_mean   = np.mean(isizes)
