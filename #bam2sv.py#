@@ -280,6 +280,7 @@ class SVs(object):
 
     def get_modes(self, data):
         """Return distribution modes"""
+        #scipy.signal.find_peaks_cwt
         hist, bins = np.histogram(data)
         modes = []
 	return modes

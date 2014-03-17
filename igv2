@@ -1,7 +1,2 @@
-<<<<<<< HEAD
 #javaws ~/src/igv_hm.jnlp &
-/users/tg/lpryszcz/src/IGV_2.3.26/igv.sh &
-=======
-#javaws ~/src/igv_hm.jnlp
-~/src/IGV/igv.sh > /tmp/igv.log 2>&1 &
->>>>>>> c32ef1c0a306e8b08275462d4aa57ec61e1ce3e0
+~/src/IGV/igv.sh &> /tmp/igv.log &
