@@ -215,11 +215,13 @@ class SVs(object):
                 out.write(alg)
         out.close()
 
-    def get_clusters(self, algs, w=100):
+    def get_clusters(self, chr2algs, w=100):
         """Return clustered algs."""
         #collapse dels by chromosome
-        chr2dels = {i: [] for i, ref in enumerate(self.refs)}
+        chr2dels = {} #i: [] for i, ref in enumerate(self.refs)}
         for alg in algs:
+            if alg.rname not in chr2dels:
+                chr2dels[alg.rname] = []
             chr2dels[alg.rname].append(alg)
         clusters = []
         #process each chromosome
@@ -348,8 +350,8 @@ class SVs(object):
         if self.log:
             self.log.write(" %s alignments parsed. \n"%i)
         #dump all important info
-        if not os.path.isfile(self.bamdump):
-            self.dump()
+        #if not os.path.isfile(self.bamdump):
+        #    self.dump()
         #call variants
         self.call_variants()        
             
