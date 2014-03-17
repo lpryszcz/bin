@@ -215,7 +215,7 @@ class SVs(object):
                 out.write(alg)
         out.close()
 
-    def get_clusters(self, chr2algs, w=100):
+    def get_clusters(self, algs, w=100):
         """Return clustered algs."""
         #collapse dels by chromosome
         chr2dels = {} #i: [] for i, ref in enumerate(self.refs)}
