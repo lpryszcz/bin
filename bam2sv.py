@@ -18,7 +18,7 @@ import os, sys
 import pickle, pysam, resource
 from datetime import datetime
 import numpy as np
-from scipy import stats
+from scipy import stats, signal
 
 class SVs(object):
     """Store BAM related data. Take BAM file name as input."""
@@ -33,11 +33,21 @@ class SVs(object):
             self.ploidy = kwargs['ploidy']
         else:
             self.ploidy = 2
-        #ploidy
+        #q - percentile
         if 'q' in kwargs:
             self.q = kwargs['q']
         else:
             self.q = 5.0
+        #min coverage change
+        if 'covD' in kwargs:
+            self.covD = kwargs['covD']
+        else:
+            self.covD = 0.33
+        #min coverage change
+        if 'rlen' in kwargs:
+            self.rlen = kwargs['rlen']
+        else:
+            self.rlen    = 100
         #prepare logging
         if   'log' in kwargs:
             self.log = kwargs['log']
@@ -156,8 +166,8 @@ class SVs(object):
     def add_read(self, alg):
         """Update handles for coverage, insert size, etc."""
         #update coverage
-        for p in alg.positions:
-            self.chr2cov[alg.rname][p-1] += 1
+        if not os.path.isfile(self.bamdump):
+            self.chr2cov[alg.rname][alg.pos:alg.aend] += 1
         orient = self.alg2orientation(alg)
         ##insertion/deletion
         #correct pairing
@@ -183,37 +193,6 @@ class SVs(object):
         if alg.rname != alg.mrnm:
             self.trans.append(alg)
             
-    def parse(self, test=0):
-        """Parse sam alignments and store info"""
-        #parse algs
-        if self.log:
-            self.log.write("Parsing alignments...\n")
-        pchrom = ""
-        for i, alg in enumerate(self.sam, 1):
-            if test and i > test:
-                break
-            #write log
-            if self.log and not i % 1e4:
-                info = " %s [%.1f%s]  reads for dels: %s dups: %s ins: %s invs: %s trans: %s [%s Mb]\r"
-                self.log.write(info % (i, i*100.0/self.nalgs, '%', len(self.dels), \
-                                len(self.dups), len(self.ins), len(self.invs), len(self.trans), \
-                                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024))
-            #skip low quality alignments - alg.rname=-1 for unaligned
-            #add each pair only once
-            #ie transclocations read ref < mate ref
-            if alg.isize<0 or alg.mapq<self.mapq or alg.rname<0 or alg.mrnm < alg.rname \
-               or alg.is_secondary:
-                continue
-            #add read
-            self.add_read(alg)
-        if self.log:
-            self.log.write(" %s alignments parsed. \n"%i)
-        #dump all important info
-        if not os.path.isfile(self.bamdump):
-            self.dump()
-        #call variants
-        self.call_variants()        
-
     def dump(self):
         """Dump all alignments important for SVs"""
         if self.log:
@@ -238,51 +217,50 @@ class SVs(object):
                 out.write(alg)
         out.close()
 
-    def get_clusters(self, algs):
+    def get_clusters(self, algs, w=100):
         """Return clustered algs."""
-        clusters = [[]]
-        for i, alg in enumerate(algs[1:]):
-            palg = algs[i]
-            #add alg to previous cluster if enough overlap with previous alg
-            if alg.pos - palg.pos < alg.alen:
-                #update end
-                clusters[-1].append(alg)
-            #store new cluster
-            else:
-                clusters.append([alg])
-        #filter by min reads
-        clusters = filter(lambda x: len(x)>self.minReads, clusters)
-        ##split if multiple start modes
-        clusters_new = []
-        for algs in clusters:
-            if len(algs) < self.minReads:
+        #collapse dels by chromosome
+        chr2dels = {i: [] for i, ref in enumerate(self.refs)}
+        for alg in algs:
+            chr2dels[alg.rname].append(alg)
+        clusters = []
+        #process each chromosome
+        for chromi in chr2dels:
+            clusters.append([])
+            hist = np.zeros(self.lengths[chromi]/w, dtype=int)
+            for alg in chr2dels[chromi]:
+                hist[alg.pos/w] += 1
+            #get peaks
+            peaks = signal.find_peaks_cwt(hist, np.arange(1+(50/w), 200/w), \
+                                          min_snr=1, noise_perc=10)
+            if not peaks:
                 continue
-            #starts
-            starts = [alg.pos for alg in algs]
-            start_modes = self.get_modes(starts)
-            if len(start_modes) > 1:
-                pass
-                
+            #TO ADD collapse neighbours
+            
+            #adjust with window
+            peaks = [p*w for p in peaks]
+            #generate clusters
+            i = 0
+            for alg in chr2dels[chromi]:
+                #before current peak
+                if alg.pos < peaks[i] - w/2 - self.rlen:
+                    continue
+                #after current peak
+                elif alg.pos > peaks[i] + w/2:
+                    #skip peaks until next is after current read
+                    while alg.pos > peaks[i] + w/2:
+                        i += 1
+                    if i + 1 >= len(peaks):
+                        break
+                    #add fresh cluster
+                    clusters.append([])
+                #store alg to cluster if within peak
+                if peaks[i] - w/2 - self.rlen <= alg.pos <= peaks[i] + w/2:
+                    clusters[-1].append(alg)
+                    
         #filter by min reads
-        clusters = filter(lambda x: len(x)>self.minReads, clusters_new)
-        ##split if multiple isize modes
-        clusters_new = []
-        for algs in clusters:
-            #get isize modes
-            isizes  = [alg.isize for alg in algs]
-            isize_modes = self.get_modes(isizes)
-            if len(isize_modes) > 1:
-                pass
-                
-        #filter by min reads
-        clusters = filter(lambda x: len(x)>self.minReads, clusters_new)
+        clusters = filter(lambda x: len(x) > self.minReads, clusters)
         return clusters
-
-    def get_modes(self, data):
-        """Return distribution modes"""
-        hist, bins = np.histogram(data)
-        modes = []
-	return modes
         
     def get_algs_features(self, algs):
         """Return algs starts, mate starts, isizes, r"""
@@ -324,7 +302,7 @@ class SVs(object):
             cov_obs = 1.0 * sum(self.chr2cov[chri][start:end]) / size
             cov_ratio = cov_obs / self.cov_mean
             #apparent deletion
-            if cov_ratio > 0.66:
+            if cov_ratio > 1-self.covD:
                 continue
             self.ndels += 1
             name    = "DEL%3i" % self.ndels
@@ -345,6 +323,37 @@ class SVs(object):
         #call deletions
         self.call_deletions()
         #call deletions using depth of coverage approach
+        
+    def parse(self, test=0):
+        """Parse sam alignments and store info"""
+        #parse algs
+        if self.log:
+            self.log.write("Parsing alignments...\n")
+        pchrom = ""
+        for i, alg in enumerate(self.sam, 1):
+            if test and i > test:
+                break
+            #write log
+            if self.log and not i % 1e5:
+                info = " %s [%.1f%s]  reads for dels: %s dups: %s ins: %s invs: %s trans: %s [%s Mb]\r"
+                self.log.write(info % (i, i*100.0/self.nalgs, '%', len(self.dels), \
+                                len(self.dups), len(self.ins), len(self.invs), len(self.trans), \
+                                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024))
+            #skip low quality alignments - alg.rname=-1 for unaligned
+            #add each pair only once
+            #ie transclocations read ref < mate ref
+            if alg.isize<0 or alg.mapq<self.mapq or alg.rname<0 or alg.mrnm < alg.rname \
+               or alg.is_secondary:
+                continue
+            #add read
+            self.add_read(alg)
+        if self.log:
+            self.log.write(" %s alignments parsed. \n"%i)
+        #dump all important info
+        if not os.path.isfile(self.bamdump):
+            self.dump()
+        #call variants
+        self.call_variants()        
             
 def main():
     import argparse
@@ -362,7 +371,9 @@ def main():
                         help="ploidy          [%(default)s]")
     parser.add_argument("-q", "--mapq",      default=10, type=int, 
                         help="min mapping quality [%(default)s]")
-    parser.add_argument("-c", "--covf",      default=0.2, type=float, 
+    parser.add_argument("--rlen",            default=100, type=int, 
+                        help="read length     [%(default)s]")
+    parser.add_argument("-c", "--covD",      default=0.33, type=float, 
                         help="min coverage change [%(default)s]")
     
     o = parser.parse_args()
@@ -370,7 +381,8 @@ def main():
         sys.stderr.write("Options: %s\n"%str(o))
 
     #initialise structural variants
-    sv = SVs(o.bam, out=o.output, mapq=o.mapq, ploidy=o.ploidy, verbose=o.verbose)
+        sv = SVs(o.bam, out=o.output, mapq=o.mapq, ploidy=o.ploidy, covD=o.covD, \
+                 rlen=o.rlen, verbose=o.verbose)
     #call variants in all chromosomes
     sv.parse()
 
