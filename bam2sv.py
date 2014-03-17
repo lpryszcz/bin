@@ -37,7 +37,7 @@ class SVs(object):
         if 'q' in kwargs:
             self.q = kwargs['q']
         else:
-            self.q = 5.0
+            self.q = 1.0
         #min coverage change
         if 'covD' in kwargs:
             self.covD = kwargs['covD']
@@ -133,7 +133,7 @@ class SVs(object):
         else:
             return 0
         
-    def get_isize_stats(self, q=5.0, limit=1e6): 
+    def get_isize_stats(self, limit=1e6): 
         """Estimate insert size median, mean and stdev.
         Also count pair orientations and select main.
         """
@@ -153,10 +153,8 @@ class SVs(object):
             if len(isizes) >= limit:
                 break
         #get rid of right 5 percentile
-        #np.percentile
-        #stats.scoreatpercentile(isizes, 100-q)
-        maxins = stats.scoreatpercentile(isizes, 100-self.q)
-        minins = stats.scoreatpercentile(isizes, self.q)
+        maxins = np.percentile(isizes, 100-self.q)
+        minins = np.percentile(isizes, self.q)
         isizes = filter(lambda x: minins<x<maxins, isizes)
         #store
         self.isize_median = np.median(isizes)
@@ -167,7 +165,7 @@ class SVs(object):
         """Update handles for coverage, insert size, etc."""
         #update coverage
         if not os.path.isfile(self.bamdump):
-            self.chr2cov[alg.rname][alg.pos:alg.aend] += 1
+            self.chr2cov[alg.rname][alg.pos:alg.pos+alg.rlen] += 1
         orient = self.alg2orientation(alg)
         ##insertion/deletion
         #correct pairing
@@ -266,18 +264,18 @@ class SVs(object):
         """Return algs starts, mate starts, isizes, r"""
         #filter by isize percentile    
         isizes  = [alg.isize for alg in algs]
-        min_isize = stats.scoreatpercentile(isizes, self.q)
-        max_isize = stats.scoreatpercentile(isizes, 100-self.q)
+        min_isize = np.percentile(isizes, self.q)
+        max_isize = np.percentile(isizes, 100-self.q)
         algs    = filter(lambda x: min_isize <= x.isize <= max_isize, algs)
         #get sizes etc
         isizes  = [alg.isize for alg in algs]
         starts  = [alg.pos   for alg in algs]
         mstarts = [alg.mpos  for alg in algs]
-        alen    = np.mean([alg.alen for alg in algs])
+        rlen    = np.mean([alg.rlen for alg in algs])
         #get chromosome info
         chrnames  = [alg.rname for alg in algs]
         mchrnames = [alg.mrnm  for alg in algs]
-        return isizes, starts, mstarts, alen, chrnames, mchrnames
+        return isizes, starts, mstarts, rlen, chrnames, mchrnames
 
     def call_deletions(self):
         """Call deletions for paired reads.
@@ -291,12 +289,12 @@ class SVs(object):
         self.out.write("##BED-like format\n#chrom\tstart\tend\tname\tscore\tploidy\n")
         bedline = "%s\t%s\t%s\t%s\t%s\t%.2f\n"
         for algs in clusters:
-            isizes, starts, mstarts, alen, chrnames, mchrnames = self.get_algs_features(algs)
+            isizes, starts, mstarts, rlen, chrnames, mchrnames = self.get_algs_features(algs)
             #correct by the read length
             chri    = int(np.median(chrnames))
             chrname = self.refs[chri]
-            start   = int(np.mean(starts)  + self.isize_mean/2.0)
-            end     = int(np.mean(mstarts) - self.isize_mean/2.0 + alen) + 1
+            start   = int(np.mean(starts)  + self.isize_mean/2.0 + rlen)
+            end     = int(np.mean(mstarts) - self.isize_mean/2.0 + 2*rlen) + 1
             size    = int(np.mean(isizes)  - self.isize_mean)
             #check coverage difference
             cov_obs = 1.0 * sum(self.chr2cov[chri][start:end]) / size
@@ -350,8 +348,8 @@ class SVs(object):
         if self.log:
             self.log.write(" %s alignments parsed. \n"%i)
         #dump all important info
-        if not os.path.isfile(self.bamdump):
-            self.dump()
+        #if not os.path.isfile(self.bamdump):
+        #    self.dump()
         #call variants
         self.call_variants()        
             
