@@ -138,7 +138,7 @@ class SVs(object):
             if len(isizes) >= limit:
                 break
         #get rid of right 5 percentile
-        maxins = np.percentile(isizes, 1.0-q)
+        maxins = np.percentile(isizes, 100-q)
         minins = np.percentile(isizes, q)
         isizes = filter(lambda x: minins<x<maxins, isizes)
         #store
