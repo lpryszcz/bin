@@ -246,7 +246,7 @@ class SVs(object):
                 #after current peak
                 elif alg.pos > peaks[i] + w/2:
                     #skip peaks until next is after current read
-                    while alg.pos > peaks[i] + w/2:
+                    while i < len(peaks) and alg.pos > peaks[i] + w/2:
                         i += 1
                     if i + 1 >= len(peaks):
                         break
@@ -348,8 +348,8 @@ class SVs(object):
         if self.log:
             self.log.write(" %s alignments parsed. \n"%i)
         #dump all important info
-        #if not os.path.isfile(self.bamdump):
-        #    self.dump()
+        if not os.path.isfile(self.bamdump):
+            self.dump()
         #call variants
         self.call_variants()        
             
