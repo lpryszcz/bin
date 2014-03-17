@@ -153,8 +153,8 @@ class SVs(object):
             if len(isizes) >= limit:
                 break
         #get rid of right 5 percentile
-        maxins = np.percentile(isizes, 100-self.q)
-        minins = np.percentile(isizes, self.q)
+        maxins = stats.scoreatpercentile(isizes, 100-self.q)
+        minins = stats.scoreatpercentile(isizes, self.q)
         isizes = filter(lambda x: minins<x<maxins, isizes)
         #store
         self.isize_median = np.median(isizes)
@@ -266,8 +266,8 @@ class SVs(object):
         """Return algs starts, mate starts, isizes, r"""
         #filter by isize percentile    
         isizes  = [alg.isize for alg in algs]
-        min_isize = np.percentile(isizes, self.q)
-        max_isize = np.percentile(isizes, 100-self.q)
+        min_isize = stats.scoreatpercentile(isizes, self.q)
+        max_isize = stats.scoreatpercentile(isizes, 100-self.q)
         algs    = filter(lambda x: min_isize <= x.isize <= max_isize, algs)
         #get sizes etc
         isizes  = [alg.isize for alg in algs]
