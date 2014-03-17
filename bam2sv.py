@@ -18,21 +18,26 @@ import os, sys
 import pickle, pysam, resource
 from datetime import datetime
 import numpy as np
+from scipy import stats
 
 class SVs(object):
-    """Store BAM related data. Take BAM file name as input.
-    """
+    """Store BAM related data. Take BAM file name as input."""
     def __init__(self, bam, **kwargs): 
         #define mapq
         if 'mapq' in kwargs:
             self.mapq = kwargs['mapq']
         else:
             self.mapq = 20
-        #define mapq
+        #ploidy
         if 'ploidy' in kwargs:
             self.ploidy = kwargs['ploidy']
         else:
             self.ploidy = 2
+        #ploidy
+        if 'q' in kwargs:
+            self.q = kwargs['q']
+        else:
+            self.q = 5.0
         #prepare logging
         if   'log' in kwargs:
             self.log = kwargs['log']
@@ -138,8 +143,10 @@ class SVs(object):
             if len(isizes) >= limit:
                 break
         #get rid of right 5 percentile
-        maxins = np.percentile(isizes, 100-q)
-        minins = np.percentile(isizes, q)
+        #np.percentile
+        #stats.scoreatpercentile(isizes, 100-q)
+        maxins = stats.scoreatpercentile(isizes, 100-self.q)
+        minins = stats.scoreatpercentile(isizes, self.q)
         isizes = filter(lambda x: minins<x<maxins, isizes)
         #store
         self.isize_median = np.median(isizes)
@@ -250,7 +257,8 @@ class SVs(object):
         """Return algs starts, mate starts, isizes, r"""
         #filter by isize percentile    
         isizes  = [alg.isize for alg in algs]
-        min_isize, max_isize = np.percentile(isizes, 5), np.percentile(isizes, 95)
+        min_isize = stats.scoreatpercentile(isizes, self.q)
+        max_isize = stats.scoreatpercentile(isizes, 100-self.q)
         algs    = filter(lambda x: min_isize <= x.isize <= max_isize, algs)
         #get sizes etc
         isizes  = [alg.isize for alg in algs]
