@@ -1,2 +1,2 @@
 #javaws ~/src/igv_hm.jnlp &
-~/src/IGV/igv.sh &> /tmp/igv.log &
+~/src/IGV/igv.sh "$@" &> /tmp/igv.log &

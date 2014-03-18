@@ -55,6 +55,11 @@ class SVs(object):
             self.log = sys.stderr
         else:
             self.log     = None
+        #prepare logging
+        if   'dump' in kwargs:
+            self.dump = kwargs['dump']
+        else:
+            self.dump = False
         #out
         if 'out' in kwargs:
             self.out = kwargs['out']
@@ -191,7 +196,7 @@ class SVs(object):
         if alg.rname != alg.mrnm:
             self.trans.append(alg)
             
-    def dump(self):
+    def sv2bam(self):
         """Dump all alignments important for SVs"""
         if self.log:
             self.log.write("Dumping info to: %s ...\n"%self.bamdump)
@@ -295,8 +300,8 @@ class SVs(object):
             #correct by the read length
             chri    = int(np.median(chrnames))
             chrname = self.refs[chri]
-            start   = int(np.mean(starts)  + self.isize_mean/2.0 + rlen)
-            end     = int(np.mean(mstarts) - self.isize_mean/2.0 + 2*rlen) + 1
+            start   = int(np.mean(starts)  + self.isize_mean/2.0)
+            end     = int(np.mean(mstarts) - self.isize_mean/2.0 + rlen) + 1
             size    = int(np.mean(isizes)  - self.isize_mean)
             #check coverage difference
             cov_obs = 1.0 * sum(self.chr2cov[chri][start:end]) / size
@@ -350,8 +355,8 @@ class SVs(object):
         if self.log:
             self.log.write(" %s alignments parsed. \n"%i)
         #dump all important info
-        #if not os.path.isfile(self.bamdump):
-        #    self.dump()
+        if self.dump and not os.path.isfile(self.bamdump):
+            self.sv2bam()
         #call variants
         self.call_variants()        
             
@@ -375,6 +380,8 @@ def main():
                         help="read length     [%(default)s]")
     parser.add_argument("-c", "--covD",      default=0.33, type=float, 
                         help="min coverage change [%(default)s]")
+    parser.add_argument("--dump",            default=False,  action="store_true",
+                        help="dump SV reads for faster recalculations")
     
     o = parser.parse_args()
     if o.verbose:
@@ -382,7 +389,7 @@ def main():
 
     #initialise structural variants
         sv = SVs(o.bam, out=o.output, mapq=o.mapq, ploidy=o.ploidy, covD=o.covD, \
-                 rlen=o.rlen, verbose=o.verbose)
+                 rlen=o.rlen, dump=o.dump, verbose=o.verbose)
     #call variants in all chromosomes
     sv.parse()
 

@@ -18,6 +18,8 @@ def bed2batch(bed, out, session, outdir, ext, offset, verbose):
     if session:
         out.write("new\nload %s\n"%session)
     if outdir:
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
         out.write("snapshotDirectory %s\n"%outdir)
 
     #process bed
