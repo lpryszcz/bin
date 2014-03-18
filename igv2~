@@ -1,2 +1,0 @@
-#javaws ~/src/igv_hm.jnlp &
-~/src/IGV_2.3.26/igv.sh &> /tmp/igv.log &
