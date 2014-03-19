@@ -23,6 +23,15 @@ from scipy import stats, signal
 class SVs(object):
     """Store BAM related data. Take BAM file name as input."""
     def __init__(self, bam, **kwargs): 
+        #set variables
+        self._set_variables(kwargs)
+        #open handles
+        self._prepare_handles(bam)
+        #prepare storages
+        self._init_storages()
+
+    def _set_variables(self, kwargs):
+        """Set parameters"""
         #define mapq
         if 'mapq' in kwargs:
             self.mapq = kwargs['mapq']
@@ -65,6 +74,19 @@ class SVs(object):
             self.out = kwargs['out']
         else:
             self.out = sys.stdout
+        #coverage fraction
+        if 'cov_frac' in kwargs:
+            self.cov_frac = kwargs['cov_frac']
+        else:
+            self.cov_frac = 0.75
+        #min dup
+        if 'min_dup' in kwargs:
+            self.dup_isize_frac = kwargs['min_dup']
+        else:
+            self.dup_isize_frac = 0.9
+
+    def _prepare_handles(self, bam):
+        """Open BAM file for reading and set scanning parameters."""
         #define internal sam and shortcuts
         self.bam     = bam
         self.bamdump = self.bam + ".sv_algs.bam"
@@ -81,9 +103,6 @@ class SVs(object):
         else:
             self.sam   = pysam.Samfile(self.bam)
             self.nalgs = self.sam.mapped + self.sam.unmapped
-        #prepare storages
-        self.reset()
-        self.ndels = self.nins = self.ndups = self.ninvs = self.ntrans = 0
         #shortcuts
         self.refs    = self.sam.references
         self.lengths = self.sam.lengths
@@ -96,31 +115,33 @@ class SVs(object):
         self.orientations = ("FF", "FR", "RF", "RR")
         self.orientation  = self.pairs.index(max(self.pairs))
         #define deletion and insertion thresholds
-        self.del_isize = self.isize_mean + 2* self.isize_stdev
-        self.ins_isize = self.isize_mean - 2* self.isize_stdev
+        self.del_isize = self.isize_mean + 2*self.isize_stdev
+        self.ins_isize = self.isize_mean - 2*self.isize_stdev
         if self.log:
             self.log.write(" FF/FR/RF/RR: %s/%s/%s/%s\n" % tuple(self.pairs))
             self.log.write("  %s chosen\n" % self.orientations[self.orientation])
-            self.log.write(" median: %.2f  mean: %.2f +- %.2f\n" % \
-                           (self.isize_median, self.isize_mean, self.isize_stdev))
-            self.log.write("  deletion: isize >%.2f\n  insertion: isize <%.2f\n" % \
-                           (self.del_isize, self.ins_isize))
-
-    def reset(self, isize=False):
-        """Reset storage."""
-        self.dels    = []
-        self.dups    = [] 
-        self.ins     = []
-        self.invs    = []
-        self.trans   = []
+            info = " median: %.2f  mean: %.2f +- %.2f\n"
+            self.log.write(info%(self.isize_median, self.isize_mean, self.isize_stdev))
+            info = "  deletion: isize >%.2f\n  insertion: isize <%.2f\n"
+            self.log.write(info%(self.del_isize, self.ins_isize))
+            
+    def _init_storages(self):
+        """Initialase storages."""
+        #reads storages
+        self.delReads = []
+        self.dupReads = [] 
+        self.insReads = []
+        self.invReads = []
+        self.traReads = []
+        #variants storages
+        self.dels = [[] for r in self.refs]
+        self.dups = [[] for r in self.refs]
+        self.inss = [[] for r in self.refs]
+        self.invs = [[] for r in self.refs]
+        self.tras = [[] for r in self.refs]
 
     def alg2orientation(self, alg):
-        """Return pair orientation.
-        FF: 0
-        FR: 1
-        RF: 2
-        RR: 4
-        """
+        """Return pair orientation: FF: 0; FR: 1; RF: 2; RR: 4."""
         ##FR/RF
         if alg.is_reverse != alg.mate_is_reverse:
             #FR
@@ -177,24 +198,24 @@ class SVs(object):
         if  orient == self.orientation:
             ##deletion if significantly larger distance
             if   alg.isize > self.del_isize:
-                self.dels.append(alg)
+                self.delReads.append(alg)
             ##insertion if significantly smaller distance
             elif alg.isize < self.ins_isize:
-                self.ins.append(alg)
+                self.insReads.append(alg)
         ##segmental duplication
         #RF <--> FR or FF <--> RR??
         elif self.orientation in (1, 2) and orient in (1, 2) or \
              self.orientation in (0, 4) and orient in (0, 4): 
-            self.dups.append(alg)
+            self.dupReads.append(alg)
         ##inversion
         #FR/RF -> FF/RR or FF/RR --> FR/RF
         elif self.orientation in (1, 2) and orient in (0, 4) or \
            self.orientation in (0, 4) and orient in (1, 2):
-            self.invs.append(alg)
+            self.invReads.append(alg)
         ##translocation -- note, some of putative deletions may be also translocations
         #orientation dosn't matter
         if alg.rname != alg.mrnm:
-            self.trans.append(alg)
+            self.traReads.append(alg)
             
     def sv2bam(self):
         """Dump all alignments important for SVs"""
@@ -202,7 +223,7 @@ class SVs(object):
             self.log.write("Dumping info to: %s ...\n"%self.bamdump)
         #open out sam/bam handle
         header = self.sam.header
-        nalgs = len(self.dels) + len(self.dups) + len(self.ins) + len(self.invs) + len(self.trans)
+        nalgs = len(self.delReads) + len(self.dupReads) + len(self.insReads) + len(self.invReads) + len(self.traReads)
         isize_info = [{"ID": "isize_mean",   "VN": self.isize_mean},
                       {"ID": "isize_stdev",  "VN": self.isize_stdev},
                       {"ID": "isize_median", "VN": self.isize_median},
@@ -215,52 +236,83 @@ class SVs(object):
         with open(self.bamdump+".chr2cov.pickle", "w") as f:
             pickle.dump(self.chr2cov, f, 2)
         #dump individual algs
-        for algs in (self.dels, self.dups, self.ins, self.invs, self.trans):
+        for algs in (self.delReads, self.dupReads, self.insReads, self.invReads, self.traReads):
             for alg in algs:
                 out.write(alg)
         out.close()
 
-    def get_clusters(self, algs, w=100):
+    def get_peaks2(self, hist, w, offset=0, min_snr=1, noise_perc=10):
+        """Return collapsed peaks."""
+        if not offset:
+            offset = w
+        #collapse neighbours
+        peaks = []
+        for p in signal.find_peaks_cwt(hist, np.arange(1+(50/w), 200/w), \
+                                       min_snr=min_snr, noise_perc=noise_perc):
+            #adjust with window
+            s = p*w
+            e = s+w
+            #extend previous peak if overlap
+            if peaks and s <= pe+offset:
+                peaks[-1][1] = e
+            else:
+                peaks.append([s, e])
+            pe = e
+        return peaks
+        
+     def get_peaks(self, hist, w, offset, th):
+        """Return collapsed peaks."""
+        #collapse neighbours
+        peaks = []
+        for p, v in enumerate(hist):
+            if v<th:
+                continue
+            #adjust with window
+            s = p*w
+            e = s+w
+            #extend previous peak if overlap
+            if peaks and s <= pe+offset:
+                peaks[-1][1] = e
+            else:
+                peaks.append([s, e])
+            pe = e
+        return peaks
+        
+   def get_clusters(self, algs, w=100):
         """Return clustered algs."""
+        th = self.mean_cov*self.cov_frac/self.rlen
         #collapse dels by chromosome
-        chr2dels = {} #i: [] for i, ref in enumerate(self.refs)}
+        chr2dels = {i: [] for i, ref in enumerate(self.refs)}
         for alg in algs:
-            if alg.rname not in chr2dels:
-                chr2dels[alg.rname] = []
             chr2dels[alg.rname].append(alg)
         clusters = []
         #process each chromosome
         for chromi in chr2dels:
             clusters.append([])
-            hist = np.zeros(self.lengths[chromi]/w, dtype=int)
+            hist = np.ones((self.lengths[chromi]/w)+1, dtype=int)
             for alg in chr2dels[chromi]:
                 hist[alg.pos/w] += 1
             #get peaks
-            peaks = signal.find_peaks_cwt(hist, np.arange(1+(50/w), 200/w), \
-                                          min_snr=1, noise_perc=10)
+            peaks = self.get_peaks(hist, w, w, th)
             if not peaks:
                 continue
-            #TO ADD collapse neighbours
-            
-            #adjust with window
-            peaks = [p*w for p in peaks]
             #generate clusters
             i = 0
             for alg in chr2dels[chromi]:
                 #before current peak
-                if alg.pos < peaks[i] - w/2 - self.rlen:
+                if alg.pos < peaks[i][0] - self.rlen:
                     continue
                 #after current peak
-                elif alg.pos > peaks[i] + w/2:
+                elif alg.pos > peaks[i][1]:
                     #skip peaks until next is after current read
-                    while i < len(peaks) and alg.pos > peaks[i] + w/2:
+                    while i < len(peaks) and alg.pos > peaks[i][1]:
                         i += 1
                     if i + 1 >= len(peaks):
                         break
                     #add fresh cluster
                     clusters.append([])
                 #store alg to cluster if within peak
-                if peaks[i] - w/2 - self.rlen <= alg.pos <= peaks[i] + w/2:
+                if peaks[i][0] - self.rlen <= alg.pos <= peaks[i][1]:
                     clusters[-1].append(alg)
                     
         #filter by min reads
@@ -284,51 +336,152 @@ class SVs(object):
         mchrnames = [alg.mrnm  for alg in algs]
         return isizes, starts, mstarts, rlen, chrnames, mchrnames
 
-    def call_deletions(self):
-        """Call deletions for paired reads.
-        ADD calling from depth-of-coverage. 
-        """
-        if not self.dels:
+    def cnvs_from_pairs(self, reads, storage, cnvType, m=1):
+        """Call deletions for paired reads. """
+        if not reads:
             return
         #get read clusters
-        clusters = self.get_clusters(self.dels)
-        #write header
-        self.out.write("##BED-like format\n#chrom\tstart\tend\tname\tscore\tploidy\n")
-        bedline = "%s\t%s\t%s\t%s\t%s\t%.2f\n"
+        clusters = self.get_clusters(reads)
         for algs in clusters:
             isizes, starts, mstarts, rlen, chrnames, mchrnames = self.get_algs_features(algs)
             #correct by the read length
-            chri    = int(np.median(chrnames))
-            chrname = self.refs[chri]
-            start   = int(np.mean(starts)  + self.isize_mean/2.0)
-            end     = int(np.mean(mstarts) - self.isize_mean/2.0 + rlen) + 1
-            size    = int(np.mean(isizes)  - self.isize_mean)
-            #check coverage difference
-            cov_obs = 1.0 * sum(self.chr2cov[chri][start:end]) / size
-            cov_ratio = cov_obs / self.cov_mean
-            #apparent deletion
-            if cov_ratio > 1-self.covD:
+            try:
+                chri    = int(np.median(chrnames))
+            except:
+                sys.stderr.write("Cannot get chromosome number: %s\n"%str(chrnames))
                 continue
-            self.ndels += 1
-            name    = "DEL%3i" % self.ndels
-            ploidy  = self.ploidy * cov_ratio
+            chrname = self.refs[chri]
+            #get left/right mate starts
+            leftSt  = np.median(starts)
+            rightSt = np.median(mstarts)
+            if rightSt<leftSt:
+                leftSt, rightSt = rightSt, leftSt
+            #check local depth and if enough reads
+            nreads  = len(algs)         
+            minLcCov = self.chr2cov[chri][min(starts):max(starts)+self.rlen].mean() * self.cov_frac * m
+            if nreads*self.rlen < minLcCov:
+                continue
+            #if too high coverage for deletion
+            if   cnvType == "DEL":
+                start   = int(leftSt  + self.isize_mean/2.0)
+                end     = int(rightSt - self.isize_mean/2.0 + rlen) + 1
+                size    = end-start
+                #check coverage difference
+                cov_obs = self.chr2cov[chri][start:end].mean()
+                cov_ratio = cov_obs / self.cov_mean
+                if cov_ratio > 1-self.covD:
+                    continue
+            #if too low coverage for duplication
+            elif cnvType == "DUP":
+                start   = int(leftSt  - self.isize_mean/2.0 + rlen)
+                end     = int(rightSt + self.isize_mean/2.0) + 1
+                size    = end-start
+                #check dup size
+                if size < self.dup_isize_frac*self.isize_mean:
+                    continue
+                #check coverage difference
+                cov_obs = self.chr2cov[chri][start:end].mean()
+                cov_ratio = cov_obs / self.cov_mean
+                if cov_ratio < 1+self.covD:
+                    continue
+            #insertion
+            else:
+                start = int(leftSt  + self.isize_mean/2.0)
+                end   = start+10
+                size  = int(self.isize_mean - np.median(isizes))
+                cov_obs = self.chr2cov[chri][start:end].mean()
+                cov_ratio = cov_obs / self.cov_mean
+                if not 1-self.covD < cov_ratio < 1+self.covD:
+                    continue
+           #define name
+            name    = "%s%3i" % (cnvType, sum(len(x) for x in storage)+1)
             name    = name.replace(" ","0")
-            score   = len(algs)
-            self.out.write(bedline % (chrname, start, end, name, score, ploidy))
+            ploidy = self.ploidy * cov_ratio
+            #write output
+            self.out.write(self.cnvline % (chrname, start, end, name, nreads, ploidy, \
+                                           size))
+            #store del
+            storage[chri].append((start, end, name, nreads, ploidy, size))
+        if self.log:
+            sys.stderr.write(" %ss: %s\n" % (cnvType, sum(len(x) for x in storage)))
+
+    def _cov2cnv(self, chri, covHist, cnvType, storage, m, w=100, min_snr=1, \
+                 noise_perc=10):
+        """Computes CNVs from depth of coverage."""
+        nreads = 0
+        for start, end in self.get_peaks(covHist*m, w, 3*w, min_snr, noise_perc):
+            chrname   = self.refs[chri]
+            size      = end-start
+            if size < 5*w:
+                continue
+            cov_obs   = self.chr2cov[chri][start:end].mean()
+            cov_ratio = cov_obs / self.cov_mean
+            ploidy    = self.ploidy * cov_ratio
+            # check read depth
+            if   cnvType=="DUP":
+                if cov_ratio < 1+self.covD:
+                    continue
+            # cnvType=="DEL" and
+            elif cov_ratio > 1-self.covD:
+                continue
+            #skip if already in storage
+            overlapping = filter(lambda x: x[0]<start<x[1] or x[0]<end<x[1], \
+                                 storage[chri])
+            if overlapping:
+                if self.log:
+                    info = "  %s:%s-%s ploidy:%.2f already present as %s: %s:%s-%s reads:%s ploidy:%.2f\n"
+                    self.log.write(info%(chrname, start, end, ploidy, overlapping[0][2],\
+                                         chrname, overlapping[0][0], overlapping[0][1], \
+                                         overlapping[0][3], overlapping[0][4]))
+                continue
+            #define name
+            name    = "%s%3i" % (cnvType, sum(len(x) for x in storage)+1)
+            name    = name.replace(" ","0")
+            #write output
+            self.out.write(self.cnvline % (chrname, start, end, name, nreads, ploidy, \
+                                           size))
+            #store del
+            storage[chri].append((start, end, name, nreads, ploidy, size))
             
+    def cnvs_from_depth(self, w=100):
+        """ """
+        for chri, chrname in enumerate(self.refs):
+            #coverage hist in w size windows
+            covHist = np.array([self.chr2cov[chri][i:i+w].mean() \
+                                for i in range(0, self.lengths[chri]+1, w)])
+            #duplications and deletions
+            for cnvType, storage, m in zip(("DUP", "DEL"), (self.dups, self.dels), \
+                                           (1, -1)):
+                self._cov2cnv(chri, covHist, cnvType, storage, m, w)
+
+        if self.log:
+            for cnvType, storage in zip(("DUP", "DEL"), (self.dups, self.dels)):
+                sys.stderr.write(" %ss: %s\n" % (cnvType, sum(len(x) for x in storage)))
+                
     def call_variants(self):
         """Call structural variants"""
         #get expected coverage
         self.cov_mean = 1.0 * sum(sum(c) for c in self.chr2cov) / sum(self.lengths)
-        #set variables base on expected coverage
-        self.minReads = int(0.1 * self.cov_mean)
+        self.minReads = self.cov_frac * self.cov_mean
         if self.log:
-            info = "Calling variants...\n Expected coverage: %.2f\n  >%s reads to call variant\n"
-            self.log.write(info%(self.cov_mean, self.minReads))         
-        #call deletions
-        self.call_deletions()
-        #call deletions using depth of coverage approach
+            info = "Calling variants...\n Expected coverage: %.2f\n  >%.2f local depth to call variation\n"
+            self.log.write(info % (self.cov_mean, self.cov_frac))
+        #write header
+        self.out.write("#chrom\tstart\tend/ins_size\tname\treads\tploidy\tsize\n")
+        #set output formats
+        self.cnvline = "%s\t%s\t%s\t%s\t%s\t%.2f\t%s\n"
+        #call deletions and duplications
+        for cnvType, m, reads, storage in zip(("DEL", "DUP"), (1, 2), 
+                                              (self.delReads, self.dupReads), \
+                                              (self.dels, self.dups)):
+            #call from paired reads
+            self.cnvs_from_pairs(reads, storage, cnvType, m)
+        #call from read depth
+        self.cnvs_from_depth()
+        #insertions
+        self.cnvs_from_pairs(self.insReads, self.inss, "INS", 4)
         
+         
     def parse(self, test=0):
         """Parse sam alignments and store info"""
         #parse algs
@@ -341,8 +494,8 @@ class SVs(object):
             #write log
             if self.log and not i % 1e5:
                 info = " %s [%.1f%s]  reads for dels: %s dups: %s ins: %s invs: %s trans: %s [%s Mb]\r"
-                self.log.write(info % (i, i*100.0/self.nalgs, '%', len(self.dels), \
-                                len(self.dups), len(self.ins), len(self.invs), len(self.trans), \
+                self.log.write(info % (i, i*100.0/self.nalgs, '%', len(self.delReads), \
+                                len(self.dupReads), len(self.insReads), len(self.invReads), len(self.traReads), \
                                 resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024))
             #skip low quality alignments - alg.rname=-1 for unaligned
             #add each pair only once
@@ -379,7 +532,11 @@ def main():
     parser.add_argument("--rlen",            default=100, type=int, 
                         help="read length     [%(default)s]")
     parser.add_argument("-c", "--covD",      default=0.33, type=float, 
-                        help="min coverage change [%(default)s]")
+                        help="min coverage change to call deletion/duplication [%(default)s]")
+    parser.add_argument("--cov_frac",        default=0.75, type=float, 
+                        help="min fraction of local depth to call variation [%(default)s]")
+    parser.add_argument("--dup_isize_frac",  default=0.9, type=float, 
+                        help="min duplication size as insert size fraction [%(default)s]")
     parser.add_argument("--dump",            default=False,  action="store_true",
                         help="dump SV reads for faster recalculations")
     
@@ -388,8 +545,9 @@ def main():
         sys.stderr.write("Options: %s\n"%str(o))
 
     #initialise structural variants
-        sv = SVs(o.bam, out=o.output, mapq=o.mapq, ploidy=o.ploidy, covD=o.covD, \
-                 rlen=o.rlen, dump=o.dump, verbose=o.verbose)
+    sv = SVs(o.bam, out=o.output, mapq=o.mapq, ploidy=o.ploidy, covD=o.covD, \
+             cov_frac=o.cov_frac, rlen=o.rlen, dup_isize_frac=o.dup_isize_frac, \
+             dump=o.dump, verbose=o.verbose)
     #call variants in all chromosomes
     sv.parse()
 

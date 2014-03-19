@@ -13,16 +13,23 @@ from datetime import datetime
 import numpy as np
 from scipy import stats
 
-def bed2batch(bed, out, session, outdir, ext, offset, verbose):
+def bed2batch(bed, out, session, bam, genome, outdir, ext, offset, replace, verbose):
     """Generates IGV batch script."""
+    init = "new\n"
     if session:
-        out.write("new\nload %s\n"%session)
+        init += "load %s\n"%session
+    if bam:
+        init += "load %s\n"%",".join(bam)
+    if genome:
+        init += "genome %s\n"%genome
     if outdir:
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        out.write("snapshotDirectory %s\n"%outdir)
-
+        init += "snapshotDirectory %s\n"%outdir
+    init += "maxPanelHeight 150\ncollapse\nexpand Gene\n"
+    out.write(init)
     #process bed
+    i = 0
     for line in bed:
         if line.startswith("#"):
             continue
@@ -33,7 +40,15 @@ def bed2batch(bed, out, session, outdir, ext, offset, verbose):
             soff = 1
         coords = "%s:%s-%s" % (chrom, soff, eoff)            
         outfn = "%s.%s:%s-%s.%s" % (name, chrom, s, e, ext)
-        out.write("goto %s\nsnapshot %s\n" % (coords, outfn))
+        outpath = os.path.join(outdir, outfn)
+        if not replace and os.path.isfile(outpath):
+            continue
+        outline = "goto %s\nsnapshot %s\n" % (coords, outfn)
+        out.write(outline)
+        #write 3x first event, so size is adjusted
+        if not i:
+            out.write(outline+outline)
+        i += 1
 
         
 def main():
@@ -42,14 +57,19 @@ def main():
     parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument("-v", dest="verbose",  default=False, action="store_true", help="verbose")    
+    parser.add_argument("-v", "--verbose",  default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.0')   
+    parser.add_argument("-r", "--replace",  default=False, action="store_true", help="replace files")    
     parser.add_argument("-i", "--bed",       default=sys.stdin, type=file, 
                         help="BED file        [stdin]")
+    parser.add_argument("--bam",             default=[], nargs="*",
+                        help="BAM files")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
-    parser.add_argument("-s", "--session",   default="", required=True, 
+    parser.add_argument("-s", "--session",   default="", 
                         help="session file")
+    parser.add_argument("-g", "--genome",    default="", 
+                        help="genome id")
     parser.add_argument("--outdir",          default="", required=True, 
                         help="output dir")
     parser.add_argument("--ext",             default="png",
@@ -62,7 +82,11 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
-    bed2batch(o.bed, o.output, o.session, o.outdir, o.ext, o.offset, o.verbose)
+    if not o.session and not o.bam:
+        sys.stderr.write("BAM file or session file need to be provided!\n")
+        sys.exit(1)
+    bed2batch(o.bed, o.output, o.session, o.bam, o.genome, o.outdir, o.ext, \
+              o.offset, o.replace, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()

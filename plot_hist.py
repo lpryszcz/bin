@@ -45,11 +45,8 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin
         sys.stderr.write( "Parsing data...\n" )
     x = [[] for i in range(len(cols))]
     for l in handle:
-        l = l.strip()
-        if not l:
-            continue
         try:
-            ldata = l.split('\t')
+            ldata = l[:-1].split('\t')
             for i, col in enumerate(cols):
                 if col>=len(ldata) or not ldata[col]:
                     continue
@@ -57,21 +54,23 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin
                 if vmin<v<vmax:
                     x[i].append(v)
         except:
-            sys.stderr.write("[Error] Cannot parse line: %s\n" % ", ".join(l.split('\t')))
+            sys.stderr.write("[Error] Cannot parse line: %s\n" % ",".join(l.split('\t')))
     if verbose:
         sys.stderr.write( " %s values loaded.\n" % len(x) )
     #define number of rows and columns
-    ncol = len(cols)/4
-    if len(cols)%4:
-        ncol += 1
-    nrow = len(cols)/2
+    ncol = len(cols)/2
     if len(cols)%2:
+        ncol += 1
+    nrow = len(cols)/4
+    if len(cols)%4 and len(cols)/ncol*1.0 != nrow:
         nrow += 1
+    if verbose:
+        sys.stderr.write(" %s columns x %s rows\n"%(ncol, nrow))
     #start figure
     fig = plt.figure()
     #add subplots
     for i, data in enumerate(x):
-        ax = fig.add_subplot(ncol, nrow, i+1)
+        ax = fig.add_subplot(nrow, ncol, i+1)
         if len(cols)==1 and title:
             ax.set_title(title)
         name = ""
@@ -107,7 +106,7 @@ def main():
                         help="input           [stdout]")
     parser.add_argument("-b", "--bins",    default=100, type=int,
                         help="number of bins  [%(default)s]")
-    parser.add_argument("-c", "--col",     default=0, nargs="+", type=int,
+    parser.add_argument("-c", "--col",     default=[0], nargs="+", type=int,
                         help="columns to use  [%(default)s]")
     parser.add_argument("-n", "--names",   default="", nargs="+", 
                         help="column names    [%(default)s]")
