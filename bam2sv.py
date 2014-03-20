@@ -8,9 +8,12 @@ of coverage.
 By default, the program dumps reads of interest and depth of coverage information. This
 speeds up recalculation by the factor of 20X and should take <1% of BAM file size.
 
-To be implemented:
-- translocations
-- inversions
+To be done:
++ SV detection
+-- insertions testing
+-- translocations
+-- inversions
++ split read alignment
 """
 epilog="""Author:
 l.p.pryszcz@gmail.com
@@ -315,19 +318,20 @@ class SVs(object):
         isizes  = [alg.isize for alg in algs]
         starts  = [alg.pos   for alg in algs]
         mstarts = [alg.mpos  for alg in algs]
-        rlen    = np.mean([alg.rlen for alg in algs])
+        #rlen    = np.mean([alg.rlen for alg in algs])
         #get chromosome info
         chrnames  = [alg.rname for alg in algs]
         mchrnames = [alg.mrnm  for alg in algs]
-        return isizes, starts, mstarts, rlen, chrnames, mchrnames
+        return isizes, starts, mstarts, chrnames, mchrnames
 
     def cnvs_from_pairs(self, reads, storage, cnvType, m=1):
         """Call deletions for paired reads. """
         if not reads:
             return
         #get read clusters
+        rlen = self.rlen
         for algs in self.get_clusters(reads):
-            isizes, starts, mstarts, rlen, chrnames, mchrnames = self.get_algs_features(algs)
+            isizes, starts, mstarts, chrnames, mchrnames = self.get_algs_features(algs)
             #correct by the read length
             try:
                 chri    = int(np.median(chrnames))
@@ -348,6 +352,7 @@ class SVs(object):
             #if too high coverage for deletion
             if   cnvType == "DEL":
                 start   = int(leftSt  + self.isize_mean/2.0)
+                if start<0: start = 0
                 end     = int(rightSt - self.isize_mean/2.0 + rlen) + 1
                 size    = end-start
                 #check coverage difference - adjust by read start
@@ -358,6 +363,7 @@ class SVs(object):
             #if too low coverage for duplication
             elif cnvType == "DUP":
                 start   = int(leftSt  - self.isize_mean/2.0 + rlen)
+                if start<0: start = 0
                 end     = int(rightSt + self.isize_mean/2.0) + 1
                 size    = end-start
                 #check dup size
@@ -370,8 +376,9 @@ class SVs(object):
                     continue
             #insertion
             else:
-                start = int(leftSt  + self.isize_mean/2.0 - self.rlen/2)
-                end   = start + self.rlen/2
+                start = int(leftSt  + self.isize_mean/2.0 - rlen/2)
+                if start<0: start = 0
+                end   = start + rlen/2
                 size  = int(self.isize_mean - np.median(isizes))
                 cov_obs = self.chr2cov[chri][start:end].mean()
                 cov_ratio = cov_obs / self.cov_mean
