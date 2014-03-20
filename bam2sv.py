@@ -515,7 +515,7 @@ def main():
                                       formatter_class=argparse.RawTextHelpFormatter)
   
     parser.add_argument("-v", dest="verbose",  default=False, action="store_true", help="verbose")    
-    parser.add_argument('--version', action='version', version='1.0')   
+    parser.add_argument('--version', action='version', version='1.0b')   
     parser.add_argument("-i", "--bam",       
                         help="BAM file")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
