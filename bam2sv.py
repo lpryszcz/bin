@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-desc="""Scan alignments (BAM) for structural variants.
+desc="""Scan alignments (SAM/BAM) for structural variants.
 
-TBD:
-- deletions: based on depth of coverage and reads pairing
--- micro-deletions: instability sites
-- duplications
+Detection of deletions, duplications and inversions from paired reads is implemented.
+In addition, deletions and duplications are detected from deviations from mean depth
+of coverage.
+
+By default, the program dumps reads of interest and depth of coverage information. This
+speeds up recalculation by the factor of 20X and should take <1% of BAM file size.
+
+To be implemented:
 - translocations
 - inversions
 """
@@ -64,11 +68,16 @@ class SVs(object):
             self.log = sys.stderr
         else:
             self.log     = None
-        #prepare logging
+        #no dump
         if   'nodump' in kwargs:
             self.nodump = kwargs['nodump']
         else:
             self.nodump = False
+        #merge by depth of coverage variants
+        if   'merge' in kwargs:
+            self.merge = kwargs['merge']
+        else:
+            self.merge = False
         #out
         if 'out' in kwargs:
             self.out = kwargs['out']
@@ -396,11 +405,11 @@ class SVs(object):
         
     def _cov2cnv(self, chri, covHist, cnvType, storage, m):
         """Computes CNVs from depth of coverage."""
-        nreads = 0
         th = (m + self.covD*2) * self.cov_mean
         for start, end in self.get_peaks(covHist*m, 2*self.w, th):
             chrname   = self.refs[chri]
             size      = end-start
+            nreads    = 0
             if size < self.cnv_size:
                 continue
             cov_obs   = self.chr2cov[chri][start:end].mean()
@@ -418,12 +427,26 @@ class SVs(object):
                                  or start<x[0]<end or start<x[1]<end, \
                                  storage[chri])
             if overlapping:
+                txt = "already reported as"
+                if self.merge:
+                    txt = "replaced"
+                    #get positions of overlapping elements
+                    idx = [storage[chri].index(o) for o in overlapping]
+                    nreads = sum(o[2] for o in overlapping)
+                    idx.sort(reverse=True)
+                    #remove these events starting from last
+                    for i in idx:
+                        storage[chri].pop(i)
+                    #store event
+                    storage[chri].append((start, end, nreads, ploidy, size))
                 if self.log:
-                    info = "  %s %s:%s-%s ploidy:%.2f already reported: %s:%s-%s reads:%s ploidy:%.2f\n"
-                    self.log.write(info%(cnvType, chrname, start, end, ploidy, \
-                                         chrname, overlapping[0][0], \
-                                         overlapping[0][1], overlapping[0][3], \
-                                         overlapping[0][4]))
+                    mtmp = "   %s:%s-%s reads:%s ploidy:%.2f"
+                    mstr = "\n".join(mtmp%(chrname, o[0], o[1], o[2], o[3]) \
+                                        for o in overlapping)
+                    info = "  %s %s:%s-%s ploidy:%.2f %s:\n%s\n"
+                    self.log.write(info%(cnvType, chrname, start, end, ploidy, txt, \
+                                         mstr))
+                #skip adding
                 continue
             #store del
             storage[chri].append((start, end, nreads, ploidy, size))
@@ -522,8 +545,8 @@ def main():
                         help="output stream   [stdout]")
     parser.add_argument("-p", "--ploidy",    default=2, type=int, 
                         help="ploidy          [%(default)s]")
-    parser.add_argument("-q", "--mapq",      default=10, type=int, 
-                        help="min mapping quality [%(default)s]")
+    parser.add_argument("-q", "--mapq",      default=20, type=int, 
+                        help="min mapping quality for variants [%(default)s]")
     parser.add_argument("--rlen",            default=100, type=int, 
                         help="read length     [%(default)s]")
     parser.add_argument("-c", "--covD",      default=0.33, type=float, 
@@ -534,6 +557,8 @@ def main():
                         help="min duplication size as insert size fraction [%(default)s]")
     parser.add_argument("--cnv_size",        default=1000, type=int, 
                         help="min CNV size from depth of coverage [%(default)s]")
+    parser.add_argument("--merge",           default=False,  action="store_true",
+                        help="merge read pairs variants using depth of coverage variants")
     parser.add_argument("--nodump",          default=False,  action="store_true",
                         help="dump SV reads for faster recalculations")
     
@@ -544,7 +569,8 @@ def main():
     #initialise structural variants
     sv = SVs(o.bam, out=o.output, mapq=o.mapq, ploidy=o.ploidy, covD=o.covD, \
              cov_frac=o.cov_frac, rlen=o.rlen, dup_isize_frac=o.dup_isize_frac, \
-             cnv_size=o.cnv_size, nodump=o.nodump, verbose=o.verbose)
+             cnv_size=o.cnv_size, merge=o.merge, \
+             nodump=o.nodump, verbose=o.verbose)
     #call variants in all chromosomes
     sv.parse()
 
