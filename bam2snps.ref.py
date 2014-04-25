@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""
-Identify SNP sites in mpileup out from BAM alignments. 
+desc="""Identify SNP sites in mpileup out from BAM alignments. 
 In addition calculates overall and each contig coverage. 
  
 At first run: /users/tg/lpryszcz/cluster/assembly/mpileup.sh (s=MCO456; samtools mpileup -f gem/$s.fa gem/${s}.bam > gem/${s}.mpileup)
@@ -8,9 +7,18 @@ Execute:
  python ~/workspace/assembly/src/heterozygosity.py -i gem/CBS6318.mpileup [-f minFreq -d minDepth -o out_base_name]
 or use with piping:
  s=CBS1954; samtools mpileup -f gem/$s.fa gem/$s.bam | python ~/workspace/assembly/src/heterozygosity.py -o gem/$s -f 0.2 -d 10
+
+CHANGELOG:
++ 1.1:
+- mpileup options added
+"""
+epilog="""Author:
+l.p.pryszcz@gmail.com
+
+Barcelona, 28/06/2012
 """
 
-import os, sys
+import argparse, os, sys
 from optparse import OptionParser
 from datetime import datetime
 import subprocess
@@ -60,7 +68,8 @@ def get_alt_allele( base_ref,cov,alg,minFreq,alphabet,reference,bothStrands ):
                     return
             return (base,freq) # base!=base_ref and 
   
-def parse_mpileup( fnames,fastaFn,minDepth,minFreq,indels,reference,bothStrands,verbose,alphabet='ACGT' ):
+def parse_mpileup(fnames, fastaFn, minDepth, minFreq, indels, mpileup_opts,\
+                  reference, bothStrands, verbose, alphabet='ACGT'):
     """
     """
     # open out files and write header
@@ -71,7 +80,7 @@ def parse_mpileup( fnames,fastaFn,minDepth,minFreq,indels,reference,bothStrands,
         i += 1
         if i==1 and reference:
             continue
-        out = open( "%s.snps.cov_%s.freq_%s.bothStrands_%s.txt" % ( fn,minDepth,minFreq,bothStrands ),"w" )
+        out = open("%s.snps.cov_%s.freq_%s.bothStrands_%s.txt"%(fn, minDepth, minFreq, bothStrands), "w")
         outFiles.append( out )
         out.write( header )
     
@@ -79,7 +88,7 @@ def parse_mpileup( fnames,fastaFn,minDepth,minFreq,indels,reference,bothStrands,
     contigs=[]
     totCov={}; totLen={}; pContig=pPos=0
     #open subprocess
-    args = [ 'samtools','mpileup' ] + fnames #; print args
+    args = ['samtools', 'mpileup', mpileup_opts] + fnames #; print args
     proc = subprocess.Popen( args,stdout=subprocess.PIPE,bufsize=65536 )
     for line in proc.stdout:
         line      = line.strip()
@@ -122,24 +131,26 @@ def parse_mpileup( fnames,fastaFn,minDepth,minFreq,indels,reference,bothStrands,
 def main():
 
     usage  = "usage: %prog [options] ref.bam *.bam" 
-    parser = OptionParser( usage=usage,version="%prog 1.0" ) #allow_interspersed_args=True
+    parser = OptionParser(usage=usage, version="%prog 1.0") #allow_interspersed_args=True
 
-    parser.add_option("-i", dest="fasta", help="fasta [required only if no reference bam]")
-    parser.add_option("-d", dest="minDepth", default=5,  type=int,
-                      help="minimal depth [%default]")
-    parser.add_option("-f", dest="minFreq",  default=0.8, type=float,
-                      help="min frequency of alternative base [%default]")
-    parser.add_option("-n", dest="indels",   default=False, action="store_true", 
-                      help="report indels [%default]")
-    parser.add_option("-b", dest="bothStrands", default=False, action="store_true", 
-                      help="only SNPs confirmed by both strand algs [%default]")
-    parser.add_option("-r", dest="reference",   default=True, action="store_false", 
-                      help="first bam is reference algs [%default]")
-    parser.add_option("-v", dest="verbose",  default=False, action="store_true" )
+    parser.add_argument("-v", dest="verbose", default=False, action="store_true", help="verbose")    
+    parser.add_argument('--version', action='version', version='1.1')
+    parser.add_argument("-i", dest="fasta", 
+                        help="fasta [required only if no reference bam]")
+    parser.add_argument("-d", "--minDepth",    default=5,  type=int,
+                        help="minimal depth                     [%(default)s]")
+    parser.add_argument("-f", "--minFreq",     default=0.8, type=float,
+                        help="min frequency of alternative base [%(default)s]")
+    parser.add_argument("-n", "--indels",      default=False, action="store_true", 
+                        help="report indels                     [%(default)s]")
+    parser.add_argument("-b", "--bothStrands", default=False, action="store_true", 
+                        help="only SNPs confirmed by both strand algs [%(default)s]")
+    parser.add_argument("-r", "--reference",   default=True, action="store_false", 
+                        help="first bam is reference algs       [%(default)s]")
   
-    ( o, fnames ) = parser.parse_args()
+    o = parser.parse_args()
     if o.verbose:
-        print "Options: %s\nFiles: %s" % ( o,fnames )
+        sys.stderr.write("Options: %s\n"%str(o))
 
     if not fnames:
         parser.error( "Provide at least one bam file!" )
@@ -148,10 +159,16 @@ def main():
             parser.error( "No such file: %s" % fn )
     
     #parse pileup
-    parse_mpileup( fnames,o.fasta,o.minDepth,o.minFreq,o.indels,o.reference,o.bothStrands,o.verbose )
-  
+    parse_mpileup(fnames, o.fasta, o.minDepth, o.minFreq, o.mpileup_opts, \
+                  o.indels, o.reference, o.bothStrands, o.verbose)
+    
 if __name__=='__main__': 
-  t0=datetime.now()
-  main()
-  dt=datetime.now()-t0
-  sys.stderr.write( "#Time elapsed: %s\n" % dt )
+    t0 = datetime.now()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("\nCtrl-C pressed!      \n")
+    except IOError as e:
+        sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
+    dt = datetime.now()-t0
+    sys.stderr.write( "#Time elapsed: %s\n" % dt )

@@ -14,6 +14,7 @@ To be done:
 -- translocations
 -- inversions
 + split read alignment
++ rlen learning
 """
 epilog="""Author:
 l.p.pryszcz@gmail.com
@@ -59,11 +60,11 @@ class SVs(object):
             self.covD = kwargs['covD']
         else:
             self.covD = 0.33
-        #min coverage change
+        #set read length
         if 'rlen' in kwargs:
             self.rlen = kwargs['rlen']
         else:
-            self.rlen    = 100
+            self.rlen    = None
         #prepare logging
         if   'log' in kwargs:
             self.log = kwargs['log']
@@ -387,6 +388,11 @@ class SVs(object):
                     continue
             #define ploidy
             ploidy  = self.ploidy * cov_ratio
+            if end<=start:
+                info = "[Warning] End before start: \n %s:%s-%s reads: %s ploidy: %s\n %s\n %s\n %s\n"
+                sys.stderr.write(info%(chrname, start, end, nreads, ploidy, \
+                                       str(isizes), str(starts), str(mstarts)))
+                continue
             #store del
             storage[chri].append((start, end, nreads, ploidy, size))
 
@@ -535,6 +541,11 @@ class SVs(object):
         #dump all important info
         if not self.nodump and not os.path.isfile(self.bamdump):
             self.sv2bam()
+        #get mean rlen
+        if not self.rlen:
+            self.rlen = np.mean([alg.rlen for alg in self.delReads])
+            if self.log:
+                self.log.write(" Mean read length: %.2f \n"%self.rlen)
         #call variants
         self.call_variants()        
             
@@ -554,8 +565,8 @@ def main():
                         help="ploidy          [%(default)s]")
     parser.add_argument("-q", "--mapq",      default=20, type=int, 
                         help="min mapping quality for variants [%(default)s]")
-    parser.add_argument("--rlen",            default=100, type=int, 
-                        help="read length     [%(default)s]")
+    parser.add_argument("--rlen",            default=None, type=int, 
+                        help="read length     [get from data]")
     parser.add_argument("-c", "--covD",      default=0.33, type=float, 
                         help="min coverage change to call deletion/duplication [%(default)s]")
     parser.add_argument("--cov_frac",        default=0.1, type=float, 
