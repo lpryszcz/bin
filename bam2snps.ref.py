@@ -94,7 +94,7 @@ def parse_mpileup(fnames, fastaFn, minDepth, minFreq, indels, mpileup_opts,\
         line      = line.strip()
         lineTuple = line.split('\t')
         #get coordinate
-        refCov = refFreq = ''
+        refCov, refFreq = 0, 1.0
         contig,pos,baseRef = lineTuple[:3]
         samplesData = lineTuple[3:]
         #laod ref data
@@ -120,7 +120,7 @@ def parse_mpileup(fnames, fastaFn, minDepth, minFreq, indels, mpileup_opts,\
                 continue
             # get base and freq
             base,freq = alt_allele
-            lineOut='%s:%s\t%s\t%s\t%1.4f\t%s\t%s\t%1.4f\n' % ( contig,pos,refCov,baseRef,refFreq,cov,base,freq )
+            lineOut='%s:%s\t%s\t%s\t%1.4f\t%s\t%s\t%1.4f\n' % (contig, pos, refCov, baseRef, refFreq, cov, base, freq)
             out.write( lineOut )
             if verbose:
                 print lineOut,

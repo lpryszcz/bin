@@ -154,4 +154,5 @@ if __name__=='__main__':
     except IOError as e:
         sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
     dt = datetime.now()-t0
-    sys.stderr.write( "#Time elapsed: %s\n" % dt )    
+    sys.stderr.write("#Time elapsed: %s\n" % dt)
+    
