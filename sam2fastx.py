@@ -100,7 +100,7 @@ def sam2fastq( handle,outlist,last,first,paired ):
 def main():
 
     usage  = "samtools view BAM [region(s)] | %(prog)s [options]"
-    parser  = argparse.ArgumentParser( usage=usage,description=desc,epilog=epilog )
+    parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
     
     parser.add_argument("-v", dest="verbose", default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.0')
@@ -117,7 +117,7 @@ def main():
   
     o = parser.parse_args()
     if o.verbose:
-        sys.stderr.write( "Options: %s\n" % str(o) )
+        sys.stderr.write("Options: %s\n"%str(o))
 
     #ext
     ext = "fastq"
@@ -154,5 +154,5 @@ if __name__=='__main__':
     except IOError as e:
         sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
     dt = datetime.now()-t0
-    sys.stderr.write("#Time elapsed: %s\n" % dt)
+    sys.stderr.write( "#Time elapsed: %s\n" % dt )
     
