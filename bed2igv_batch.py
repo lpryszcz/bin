@@ -13,7 +13,8 @@ from datetime import datetime
 import numpy as np
 from scipy import stats
 
-def bed2batch(bed, out, session, bam, genome, outdir, ext, offset, replace, verbose):
+def bed2batch(bed, out, session, bam, genome, outdir, ext, offset, noname, \
+              replace, verbose):
     """Generates IGV batch script."""
     init = "new\n"
     if session:
@@ -33,13 +34,21 @@ def bed2batch(bed, out, session, bam, genome, outdir, ext, offset, replace, verb
     for line in bed:
         if line.startswith("#"):
             continue
-        chrom, s, e, name, score = line.split('\t')[:5]
+        chrom, s, e, name = line[:-1].split('\t')[:4]
         s, e = int(s), int(e)
-        soff, eoff = s-500, e+500
+        size = e-s
+        #show 2*size window
+        soff, eoff = int(s-0.5*size), int(e+0.5*size)
+        #increase window size
+        if eoff - soff < 2*offset:
+            soff, eoff = s-offset, e+offset
         if soff<1:
             soff = 1
-        coords = "%s:%s-%s" % (chrom, soff, eoff)            
-        outfn = "%s.%s:%s-%s.%s" % (name, chrom, s, e, ext)
+        coords = "%s:%s-%s" % (chrom, soff, eoff)
+        if noname:
+            outfn = "%s:%s-%s.%s" % (chrom, s, e, ext)            
+        else:
+            outfn = "%s:%s-%s.%s.%s" % (chrom, s, e, name, ext)
         outpath = os.path.join(outdir, outfn)
         if not replace and os.path.isfile(outpath):
             continue
@@ -49,7 +58,7 @@ def bed2batch(bed, out, session, bam, genome, outdir, ext, offset, replace, verb
         if not i:
             out.write(outline+outline)
         i += 1
-
+    out.write("exit")
         
 def main():
     import argparse
@@ -76,7 +85,9 @@ def main():
                         choices=['png', 'jpg', 'svg'],  
                         help="snapshots format [%(default)s]")
     parser.add_argument("--offset",          default=500, type=int, 
-                        help="start/end offset [%(default)s]")
+                        help="min start/end offset [%(default)s]")
+    parser.add_argument('--noname', default=False, action='store_true',
+                        help="skip BED name columns in output filename")   
     
     o = parser.parse_args()
     if o.verbose:
@@ -86,7 +97,7 @@ def main():
         sys.stderr.write("BAM file or session file need to be provided!\n")
         sys.exit(1)
     bed2batch(o.bed, o.output, o.session, o.bam, o.genome, o.outdir, o.ext, \
-              o.offset, o.replace, o.verbose)
+              o.offset, o.noname, o.replace, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()
