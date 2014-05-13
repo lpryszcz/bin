@@ -86,6 +86,10 @@ def parse_snps(fpath, outfn, contig2position, gene2position, contig2fasta, trans
             continue
         ##
         lData = l[:-1].split("\t")
+        if len(lData)<5:
+            if verbose:
+                sys.stderr.write("[WARNING] Wrong line: %s\n"%str(lData))
+            continue
         if ':' in lData[0]:
             #coord,refCov,refBase,altBase = lData[:4]
             coord,refCov,refBase,refFreq,altCov,altBase,altFreq = lData[:7]
@@ -96,7 +100,8 @@ def parse_snps(fpath, outfn, contig2position, gene2position, contig2fasta, trans
         pos        = int(pos)
 
         if contig not in contig2fasta:
-            sys.exit("Warning: %s not in genome\n" % contig )
+            if verbose:
+                sys.exit("Warning: %s not in genome\n" % contig )
 
         if contig2fasta[contig][pos-1] != refBase:
             if verbose: sys.stderr.write( " %s %s > %s\n" % ( coord,contig2fasta[contig][pos],refBase ) )
@@ -113,11 +118,14 @@ def parse_snps(fpath, outfn, contig2position, gene2position, contig2fasta, trans
             elif l.startswith("#"):
                 headeradded = 1 
                 l+="\tSNP type\tgene\tAA type\tAA position\tposition in codon\tref codon\tref AA\talt codon\talt AA\tfuntcion\tfasta annotation\tpfam\ttab annotation\n"
-            out1.write( l )
+                out1.write(l)
             continue
         ##
         snpsCount += 1
         lData = l[:-1].split("\t")
+        if len(lData)<5:
+            #sys.stderr.write("[WARNING] Wrong line: %s\n"%str(lData))
+            continue
         if ':' in lData[0]:
             coord,refCov,refBase,refFreq,altCov,altBase,altFreq = lData[:7]
             #alter contig2fasta
@@ -128,7 +136,7 @@ def parse_snps(fpath, outfn, contig2position, gene2position, contig2fasta, trans
         
         # check if in gene
         if not contig in contig2position:
-            sys.stderr.write("Warining: Contig %s is not present in GTF!\n" % contig )
+            #sys.stderr.write("Warining: Contig %s is not present in GTF!\n" % contig )
             continue
         
         outline = process_alt(refBase, altBase, contig, pos, contig2position, gene2position, contig2fasta, trans2ann, trans2pfam, trans2tab, l)

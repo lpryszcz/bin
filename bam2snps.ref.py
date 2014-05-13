@@ -111,6 +111,7 @@ def parse_mpileup( fnames,fastaFn,minDepth,minFreq,indels,reference,bothStrands,
                 continue
             # get base and freq
             base,freq = alt_allele
+
             lineOut='%s:%s\t%s\t%s\t%1.4f\t%s\t%s\t%1.4f\n' % (contig, pos, refCov, baseRef, refFreq, cov, base, freq)
             out.write( lineOut )
             if verbose:
