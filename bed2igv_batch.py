@@ -48,7 +48,7 @@ def bed2batch(bed, out, session, bam, genome, outdir, ext, offset, noname, \
         if noname:
             outfn = "%s:%s-%s.%s" % (chrom, s, e, ext)            
         else:
-            outfn = "%s:%s-%s.%s.%s" % (chrom, s, e, name, ext)
+            outfn = "%s:%s-%s.%s.%s" % (chrom, s, e, name[:100], ext)
         outpath = os.path.join(outdir, outfn)
         if not replace and os.path.isfile(outpath):
             continue

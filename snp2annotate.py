@@ -135,17 +135,14 @@ def parse_snps(handle, out, contig2position, gene2position, contig2fasta, \
             elif l.startswith("#"):
                 headeradded = 1 
                 l+="\tSNP type\tgene\tAA type\tAA position\tposition in codon\tref codon\tref AA\talt codon\talt AA\tfuntcion\tfasta annotation\tpfam\ttab annotation\n"
-<<<<<<< HEAD
-                out1.write(l)
-=======
             out.write(l)
->>>>>>> 4e683bd8f4fd2ee01b4d6c249a6b93ff5f238982
             continue
         ##
         snpsCount += 1
         lData = l[:-1].split("\t")
         if len(lData)<5:
-            #sys.stderr.write("[WARNING] Wrong line: %s\n"%str(lData))
+            if verbose:
+                sys.stderr.write("[WARNING] Wrong line: %s\n"%str(lData))
             continue
         if ':' in lData[0]:
             coord, refCov, refBase, refFreq, altCov, altBase, altFreq = lData[:7]
@@ -157,43 +154,20 @@ def parse_snps(handle, out, contig2position, gene2position, contig2fasta, \
         #unload alternatives
         refBases = set(refBase.split(','))
         altBases = set(altBase.split(','))
+        added = set()
         for refBase in refBases.difference(altBases):
-            for altBase in altBases.difference(refBases):
+            for altBase in filter(lambda x: x != refBase, altBases): 
+                outline = process_alt(refBase, altBase, contig, pos, contig2position, gene2position, contig2fasta, trans2ann, trans2pfam, trans2tab, l)
+                out.write(outline)
+                added.add((refBase,altBase))
+        for altBase in altBases.difference(refBases):
+            for refBase in filter(lambda x: x != altBase, refBases):
+                if (refBase,altBase) in added:
+                    continue
+                outline = process_alt(refBase, altBase, contig, pos, contig2position, gene2position, contig2fasta, trans2ann, trans2pfam, trans2tab, l)
+                out.write(outline)
         
-                outline = process_alt(refBase, altBase, contig, pos, contig2position, gene2position, contig2fasta, trans2ann, trans2pfam, trans2tab, l)
-                out.write(outline)
-        ''' to deal with multiple possibilities!
-        # check if in gene
-        if not contig in contig2position:
-<<<<<<< HEAD
-            #sys.stderr.write("Warining: Contig %s is not present in GTF!\n" % contig )
-=======
-            sys.stderr.write("Warning: Contig %s is not present in GTF!\n" % contig )
->>>>>>> 4e683bd8f4fd2ee01b4d6c249a6b93ff5f238982
-            continue
-
-        #get pos +-2 bases
-        if not ppos or ppos+2<pos or pcontig != contig:
-            storage[
-            refseq, altseq = storage[-2:]
-            refseq += contig2fasta[contig][pos:pos+2]
-        else:
-            #report SNP
-            if ppos:
-                
-                outline = process_alt(refBase, altBase, contig, pos, contig2position, gene2position, contig2fasta, trans2ann, trans2pfam, trans2tab, l)
-                out.write(outline)
-            #add new seq
-            spos = pos-3
-            if spos<0:
-                spos = 0
-            refseq = contig2fasta[contig][spos:pos+2]
-            altseq = refseq[:-3] + altbase + refseq[-2:]
-            storage = [pos, [l,], refseq, altseq]
-        pcontig, ppos = contig, pos
-
-    if storage:
-    '''    
+ 
     #sys.stderr.write( "SNPs:\t%s\nINDELs:\t%s\n" % ( snpsCount,indelsCount ) )
     sys.stderr.write("SNPs:\t%s\n"%(snpsCount,))
 

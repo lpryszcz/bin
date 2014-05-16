@@ -131,16 +131,8 @@ def parse_mpileup(fnames, fastaFn, minDepth, minFreq, indels, mpileup_opts,\
             bases, freqs = get_major_alleles(cov, alg, minFreq, alphabet, bothStrands)
             if not bases or bases==baseRef:
                 continue
-<<<<<<< HEAD
-            # get base and freq
-            base,freq = alt_allele
-
-            lineOut='%s:%s\t%s\t%s\t%1.4f\t%s\t%s\t%1.4f\n' % (contig, pos, refCov, baseRef, refFreq, cov, base, freq)
-            out.write( lineOut )
-=======
             out.write(outline%(contig, pos, refCov, ",".join(baseRef), max(refFreq), \
                                cov, ",".join(bases), max(freqs)))
->>>>>>> 4e683bd8f4fd2ee01b4d6c249a6b93ff5f238982
             if verbose:
                 print outline%(contig, pos, refCov, ",".join(baseRef), max(refFreq), \
                                cov, ",".join(bases), max(freqs)),
