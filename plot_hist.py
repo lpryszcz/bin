@@ -10,6 +10,7 @@ Barcelona, 29/11/2012
 import argparse, os, sys
 from datetime import datetime
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 
 def histplot(ax, x, handle, categories, title, xlab, ylab, log):
@@ -30,15 +31,16 @@ def histplot(ax, x, handle, categories, title, xlab, ylab, log):
     # add a 'best fit' line for the normal PDF
     #y = mlab.normpdf( bincenters, mu, sigma)
     #l = ax.plot(bincenters, y, 'r--', linewidth=1)
-
-    ax.set_title(title+'\nmean=%.2f; stdev=%.2f' % (np.mean(x),np.std(x)))
+    #title+'\nmean=%.2f; stdev=%.2f' % (np.mean(x),np.std(x)), \
+    ax.set_title(title)
     #ax.set_title('mean=%.2f,stdev=%.2f' % (np.mean(x),np.std(x)))
     #ax.set_xlim(40, 160)
     #ax.set_ylim(0, 0.03)
     #plt.text(60, .025, r'mean=%.2f,stdev=%.2f' % (np.mean(x),np.std(x)))
     ax.grid(True)
  
-def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin, verbose):
+def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin, \
+              verbose, dlimit=1):
     """
     """
     if verbose:
@@ -58,16 +60,22 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin
     if verbose:
         sys.stderr.write( " %s values loaded.\n" % len(x) )
     #define number of rows and columns
-    ncol = len(cols)/2
-    if len(cols)%2:
+    ncol = nrow = int(np.sqrt(len(cols)))
+    if ncol*nrow < len(cols):
         ncol += 1
-    nrow = len(cols)/4
-    if len(cols)%4 and len(cols)/ncol*1.0 != nrow:
+    if ncol*nrow < len(cols):
         nrow += 1
     if verbose:
         sys.stderr.write(" %s columns x %s rows\n"%(ncol, nrow))
     #start figure
     fig = plt.figure()
+    #http://matplotlib.org/users/customizing.html
+    #mpl.rcParams['figure.subplot.wspace'] = 0.3
+    mpl.rcParams['figure.subplot.hspace'] = 0.5
+    mpl.rcParams['axes.titlesize'] = 8
+    mpl.rcParams['axes.labelsize'] = 6
+    mpl.rcParams['xtick.labelsize'] = 5
+    mpl.rcParams['ytick.labelsize'] = 5
     #add subplots
     for i, data in enumerate(x):
         ax = fig.add_subplot(nrow, ncol, i+1)
@@ -76,13 +84,15 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin
         name = ""
         if names:
             name = names[i]
+        if len(data)<dlimit:
+            sys.stderr.write("[WARNING] Only %s data points for: %s\n"%(len(data), name))
+            continue
         histplot(ax, data, handle, bins, name, xlab, ylab, log)
 
         if i+1>len(cols)-nrow:
             ax.set_xlabel(xlab)
         if not i%nrow:
             ax.set_ylabel(ylab)
-        
 
     if type(out) is file and out.name=='<stdout>':
     	plt.show()

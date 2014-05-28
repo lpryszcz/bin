@@ -271,7 +271,11 @@ class SVs(object):
     def get_clusters(self, algs):
         """Return clustered algs."""
         #collapse dels by chromosome
-        chr2dels = {i: [] for i, ref in enumerate(self.refs)}
+        #chr2dels = {i: [] for i, ref in enumerate(self.refs)}
+        #py2.6 compatible
+        chr2dels = {}
+        for i, ref in enumerate(self.refs):
+            chr2dels[i] = []
         for alg in algs:
             chr2dels[alg.rname].append(alg)
         clusters = []
@@ -551,13 +555,13 @@ class SVs(object):
             
 def main():
     import argparse
-    usage   = "%(prog)s -v"
-    parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog, \
+    usage   = "%(prog)s -v" #usage=usage, 
+    parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
     parser.add_argument("-v", dest="verbose",  default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.0b')   
-    parser.add_argument("-i", "--bam",       
+    parser.add_argument("-i", "--bam", required=True,       
                         help="BAM file")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
@@ -583,7 +587,7 @@ def main():
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
-
+        
     #initialise structural variants
     sv = SVs(o.bam, out=o.output, mapq=o.mapq, ploidy=o.ploidy, covD=o.covD, \
              cov_frac=o.cov_frac, rlen=o.rlen, dup_isize_frac=o.dup_isize_frac, \
