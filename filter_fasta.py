@@ -11,7 +11,8 @@ import argparse, numpy, os, sys
 from datetime import datetime
 from Bio import SeqIO
 
-def filter_fasta(handle, minLength=0, upper=0, simpleHeader=False, window=50):
+def filter_fasta(handle, minLength=0, upper=0, simpleHeader=False, window=50, \
+                 skip_xs=0, skip_ns=0):
   """
   """
   for r in SeqIO.parse(handle, 'fasta'):
@@ -22,7 +23,12 @@ def filter_fasta(handle, minLength=0, upper=0, simpleHeader=False, window=50):
     while j<=len(r.seq):
       j+=window
       seq+='%s\n' % r.seq[j:j+window]
-    
+    #skip if too many Xs / Ns in sequence
+    if skip_xs and 1.0 * r.seq.count('X') / len(r) > skip_xs:
+        continue
+    if skip_ns and 1.0 * r.seq.count('N') / len(r) > skip_ns:
+        continue
+    #
     if upper: seq=seq.upper()
     if simpleHeader:  print '>%s\n%s' % ( r.id,         seq )
     else:             print '>%s\n%s' % ( r.description,seq )
@@ -46,12 +52,17 @@ def main():
                         help="define max seq line length")              
     parser.add_argument("-r", "--replace", action="store_true",  default=False,
                         help="overwrite output files")
+    parser.add_argument("-x", "--skip_xs", type=float, default=0,
+                        help="skip sequences with Xs")
+    parser.add_argument("-n", "--skip_ns", type=float, default=0,
+                        help="skip sequences with ns")
   
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
   
-    filter_fasta(o.input, o.minLength, o.upper, o.simpleHeader, o.lineLenght)
+    filter_fasta(o.input, o.minLength, o.upper, o.simpleHeader, o.lineLenght, \
+                 skip_xs, skip_ns)
 
 if __name__=='__main__': 
     t0  = datetime.now()
