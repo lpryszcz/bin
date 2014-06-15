@@ -62,7 +62,7 @@ def main():
         sys.stderr.write("Options: %s\n"%str(o))
   
     filter_fasta(o.input, o.minLength, o.upper, o.simpleHeader, o.lineLenght, \
-                 skip_xs, skip_ns)
+                 o.skip_xs, o.skip_ns)
 
 if __name__=='__main__': 
     t0  = datetime.now()
