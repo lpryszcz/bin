@@ -26,5 +26,4 @@ ps aux | grep -P "vlc|rhythmbox|sshfs" | grep -v grep | awk '{print $2}' | xargs
 #sync && echo 3 | sudo tee /proc/sys/vm/drop_caches && 
 
 #hibernate
-sleep 2;
 pm-hibernate

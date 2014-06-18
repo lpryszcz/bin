@@ -5,7 +5,7 @@ echo "Unmounting sshfs..."
 mountpoints=`mount | grep sshfs | cut -f3 -d" "`
 for m in $mountpoints; do
     echo " $m"
-    umount $m
+    sudo umount $m
 done
 
 #fusermount
@@ -14,17 +14,17 @@ if [ ! -z $mountpoints ]; then
     echo "Unmounting sshfs by 'fusermount -uz'..."
     for m in $mountpoints; do
         echo " $m"
-        fusermount -uz $m
+        sudo fusermount -uz $m
     done
 fi
 
 #kill audio/video apps and sshfs
-echo "Terminating audio/video apps and sshfs"
-ps aux | grep -P "vlc|rhythmbox|sshfs" | grep -v grep | awk '{print $2}' | xargs kill -s 9
+echo "Terminating sshfs"
+ps aux | grep -P "sshfs" | grep -v grep | awk '{print $2}' | xargs kill -s 9
 
 #drop disk cache if little memory
 #sync && echo 3 | sudo tee /proc/sys/vm/drop_caches && 
 
-#hibernate
-sleep 2;
-pm-hibernate
+#isilonup
+sshfs -o "idmap=user,reconnect,workaround=all,compression=yes,ssh_command=ssh" ssh-server.crg.es:/nfs/users /mnt/users
+
