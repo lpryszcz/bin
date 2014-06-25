@@ -9,7 +9,7 @@ In addition, checks for web-serwer stats from last week i.e. the most common que
 
 import os, sys, time
 import locale
-#locale.setlocale(locale.LC_ALL, '')
+locale.setlocale(locale.LC_ALL, 'en_US.utf8')
 import MySQLdb
 from datetime import datetime
 from optparse import OptionParser
@@ -32,7 +32,7 @@ def phylome_stats( ):
     trees, = c.fetchone()
     
     #ml trees
-    c.execute("SELECT COUNT(*) FROM tree WHERE method!='NJ'")
+    c.execute("SELECT COUNT(*) FROM tree WHERE method != 'NJ'")
     mltree,= c.fetchone()
 
     #algs
@@ -148,17 +148,21 @@ def webserver_stats( serverlog,days=31 ):
     protein = sorted(proteins.keys(), key=lambda x: proteins[x], reverse=True )[0]
     alg     = sorted(algs.keys(),     key=lambda x: algs[x],     reverse=True )[0]
 
+
+## <li><strong>tree:           </strong> <a href="/?q=search_tree&seqid=%s&phyid=%s&method=%s">%s (%s)</a></li>
+## tree.split('|')[0], tree.split('|')[1], tree.split('|')[2]
     lines = """
 <p><strong>The most popular (last %s days): </strong>
 <ul>
 <li><strong>public phylome: </strong> <a href="/phylome_%s">%s (%s)</a></li>
-<li><strong>tree:           </strong> <a href="/?q=search_tree&seqid=%s&phyid=%s&method=%s">%s (%s)</a></li>
+<li><strong>tree:           </strong> <a href="/?q=search_tree&seqid=%s&phyid=%s">%s (%s)</a></li>
 <li><strong>alignment:      </strong> <a href="/?q=search_alg&seqid=%s&phyid=%s&alg_type=%s">%s (%s)</a></li>
 <li><strong>protein:        </strong> <a href="/?q=seqinfo&seqid=%s">%s (%s)</a></li>
 </ul>
 </p>
+
 """ % (days, phylome, phylome, phylomes[phylome], \
-       tree.split('|')[0], tree.split('|')[1], tree.split('|')[2], \
+       tree.split('|')[0], tree.split('|')[1], \
        tree.split('|')[0], trees[tree], \
        alg.split('|')[0], alg.split('|')[1], alg.split('|')[2], \
        alg.split('|')[0], algs[alg], \
