@@ -64,8 +64,9 @@ def phylome_stats( ):
     #x-links
     lines += "<p><strong>External IDs: </strong>\n<ul>"
     c.execute("SELECT external_db, count(*) FROM external_id GROUP BY external_db")
+    line = "\n <li><strong>%s</strong>: %s [%.2f%s]</li>"
     for db, c in c.fetchall():
-        lines += "\n <li><strong>%s</strong>: %s</li>" % (db, locale.format("%d", c, grouping=True))
+        lines += line%(db, locale.format("%d", c, grouping=True), c*100.0/prots, '%')
 
     lines += "</ul></p>"
     return lines
