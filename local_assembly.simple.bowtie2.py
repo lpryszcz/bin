@@ -1,14 +1,12 @@
 #!/usr/bin/env python
-"""Run local assembly using subset of reads aligning to particular sequence(s).
+desc="""Run local assembly using subset of reads aligning to particular sequence(s).
 
 Prerequisites:
  Ray assembler  (http://sourceforge.net/projects/denovoassembler/)
  bowtie2 aligner (http://bowtie-bio.sourceforge.net/bowtie2/)
  zlib [to enable -z]
-
-Author:
-l.p.pryszcz@gmail.com
-
+"""
+epilog="""Author: l.p.pryszcz@gmail.com
 Barcelona, 16/05/2012
 """
 
@@ -136,15 +134,8 @@ def get_aligning_pairs_bwt2( fnames,ref,outdir,bwtmode,gzipped,force,verbose ):
     out2.close()
            
 def main():
-    usage  = "usage: %prog [options] fqA1 fqA2 [fqB1 fqB2]"
-    desc   = """Retrieve reads (and their pairs) reads that align on given reference sequence.
-Subsequently, assembly is created with given subset of reads. This (often) nicely recover
-regions that are difficult to assemble.
-Reference sequence can be: some marker(s), mitochondrion genome or even chromosome(s).
-It takes ~5 min for 11 mln reads (2x46bp) and mitochondrion reference of 30kb.
-    """
-    epilog = "Note: Reads in SAM output from each subprocess has to correspond to each other. So, never use pthreads (-p) in bowtie2 as it shuffle reads in output sometimes! It's not checked!"
-    parser = OptionParser( usage=usage,version="%prog 1.0",description=desc,epilog=epilog ) 
+    usage  = "%prog [options] fqA1 fqA2 [fqB1 fqB2]"
+    parser = OptionParser(usage=usage, version="%prog 1.0", description=desc, epilog=epilog) 
 
     parser.add_option("-o", dest="outdir",  default="simple_assembly",
                       help="output directory       [%default]")
@@ -204,7 +195,7 @@ It takes ~5 min for 11 mln reads (2x46bp) and mitochondrion reference of 30kb.
     if o.gzipped:
         fqfname += ".gz"
     rayDir = os.path.join( o.outdir,"ray.k%s" % o.kmer )
-    cmd = "Ray -k %s -p %s -o %s -peakCoverage %s -minimumCoverage %s > %s.log" % ( o.kmer,fqfname,rayDir,o.peakCov,o.minCov,rayDir )
+    cmd = "mpiexec -n 2 Ray -k %s -p %s -o %s -peakCoverage %s -minimumCoverage %s > %s.log" % ( o.kmer,fqfname,rayDir,o.peakCov,o.minCov,rayDir )
     if o.verbose:
         sys.stderr.write( " %s\n" % cmd )
     #if assembly not requested only print info
