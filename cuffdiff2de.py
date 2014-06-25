@@ -33,8 +33,31 @@ def load_gff_annotation(handle):
         id2ann[id] = (urllib.unquote_plus(note),)
         
     return id2ann
+    
+def load_gtf_annotation(handle):
+    """Parse sgd gff and return tuple of 3 elements:
+    """
+    id2ann = {}
+    for line in handle:
+        line=line.strip()     
+        # skip empty lines and comments
+        if line.startswith('#') or not line: 
+            continue
+        line_data=line.split('\t')
+        # skip incorrect lines
+        if len(line_data)!=9: 
+            continue
+        contig,source,feature,start,end,score,strand,frame,comments=line_data
+        # read only CDS entries
+        if feature!='gene': 
+            continue
+        id = comments.split('gene_id "')[-1].split('"')[0]
+        note = comments.split('note "')[-1].split('"')[0]
+        id2ann[id] = (note,) 
+        
+    return id2ann
 
-def load_annontation( handle,dotStrip=0 ):
+def load_annotation( handle,dotStrip=0 ):
     """Return dictionary of annotation for every gene
     """
     id2ann = {}
@@ -45,7 +68,7 @@ def load_annontation( handle,dotStrip=0 ):
         if not l.split("\t")[1:]:
             continue
         id = l.split("\t")[0]
-        if dotStrip:
+        if dotStrip and "." in id:
             rDotIndex = id.rindex(".")
             id = id[:rDotIndex]
         id2ann[ id ] = l.split("\t")[1:]
@@ -68,25 +91,30 @@ def load_cuffdiff(handle):
         #ver >1.0.3
         else:             
             #test_id  gene_id  gene  locus  sample_1  sample_2  status  value_1  value_2  ln(fold_change)  test_stat  p_value  q_value  significant
-            transid,geneid,gene,locus,s1,s2,status,v1,v2,log_fc,test_stat,praw,p,significant = data
+            transid,geneid,gene,locus,s1,s2,status,v1,v2,log_fc,test_stat,p,q,significant = data
       
         v1,v2,log_fc,p=float(v1),float(v2),float(log_fc),float(p)
         id2exp[transid]=[gene,locus,v1,v2,log_fc,p] 
         
     return id2exp
 
-def report(files, pfam, annotation, pTh, verbose):
+def report(files, pfam, annotation, tab, pTh, verbose):
     """ """
     #load pfam annotation
-    geneid2pfam, geneid2annotation = {},{}
+    geneid2pfam, geneid2annotation, geneid2tab = {}, {}, {}
     if pfam:
         geneid2pfam = load_pfam_tblout(pfam)
-        sys.stderr.write( " PFAMs for %s entries loaded.\n" % len(geneid2pfam) )
+        sys.stderr.write(" PFAMs for %s entries loaded.\n" % len(geneid2pfam))
+    if tab:
+        geneid2tab = load_annotation(open(tab))
+        sys.stderr.write(" Tab annotation for %s entries loaded.\n" % len(geneid2tab))  
     if annotation:
         if annotation.endswith('.gff'):
             geneid2annotation = load_gff_annotation(open(annotation))
+        elif annotation.endswith('.gtf'):
+            geneid2annotation = load_gtf_annotation(open(annotation))
         else:
-            geneid2annotation = load_annontation(open(annotation),True )
+            geneid2annotation = load_annotation(open(annotation),True )
         sys.stderr.write( " Annotations for %s entries loaded.\n" % len(geneid2annotation) )
                         
     #load all cuffdiff files
@@ -98,9 +126,9 @@ def report(files, pfam, annotation, pTh, verbose):
         fn2data[fn] = load_cuffdiff(f)
 
     #write output
-    header = "#transcript id\tgene id\tlocus\tcontrol"
+    header = "#transcript id\tgene id\tcontrol"
     for fn in fnames:
-        header += "\t%s log2\tP-value" % fn
+        header += "\t%s\tlog2(FC)\tP-value" % fn
     header += "\tannotation\n"
     sys.stdout.write( header )
     #open outfiles for ids
@@ -113,8 +141,8 @@ def report(files, pfam, annotation, pTh, verbose):
         for exprTuple,out in zip(exprData,outfiles):
             geneid,locus,v1,v2,log_fc,p = exprTuple
             if not lineData:
-                lineData = [ transid,geneid,locus,str(v1) ]
-            lineData += [ str(log_fc),str(p) ]
+                lineData = [ transid,geneid,str(v1) ]
+            lineData += [ str(v2), str(log_fc),str(p) ]
             #check p value
             if p<=pTh:
                 pFilter = True
@@ -124,9 +152,17 @@ def report(files, pfam, annotation, pTh, verbose):
             #add PFAM annotation
             annList=[]
             if transid in geneid2pfam:
-                for pfam,data in geneid2pfam[transid].iteritems():
-                    annList.append( "%s [%s]" % (data[1],pfam) ) 
-            lineData.append( "; ".join(annList)  )#; print geneid2pfam[geneid]
+                if type(geneid2pfam[transid]) is list:
+                    annList.append(";".join(geneid2pfam[transid]))
+                else:
+                    for pfam,data in geneid2pfam[transid].iteritems():
+                        annList.append( "%s [%s]" % (data[1],pfam) ) 
+            lineData.append( "; ".join(annList))
+            #add tab annotation
+            annList=[]
+            if geneid2tab and transid in geneid2tab:
+                annList.append(";".join(geneid2tab[transid]))
+            lineData.append( "; ".join(annList))
             #add Arabidopsis annotation
             if transid in geneid2annotation:
                 for ann in geneid2annotation[transid]:
@@ -151,14 +187,16 @@ def main():
                         help="P-value cut-off          [%(default)s]")
     parser.add_argument("-a", dest="annotation", default='',# type=file, 
                         help="annotation file          [%(default)s]" )
-    parser.add_argument("-b", dest="pfam", default='', #type=file,
+    parser.add_argument("-b", "--pfam", default='', #type=file,
+                        help="pfam annotation file     [%(default)s]" )
+    parser.add_argument("-t", "--tab", default='', #type=file,
                         help="pfam annotation file     [%(default)s]" )
   
     o = parser.parse_args()
     if o.verbose: 
         sys.stderr.write( "Options: %s\n" % str(o) )
 
-    report(o.files, o.pfam, o.annotation, o.pTh, o.verbose)
+    report(o.files, o.pfam, o.annotation, o.tab, o.pTh, o.verbose)
 
 if __name__=='__main__': 
   t0=datetime.now()

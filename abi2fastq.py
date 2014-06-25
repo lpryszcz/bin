@@ -8,3 +8,4 @@ for fn in sys.argv[1:]:
     r = SeqIO.parse(fn, 'abi').next()
     r.id = r.name
     sys.stdout.write(r.format('fastq'))
+    

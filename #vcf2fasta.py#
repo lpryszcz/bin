@@ -33,10 +33,9 @@ def load_vcf(vcf, noindels, nohetero, verbose):
             #or select random
             if nohetero or random.randint(0, 1):
                 continue
-        if not set(alt).issubset(set('ACGT')):
+                if not set(alt).issubset(set('ACGT')):
             info = " Warning: weird alternative base: %s:%s %s %s\n"
             sys.stderr.write(info%(contig,pos,ref,alt))
-            continue
         #add chr to dict
         if not contig in chr2variants:
             chr2variants[contig]=[]
@@ -62,7 +61,7 @@ def variants2sequence(gene, seq, vof, qsorg, verbose):
             snps   += 1
         #check ref
         if str(seq[pos:pos+len(ref)]) != ref:
-            info = " Warning: variants2sequence: Orginal seq (%s) differs from variant ref (%s) in %s!\n"
+            into = " Warning: variants2sequence: Orginal seq (%s) differs from variant ref (%s) in %s!\n"
             sys.stderr.write(info % (seq[pos:pos+len(ref)], ref, gene))
         #replace orginal seq
         #print seq
@@ -147,3 +146,4 @@ if __name__=='__main__':
         sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
     dt = datetime.now()-t0
     sys.stderr.write("#Time elapsed: %s\n"%dt)
+  

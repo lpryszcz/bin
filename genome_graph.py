@@ -240,8 +240,6 @@ def coverage_graph( outdir,covbedfiles,homos,heteros,genome,fnformat,gff,lenlimi
 
 def main():
     usage   = "usage: %(prog)s [options]"
-    #version = "%prog 1.0"
-    #parser  = OptionParser( usage=usage,version=version,description=desc,epilog=epilog ) #allow_interspersed_args=True
     parser  = argparse.ArgumentParser( usage=usage,description=desc,epilog=epilog )
 
     parser.add_argument("-v", dest="verbose",  default=False, action="store_true")
@@ -276,7 +274,7 @@ def main():
     if o.verbose: 
         sys.stderr.write( "Options: %s\n" % str(o) )
 
-    if o.format not in set(["genbank","embl","gb"]) and not o.gff:
+    if o.format not in ["genbank","embl","gb"] and not o.gff:
         parser.error( "Specify annotation file (gff)!" ) #"Only genbank/embl genome files are accepted" )
     #plot
     coverage_graph( o.outdir,o.covbed,o.homosnp,o.hetesnp,o.genome,o.format,o.gff,o.lenlimit,o.ext,o.minlog,o.minreads,o.window,o.verbose )
