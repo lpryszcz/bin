@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+desc="""Generate phylomeDB stats file. Check no. of phylomes, trees, algs, proteins,
+species and genomes. In addition, checks for web-serwer stats from last week i.e.
+the most common query etc.
+NOTE: Need to be run from cgenomics.
 """
-Updates phylomeDB stats file: /home/services/web/phylomedb.org/tmp/phylome.stats.txt
-
-Check no. of phylomes, trees, algs, proteins, species and genomes.
-In addition, checks for web-serwer stats from last week i.e. the most common query etc.
-
+epilog="""Author: l.p.pryszcz@gmail.com
+Barcelona/Mizerow, 25/06/2014
 """
 
 import os, sys, time
@@ -12,16 +13,14 @@ import locale
 locale.setlocale(locale.LC_ALL, 'en_US.utf8')
 import MySQLdb
 from datetime import datetime
-from optparse import OptionParser
 #phylomedb wsgi
 sys.path.append('/home/services/web/phylomedb.org/wsgi')
 from phylomedb import PUBLIC_PHYLOMES
 
 def phylome_stats( ):
-    """Generate database stats.
-    """
-    conn = MySQLdb.connect(host="cgenomics.crg.es", user="phyReader", \
-                           passwd="phyd10.-Reader", db='phylomedb_4')
+    """Generate database stats."""
+    conn = MySQLdb.connect(host="mysqlsrv-tgabaldon.linux.crg.es", user="phyReader", \
+                           passwd="phyd10.-Reader", db='phylomedb')
     c = conn.cursor()
     
     #public phylomes are stored by python, not by mysql
@@ -50,6 +49,7 @@ def phylome_stats( ):
     #genomes
     c.execute("SELECT COUNT(*) FROM genome")
     genms, = c.fetchone()
+
     
     lines  = """<p><strong>Public Phylomes: </strong><a href="?q=phylomes">%s</a></p>
 <p><strong>Trees: </strong> %s (%s Max.Likelihood)</p>
@@ -57,14 +57,21 @@ def phylome_stats( ):
 <p><strong>Proteins: </strong> %s</p>
 <p><strong>Species: </strong> %s</p>
 <p><strong>Genomes: </strong> %s</p>
-""" % ( public, locale.format("%d", trees, grouping=True), locale.format("%d", mltree, grouping=True), locale.format("%d", algs, grouping=True), locale.format("%d", prots, grouping=True), locale.format("%d", specs, grouping=True), locale.format("%d", genms, grouping=True) )
+""" % (public, locale.format("%d", trees, grouping=True), locale.format("%d", mltree, grouping=True), \
+       locale.format("%d", algs, grouping=True), locale.format("%d", prots, grouping=True), \
+       locale.format("%d", specs, grouping=True), locale.format("%d", genms, grouping=True) )
     
+    #x-links
+    lines += "<p><strong>External IDs: </strong>\n<ul>"
+    c.execute("SELECT external_db, count(*) FROM external_id GROUP BY external_db")
+    for db, c in c.fetchall():
+        lines += "\n <li><strong>%s</strong>: %s</li>" % (db, locale.format("%d", c, grouping=True))
+
+    lines += "</ul></p>"
     return lines
 
-
 def webserver_stats(serverlog, days=31):
-    """Generate webserver stats i.e. most popular query
-    """
+    """Generate webserver stats i.e. most popular query."""
     query=protein=tree=phylome = ""
     phylomes = {}
     proteins = {}
@@ -173,20 +180,24 @@ def webserver_stats(serverlog, days=31):
     return lines
 
 def main():
-    
-    usage = "usage: %prog [options]" #arg1 arg2
-    parser = OptionParser( usage=usage,version="%prog 1.0" ) #allow_interspersed_args=True
-    
-    parser.add_option( "-o", dest="outfile", 
+    import argparse
+    usage   = "%(prog)s -v" #usage=usage, 
+    parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
+                                      formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("-v", dest="verbose",  default=False, action="store_true", help="verbose")
+    parser.add_argument('--version', action='version', version='1.1')   
+    parser.add_argument("-o", "--outfile", 
                        default="/home/services/web/phylomedb.org/tmp/phylome.stats.txt", 
-                       help="output file [%default]")
-    parser.add_option( "-l", dest="serverlog",
+                       help="output file [%(default)s]")
+    parser.add_argument("-l", "--serverlog",
                        default="/home/services/web/logs/phylomedb.org_access.log",
-                       help="output file [%default]")
-    parser.add_option( "-d", dest="days",default=30,type=int,
-                       help="how many days backwards to look [%default]")
+                       help="output file [%(default)s]")
+    parser.add_argument("-d", "--days", default=30, type=int,
+                       help="how many days backwards to look [%(default)s]")
     
-    (o, args) = parser.parse_args()
+    o = parser.parse_args()
+    if o.verbose:
+        sys.stderr.write("Options: %s\n"%str(o))
     
     lines = ""
 
@@ -197,8 +208,8 @@ def main():
     lines += webserver_stats(o.serverlog, o.days)
     
     #add current date
-    date   = datetime.ctime( datetime.now() )
-    lines += """<p style="text-align: right;"><span style="font-size: smaller;"><em>(%s)</em></span></p>""" % date
+    date   = datetime.ctime(datetime.now())
+    lines += '<p style="text-align: right;"><span style="font-size: smaller;"><em>(%s)</em></span></p>\n'%date
 
     #save to file
     #print lines
@@ -206,9 +217,8 @@ def main():
     out.write(lines)
     out.close()
 
-
 if __name__ == "__main__":
     t0=datetime.now()
     main()
     dt=datetime.now()-t0
-    sys.stdout.write( "#Time elapsed: %s\n" % dt )
+    sys.stderr.write("#Time elapsed: %s\n"%dt)
