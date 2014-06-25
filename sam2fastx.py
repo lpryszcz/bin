@@ -108,8 +108,8 @@ def main():
                         help="output fasta       [fastq]")
     parser.add_argument("-o", dest="outbase", default=0, 
                         help="define output name [stdout]")
-    parser.add_argument("-p", dest="paired",  default=False, action="store_true",
-                        help="separate pairs     [%(default)s]")
+    parser.add_argument("-p", "--paired",  default=False, action="store_true",
+                        help="separate pairs")
     parser.add_argument("-l", dest="last",    default=0, type=int,
                         help="last base to keep 0-based  [entire read]")
     parser.add_argument("-s", dest="first",   default=0, type=int,
