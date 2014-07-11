@@ -89,9 +89,9 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin
             continue
         histplot(ax, data, handle, bins, name, xlab, ylab, log)
 
-        if i+1>len(cols)-nrow:
+        if i+1>=len(cols)-nrow:
             ax.set_xlabel(xlab)
-        if not i%nrow:
+        if not i%ncol:
             ax.set_ylabel(ylab)
 
     if type(out) is file and out.name=='<stdout>':

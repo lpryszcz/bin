@@ -11,33 +11,31 @@ l.p.pryszcz@gmail.com
 Barcelona, 28/06/2012
 """
 
-import argparse, os, sys
+import argparse, os, re, sys
 from datetime import datetime
 import subprocess
 
-def _remove_indels( alts ):
+#find stats of the reads in mpileup
+##http://samtools.sourceforge.net/pileup.shtml
+read_start_pat = re.compile('\^.')
+indel_pat = re.compile('[+-]\d+')
+
+def _remove_indels(alts):
     """
-    Remove indels from mpileup.
-    .$....,,,,....,.,,..,,.,.,,,,,,,....,.,...,.,.,....,,,........,.A.,...,,......^0.^+.^$.^0.^8.^F.^].^],
+    Remove indels from mpileup.     .$....,,,,....,.,,..,,.,.,,,,,,,....,.,...,.,.,....,,,........,.A.,...,,......^0.^+.^$.^0.^8.^F.^].^],
     ........,.-25ATCTGGTGGTTGGGATGTTGCCGCT..
     """
+    #But first strip start/end read info.
+    alts = "".join(read_start_pat.split(alts))
     #remove indels info
-    for symbol in ('-','+'):
-        baseNo = 0
-        while symbol in alts:
-            i=alts.index(symbol)
-      
-            j = 1
-            digits=[]
-            while alts[i+j].isdigit():
-                digits.append( alts[i+j] )
-                j += 1
-      
-            if digits:
-                baseNo=int( ''.join(digits) )
-        
-            alts=alts[:i]+alts[i+baseNo+len(digits)+1:] #......+1A..,
-      
+    pos = 0
+    m = indel_pat.search(alts, 0)
+    while m:
+        #remove indel
+        pos = m.end() + int(m.group()[1:])
+        alts = alts[:m.start()] + alts[pos:]
+        #get next match
+        m = indel_pat.search(alts, pos)
     return alts
 
 def get_alt_allele(base_ref, cov, alg, minFreq, alphabet, reference, bothStrands):
@@ -46,7 +44,7 @@ def get_alt_allele(base_ref, cov, alg, minFreq, alphabet, reference, bothStrands
     alts = alg
     dels = alts.count('*') 
     #remove insertions
-    alts = _remove_indels( alts )
+    alts = _remove_indels(alts)
     #get base counts
     baseCounts = [(alts.upper().count(base), base) for base in alphabet]
     #get base frequencies

@@ -112,7 +112,7 @@ def get_log2(s,e,c,expc,window,minlog=float('-inf')):
         log2 = log( c / expcountlocal,2 )
     return log2
     
-def bed2SeqFeature( bed1,expcount1,bed2,expcount2,window ):
+def bed2SeqFeature(bed1, expcount1, bed2, expcount2, window):
     """Generate feature data:
     - mark heterozygous SNP-rich with orange
     - mark homozygous SNP-rich with darkgrey
