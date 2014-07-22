@@ -16,15 +16,16 @@ PUBLIC_PHYLOMES = [1, 3, 4, 5, 7, 8, 10, 16, 18, 19, 20, 21, 22, 23, 24, 26, 27,
   222, 223]
 
 def _get_phylomedb_cursor():
-    """Return MySQLdb cursor to PhylomeDB.
-    """
-    cnx  = MySQLdb.connect(host="cgenomics.crg.es",user="phyReader",passwd="phyd10.-Reader",db='phylomedb_4')
+    """Return MySQLdb cursor to PhylomeDB."""
+    cnx  = MySQLdb.connect(host="mysqlsrv-tgabaldon.linux.crg.es", user="phyReader", \
+                           passwd="phyd10.-Reader", db='phylomedb')
     cur  = cnx.cursor()
     return cur
 
 def _getConnection():
     """Return connection to phylomeDB"""
-    p = PhylomeDB3Connector(host="cgenomics.crg.es",user="phyReader",passwd="phyd10.-Reader",db='phylomedb_3')
+    p = PhylomeDB3Connector(host="mysqlsrv-tgabaldon.linux.crg.es", user="phyReader", \
+                            passwd="phyd10.-Reader", db='phylomedb')
     p._trees       = "tree"
     p._phylomes    = "phylome"
     p._algs        = "alignment"
