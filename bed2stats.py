@@ -20,8 +20,10 @@ import matplotlib.pyplot as plt
 def print_stats( lengths,addon="" ):
     """
     """
-    print "%.2f kb in %s fragments%s (mean: %.1f kb  +-%.1f )" % ( sum(lengths)/10.0**3,len(lengths),addon, \
-                                                        np.mean(lengths)/10.0**3,np.std(lengths)/10.0**3 )
+    info = "%.2f kb in %s fragments%s (median: %s bp; mean: %.3f kb +-%.3f )"
+    print info%(sum(lengths)/10.0**3, len(lengths), addon, \
+                int(np.median(lengths)), np.mean(lengths)/10.0**3,
+                np.std(lengths)/10.0**3)
 
 def bed2stats( handle,simple,verbose ):
     """Parse BED and print stats."""
