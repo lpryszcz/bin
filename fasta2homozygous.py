@@ -35,6 +35,8 @@ def blat(fasta, identity, verbose):
     if verbose:
         sys.stderr.write(cmd2+'\n')
     os.system(cmd2)
+    #clean-up
+    os.system("rm %s.psl %s.11.ooc"%(fasta, fasta))
 
 def get_ranges(starts, sizes, offset=1):
     """Return str representation of alg ranges"""

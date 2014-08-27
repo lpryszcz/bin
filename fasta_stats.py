@@ -82,6 +82,7 @@ def main():
     #header
     o.out.write('#fname\tcontigs\tbases\tGC [%]\tcontigs >1kb\tbases in contigs >1kb\tN50\tN90\tNs\tlongest\n')
     for f in o.fasta:
+        if not os.path.isfile(f.name): continue
         if f.name.endswith('.gz'):
           f=gzip.open(f.name)
         o.out.write(fasta_stats(f))
@@ -92,7 +93,7 @@ if __name__=='__main__':
         main()
     except KeyboardInterrupt:
         sys.stderr.write("\nCtrl-C pressed!      \n")
-    except IOError as e:
-        sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
+    #except IOError as e:
+    #    sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
     dt = datetime.now()-t0
     sys.stderr.write("#Time elapsed: %s\n"%dt)
