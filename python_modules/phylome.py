@@ -4,9 +4,12 @@
 import sys
 import MySQLdb
 from ete2    import PhylomeDB3Connector
-from rooted_phylomes import ROOTED_PHYLOMES
 from MyGraph import MyGraph
-
+try:
+    from rooted_phylomes  import ROOTED_PHYLOMES
+except:
+    sys.stderr.write("Cannot import ROOTED_PHYLOMES\n")
+    
 #20131107
 PUBLIC_PHYLOMES = [1, 3, 4, 5, 7, 8, 10, 16, 18, 19, 20, 21, 22, 23, 24, 26, 27,
   28, 29, 84, 86, 95, 96, 138, 139, 140, 141, 142, 144, 145, 146, 150, 153, 174,

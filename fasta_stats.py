@@ -5,9 +5,14 @@ epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 26/08/2014
 """
 
+<<<<<<< HEAD
 import os, sys
 from Bio import SeqIO
+=======
+import gzip, os, sys
+>>>>>>> 616f53825350fda99c12265cc92453de2be7a332
 from datetime import datetime
+from Bio import SeqIO
 
 def fasta_stats(f):
   fn=f.name
@@ -82,6 +87,12 @@ def main():
     #header
     o.out.write('#fname\tcontigs\tbases\tGC [%]\tcontigs >1kb\tbases in contigs >1kb\tN50\tN90\tNs\tlongest\n')
     for f in o.fasta:
+<<<<<<< HEAD
+=======
+        if not os.path.isfile(f.name): continue
+        if f.name.endswith('.gz'):
+          f=gzip.open(f.name)
+>>>>>>> 616f53825350fda99c12265cc92453de2be7a332
         o.out.write(fasta_stats(f))
   
 if __name__=='__main__': 
@@ -90,7 +101,12 @@ if __name__=='__main__':
         main()
     except KeyboardInterrupt:
         sys.stderr.write("\nCtrl-C pressed!      \n")
+<<<<<<< HEAD
     except IOError as e:
         sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
+=======
+    #except IOError as e:
+    #    sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
+>>>>>>> 616f53825350fda99c12265cc92453de2be7a332
     dt = datetime.now()-t0
     sys.stderr.write("#Time elapsed: %s\n"%dt)
