@@ -26,16 +26,15 @@ def _remove_indels(alts):
     ........,.-25ATCTGGTGGTTGGGATGTTGCCGCT..
     """
     #But first strip start/end read info.
-    alts = "".join(read_start_pat.split(alts))
+    alts = "".join(read_start_pat.split(alts)).replace('$', '')
     #remove indels info
-    pos = 0
-    m = indel_pat.search(alts, 0)
+    m = indel_pat.search(alts)
     while m:
         #remove indel
         pos = m.end() + int(m.group()[1:])
         alts = alts[:m.start()] + alts[pos:]
         #get next match
-        m = indel_pat.search(alts, pos)
+        m = indel_pat.search(alts, m.start())
     return alts
 
 def get_alt_allele(base_ref, cov, alg, minFreq, alphabet, reference, bothStrands):
@@ -49,7 +48,7 @@ def get_alt_allele(base_ref, cov, alg, minFreq, alphabet, reference, bothStrands
     baseCounts = [(alts.upper().count(base), base) for base in alphabet]
     #get base frequencies
     for base_count, base in sorted(baseCounts):
-        freq = base_count*1.0/cov
+        freq = base_count*1.0/len(alts)#cov
         if base!=base_ref and freq >= minFreq:
             #check if alt base in both strands
             if bothStrands: 
