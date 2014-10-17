@@ -21,6 +21,8 @@ def histplot( sizes,fname ):
   
   print '%s\tmean = %.2f +- %.2f\t median = %s ( min%s - %s )' % ( fname,mu,sd,median,min(sizes),max(sizes) )
   
+  # limit to only 3* mean, usefull for highly dispersed data
+  sizes = filter(lambda x: x<3*mu, sizes)
   # the histogram of the data
   n, bins, patches = plt.hist(sizes, bins=max(sizes)/5, normed=1, facecolor='g', alpha=0.75)
 

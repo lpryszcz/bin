@@ -26,5 +26,12 @@ ps aux | grep -P "vlc|rhythmbox|sshfs" | grep -v grep | awk '{print $2}' | xargs
 #sync && echo 3 | sudo tee /proc/sys/vm/drop_caches && 
 
 #hibernate
-sleep 2;
+sleep 1;
+echo "Hibernating..."
 pm-hibernate
+
+#may cause system hang
+sleep 1; 
+echo "Reloading ALSA..."
+sudo alsa force-reload
+

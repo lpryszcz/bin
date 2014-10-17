@@ -51,7 +51,7 @@ def plot_2d(inputs, output, title, xlab, ylab, xmax, xmin, log, ndivide=20):
         plt.plot(x, y, linewidth=2.0)
         #add title and axis labels
         if input.name!="<stdin>":
-            plt.title(input.name)
+            plt.title(input.name.split('.')[0])
         elif title:
             plt.title(input.name)
         #plot x-axis label only on bottom plots
@@ -71,7 +71,7 @@ def plot_2d(inputs, output, title, xlab, ylab, xmax, xmin, log, ndivide=20):
     else:
         fpath  = output.name #"%s.%s" % (output.name, format)
         format = fpath.split('.')[-1]
-        plt.savefig(fpath, dpi=300, facecolor='w', edgecolor='w',\
+        plt.savefig(fpath, dpi=200, facecolor='w', edgecolor='w',\
           orientation='landscape', format=format, transparent=False)
         
 def main():
@@ -97,9 +97,9 @@ def main():
                         help="discard 1/n first     [%(default)s]")
     parser.add_argument("--log", dest="log",  default=False, action="store_true",
                         help="log scale       [%(default)s]")
-    parser.add_argument("--xmax", dest="xmax", default=100, type=float,
+    parser.add_argument("--xmax", dest="xmax", default=100, type=int,
                         help="max x value     [%(default)s]")
-    parser.add_argument("--xmin", dest="xmin", default=0, type=float,
+    parser.add_argument("--xmin", dest="xmin", default=0, type=int,
                         help="min x value     [%(default)s]")
 
     o = parser.parse_args()

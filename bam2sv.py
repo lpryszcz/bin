@@ -16,9 +16,7 @@ To be done:
 + split read alignment
 + rlen learning
 """
-epilog="""Author:
-l.p.pryszcz@gmail.com
-
+epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 13/03/2014
 """
 
@@ -559,8 +557,9 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument("-v", dest="verbose",  default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.0b')   
+    parser.add_argument("-v", "--verbose", default=False, action="store_true",
+                        help="verbose")    
     parser.add_argument("-i", "--bam", required=True,       
                         help="BAM file")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
