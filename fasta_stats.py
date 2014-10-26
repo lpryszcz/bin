@@ -70,7 +70,7 @@ def main():
     parser.add_argument('--version', action='version', version='1.1')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
-    parser.add_argument("-i", "--fasta", nargs="+", type=file, 
+    parser.add_argument("-i", "--fasta", nargs="+", #type=file, 
                         help="FASTA file(s)")
     parser.add_argument("-o", "--out",   default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
@@ -81,10 +81,14 @@ def main():
 
     #header
     o.out.write('#fname\tcontigs\tbases\tGC [%]\tcontigs >1kb\tbases in contigs >1kb\tN50\tN90\tNs\tlongest\n')
-    for f in o.fasta:
-        if not os.path.isfile(f.name): continue
-        if f.name.endswith('.gz'):
-          f=gzip.open(f.name)
+    for fn in o.fasta:
+        if not os.path.isfile(fn):
+            sys.stderr.write("[WARNING] No such file: %s\n"%fn)
+            continue
+        if fn.endswith('.gz'):
+            f = gzip.open(fn)
+        else:
+            f = open(fn)
         o.out.write(fasta_stats(f))
   
 if __name__=='__main__': 

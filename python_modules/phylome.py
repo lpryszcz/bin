@@ -3,9 +3,14 @@
 
 import sys
 import MySQLdb
-from ete2    import PhylomeDB3Connector
-from rooted_phylomes import ROOTED_PHYLOMES
+#from ete2    import PhylomeDB3Connector as PhylomeDBConnector
+from phylomeDB2 import PhylomeDBConnector
 from MyGraph import MyGraph
+try:
+    from rooted_phylomes  import ROOTED_PHYLOMES
+except:
+    sys.stderr.write("Cannot import ROOTED_PHYLOMES\n")
+    
 
 #20131107
 PUBLIC_PHYLOMES = [1, 3, 4, 5, 7, 8, 10, 16, 18, 19, 20, 21, 22, 23, 24, 26, 27,
@@ -22,14 +27,14 @@ def _get_phylomedb_cursor():
     cur  = cnx.cursor()
     return cur
 
-def _getConnection():
+def _getConnection(db="phylomedb", host="mysqlsrv-tgabaldon.linux.crg.es"):
     """Return connection to phylomeDB"""
-    p = PhylomeDB3Connector(host="mysqlsrv-tgabaldon.linux.crg.es", user="phyReader", \
-                            passwd="phyd10.-Reader", db='phylomedb')
-    p._trees       = "tree"
-    p._phylomes    = "phylome"
-    p._algs        = "alignment"
-    p._phy_content = "phylome_content"
+    p = PhylomeDBConnector(host=host, db=db, user="phyReader", passwd="phyd10.-Reader")
+    '''p._trees       = "tree"
+    #p._phylomes    = "phylome"
+    p._phylomes_table = "phylome"
+    #p._algs        = "alignment"
+    p._phy_content = "phylome_content"'''
     return p
 
 def _get_spcode(protid):
