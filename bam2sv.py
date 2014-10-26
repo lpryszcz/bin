@@ -15,6 +15,9 @@ To be done:
 -- inversions
 + split read alignment
 + rlen learning
+
+Dependencies:
+- pysam (sudo easy_install -U pysam)
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 13/03/2014

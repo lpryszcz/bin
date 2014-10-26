@@ -2,7 +2,7 @@
 desc="""Fetch proteomes of taxa from given group form metaPhOrs. 
 """
 epilog="""Author: l.p.pryszcz@gmail.com
-Mizerow, 17/07/2014
+Mizerow, 18/07/2014
 """
 
 import argparse, os, sys
@@ -10,7 +10,7 @@ import numpy as np
 from datetime import datetime
 from Bio import SeqIO
 
-def blastout2profile(out, query, blastfiles, evalue, query_overlap, verbose):
+def blastout2identity(out, query, blastfiles, evalue, query_overlap, verbose):
     """Return profile from BLAST output"""
     #get query ids
     queries = []
@@ -20,39 +20,35 @@ def blastout2profile(out, query, blastfiles, evalue, query_overlap, verbose):
         queries.append(q)
         q2i[q] = i
         q2len[q] = len(r)
-    
-    #prepare empty profile
-    profile = np.zeros((len(queries), len(blastfiles)), dtype=int)
-    
+
+    #write header
+    out.write("#query\ttarget\tidentity\toverlap\n")
     #parse results
     for j, handle in enumerate(blastfiles):
-        q2overlap = {}
+        q2identinty = {}
         for l in handle:
             #orf19.10        M!03795532_GIBZA|FG01284.1|I1RCH0       76.19   \
             #42      10      0       361     402     369     410     1.8e-10 64.0
             q, t, ident, matches, mmatches, indels, qs, qe, ts, te, e, bscore = l.split('\t')
+            qs, qe, ident, e = int(qs), int(qe), float(ident), float(e)
             #filter by e-value or query overlap
-            if float(e) > evalue:
+            if e > evalue:
                 continue
             qt = (q, t)
-            if qt not in q2overlap:
-                q2overlap[qt] = np.zeros(q2len[q], dtype=int)
-            #update overlap
-            q2overlap[qt][int(qs)-1:int(qe)] = 1
+            if qt not in q2identinty:
+                q2identinty[qt] = np.zeros(q2len[q])
+            #update overlap only if better identity
+            if q2identinty[qt][qs-1:qe].min()<ident:
+                q2identinty[qt][qs-1:qe] = ident
         #report matches with enough overlap
-        for qt in q2overlap:
-            if q2overlap[qt].mean() < query_overlap:
+        for qt in sorted(q2identinty):
+            overlap = 1.0*len(q2identinty[qt].nonzero()[0])/len(q2identinty[qt])
+            identity = q2identinty[qt][q2identinty[qt].nonzero()].mean()
+            if overlap < query_overlap:
                 continue
-            #add match
+            #report match
             q, t = qt
-            profile[q2i[q]][j] += 1
-            
-    #report
-    header = "#genes\t" + "\t".join(os.path.basename(f.name) for f in blastfiles)
-    out.write(header+"\n")
-    for q, p in zip(queries, profile):
-        out.write("%s\t%s\n"%(q, "\t".join(map(str, p))))
-    #np.savetxt(out, profile, delimiter="\t", header=header, fmt='%i')
+            out.write("%s\t%s\t%5.2f\t%.3f\n"%(q, t, identity, overlap))
 
 def main():
     import argparse
@@ -69,16 +65,16 @@ def main():
                         help="output stream          [stdout]")
     parser.add_argument('-f', '--fasta',   type=file, 
                         help="query fasta file       [%(default)s]")
-    parser.add_argument('-e', '--evalue',  default=1e-05, type=float,
+    parser.add_argument('-e', '--evalue',  default=1e-03, type=float,
                         help="E-value cut-off        [%(default)s]")
-    parser.add_argument('-q', '--query_overlap', default=0.3, type=float,
+    parser.add_argument('-q', '--query_overlap', default=0.1, type=float,
                         help="query overlap cut-off  [%(default)s]")
 
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
-    blastout2profile(o.output, o.fasta, o.blastout, o.evalue, o.query_overlap, o.verbose)
+    blastout2identity(o.output, o.fasta, o.blastout, o.evalue, o.query_overlap, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()

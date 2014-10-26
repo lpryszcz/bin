@@ -181,17 +181,37 @@ class DirectedGraph(object):
         
 class MyGraph(object):
     """Undirected Graph class.
-    Apply for orhologs/paralogs graphs.
     """
     ### from Grap.py (J.Cussens, York, 2008)
-    def __init__(self,vertices):
+    def __init__(self, vertices=[]):
         """Construct a graph with the given vertices, but no lines
         """
         self._neighbours = {}
+        self._features = {}
         for vertex in vertices:
             self._neighbours[vertex] = set()
+            self._features[vertex] = {}
 
-    def add_line(self,v1,v2):
+    def add_vertice(self, vertex, key="", value=""):
+        """Add vertice to vertices.
+        If already present, just update vertice features."""
+        if vertex not in self._neighbours:
+            self._neighbours[vertex] = set()
+            self._features[vertex] = {}
+        if key:
+            self._features[vertex][key] = value
+
+    def add_vertices(self, vertices, key="", value=""):
+        """Add vertice to vertices.
+        If already present, just update vertice features."""
+        for vertex in vertices:
+            if vertex not in self._neighbours:
+                self._neighbours[vertex] = set()
+                self._features[vertex] = {}
+            if key:
+                self._features[vertex][key] = value
+
+    def add_line(self, v1, v2):
         """Add a line from v1 to v2 (with no error checking!)
         """
         self._neighbours[v1].add(v2)
@@ -206,11 +226,31 @@ class MyGraph(object):
                 if vertex < neighbour:
                     out += '\t%s - %s\n' % (vertex,neighbour)
         return out
+
+    #get interconnected
+    def get_clusters(self, key="", value=""):
+        """Return connected nodes having given feature (key: value)."""
+        processed = set()
+        clusters = []
+        for v in self._neighbours:
+            if v not in processed:
+                clusters.append([v])
+                processed.add(v)
+            i = 0
+            while i<len(clusters[-1]): #for v2 in self._neighbours[v]:
+                v = clusters[-1][i]
+                for v2 in self._neighbours[v]:
+                    if v2 in processed:
+                        continue
+                    clusters[-1].append(v2)
+                    processed.add(v2)
+                i += 1
+        return clusters
         
     ### end of Grap.py (J.Cussens, York, 2008)  
     ### by LPryszcz, York, 2008
         
-    def _check(self,vertices):
+    def _check(self, vertices):
         """Check if vertice in vertices.
         """
         if not frozenset(vertices).issubset(self._neighbours):

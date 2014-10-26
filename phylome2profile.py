@@ -17,6 +17,7 @@ from rooted_phylomes import ROOTED_PHYLOMES
 from datetime import datetime
 import numpy as np
 from Bio import SeqIO
+#from MyGraph import MyGraph
 
 from phylome import _get_spcode, _getConnection
 
@@ -59,6 +60,7 @@ def get_seed_or_collateral_tree(phyprot, phylome, p):
     """Return tree object for seed or collateral tree (if not seed tree) 
     for the closest seedid.
     """
+    bestSeedid = ""
     tdata = p.get_tree(phyprot, phylome)
     #if no tree for protid as seed look for collateral trees
     if not tdata: 
@@ -73,7 +75,7 @@ def get_seed_or_collateral_tree(phyprot, phylome, p):
             #tdata = p.get_best_tree(seedid, phylome)
             tdata = p.get_tree(seedid, phylome)
             if not tdata: 
-                continue
+                continue 
             bestMethod = sorted(tdata, key=lambda x: tdata[x]['lk'], reverse=True)[0]
             t = ete2.PhyloTree(tdata[bestMethod]['tree'], \
                                sp_naming_function=_get_spcode)
@@ -85,7 +87,7 @@ def get_seed_or_collateral_tree(phyprot, phylome, p):
         tdata = bestTdata
   
     if not tdata: 
-        return
+        return None, bestSeedid
     
     #get method giving best lk tree
     bestMethod = sorted(tdata, key=lambda x: tdata[x]['lk'], reverse=True)[0]
@@ -94,17 +96,17 @@ def get_seed_or_collateral_tree(phyprot, phylome, p):
     bestTree = ete2.PhyloTree(tdata[bestMethod]['tree'], \
                               sp_naming_function=_get_spcode)
     
-    return bestTree
+    return bestTree, bestSeedid
 
 def get_orthologs(phyprot, phyid, p, code2score={}):
     """Return orthologs for given protid"""
     orthologs = set((phyprot, ))
     #get tree
-    t = get_seed_or_collateral_tree(phyprot, phyid, p)
+    t, bestSeedid = get_seed_or_collateral_tree(phyprot, phyid, p)
     if not t:
         info = "[WARNING] No tree for %s in phylome %s has been found.\n"
         sys.stderr.write(info%(phyprot, phyid))
-        return orthologs,code2score
+        return orthologs, code2score, bestSeedid
         
     #set species naming function
     #t.set_species_naming_function(_get_spcode) ###set retrieving species informations!
@@ -132,7 +134,7 @@ def get_orthologs(phyprot, phyid, p, code2score={}):
                 code2score[_get_spcode(o)] = [ w, ]
             code2score[_get_spcode(o)].append( w )
   
-    return orthologs, code2score
+    return orthologs, code2score, bestSeedid
 
 def get_species_in_phylome(phyid, p):
     """Return code2species"""
@@ -184,6 +186,7 @@ def profile(handle, out, phyid, protid2phylmeFn, spCode, speciesInRows, \
         code2score[code]=[]
     
     #get phylomedb ids
+    protid2seedid = {}
     k = 0
     protid2phyid = get_protid2phyid(protid2phylmeFn, protids, spCode, p, phyid)
     for i, protid in enumerate(protids, 1):
@@ -191,7 +194,8 @@ def profile(handle, out, phyid, protid2phylmeFn, spCode, speciesInRows, \
         if protid not in protid2phyid: 
             continue
         phyprot = protid2phyid[protid]
-        orthologs, code2score = get_orthologs(phyprot, phyid, p, code2score)
+        orthologs, code2score, seedid = get_orthologs(phyprot, phyid, p, code2score)
+        protid2seedid[protid] = seedid #s; print protid, seedids
         #fill profiles
         for o in orthologs: 
             code2profile[_get_spcode(o)][i-1]+=1
@@ -205,7 +209,7 @@ def profile(handle, out, phyid, protid2phylmeFn, spCode, speciesInRows, \
     ###print summary
     #header
     if not speciesInRows:
-        info='#Protid\tGene'
+        info='#Protid\tGene\tSeedID'
         for code in sorted(code2name, key=lambda x: np.mean(code2score[x])):
             nameShort='%s.%s' % (code2name[code][1][0], code2name[code][1].split()[1])
             info+='\t%s' % nameShort
@@ -216,7 +220,10 @@ def profile(handle, out, phyid, protid2phylmeFn, spCode, speciesInRows, \
             gene=genes[j]
             if gene==protid:
                 gene=''
-            info+='\n%s\t%s' % (protid, gene)
+            seedid = ""
+            if protid in protid2seedid and protid2seedid[protid]:
+                seedid = protid2seedid[protid]
+            info+='\n%s\t%s\t%s' % (protid, gene, seedid)
             for code in sorted(code2name,key=lambda x: np.mean(code2score[x])):  
                 info+='\t%s' % code2profile[code][j]
       
@@ -232,6 +239,10 @@ def profile(handle, out, phyid, protid2phylmeFn, spCode, speciesInRows, \
                 protidLine+='\t%s' % protid
             else:
                 protidLine+='\t'
+            seedid = ""
+            if protid in protid2seedid and protid2seedid[protid]:
+                seedid = protid2seedid[protid]
+            protidLine += "\t%s" %seedid
             if protid in prot2ann:
                 annLine+="\t%s" % prot2ann[protid]
             else:

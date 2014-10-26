@@ -4,6 +4,7 @@ genome annotation formats like GTF, GFF, EMBL, GenBank.
 hmmer tblout etc
 """
 import gzip, os, sys
+import numpy as np
 
 def get_handle(inhandle):
     """Return opened file object
@@ -575,6 +576,7 @@ def parse_blast( infile,q2len,t2len,evalue=1e-05,qcov=0,tcov=0,verbose=True ):
         sys.stderr.write( "Parsing blast output...\n" )
     i = 0 
     matchData = []
+    q2identity = {}
     for l in open( infile ):
         l = l.strip()
         if not l or l.startswith("#"):
@@ -599,20 +601,47 @@ def parse_blast( infile,q2len,t2len,evalue=1e-05,qcov=0,tcov=0,verbose=True ):
         #evalue filter
         if evalue and e>evalue:
             continue
-        #tcov filter
+        #add q2identity
+        qt = (qlocus, tlocus)
+        if qt not in q2identity:
+            q2identity[qt] = (np.zeros(qlength), np.zeros(tlength), mismatches, gaps, qstart, qend, tstart, tend, e, score )
+        #add identity
+        if q2identity[qt][0][qstart-1:qend].min()<identity:
+            q2identity[qt][0][qstart-1:qend] = identity
+        if q2identity[qt][1][tstart-1:tend].min()<identity:
+            q2identity[qt][1][tstart-1:tend] = identity
+        
+    #parse algs
+    for qt in q2identity:
+        q,t = qt
+        mismatches, gaps, qstart, qend, tstart, tend, e, score = q2identity[qt][2:]
+        algLen = len(q2identity[qt][0].nonzero()[0])
+        qcoverage = 1.0*algLen/len(q2identity[qt][0])
+        tcoverage = 1.0*len(q2identity[qt][1].nonzero()[0])/len(q2identity[qt][1])
+        identity = q2identity[qt][0][q2identity[qt][0].nonzero()].mean()
+        if qcov and qcov > qcoverage:
+            continue
+        if tcov and tcov > tcoverage:
+            continue
+        #store match
+        matchData.append((q, t, identity, algLen, mismatches, gaps, \
+                          qstart, qend, tstart, tend, e, score, qcoverage, tcoverage))
+       
+        '''#tcov filter
         qcoverage = tcoverage = 0
         if tlength:
-            tcoverage = math.fabs( (tend-tstart+1)*1.0 / tlength )
+            tcoverage = abs((tend-tstart+1)*1.0 / tlength)
         if tcov and tcov > tcoverage:
             continue
         #qcov filter
         if qlength:
-            qcoverage = math.fabs( (qend-qstart+1)*1.0 / qlength )
+            qcoverage = abs((qend-qstart+1)*1.0 / qlength)
         if qcov and qcov > qcoverage:
             continue
         #store match info
-        matchData.append( ( qlocus,tlocus,identity,algLen,mismatches,gaps,qstart,qend,tstart,tend,e,score,qcoverage,tcoverage ) )
-
+        matchData.append((qlocus, tlocus, identity, algLen, mismatches, gaps, \
+        qstart, qend, tstart, tend, e, score, qcoverage, tcoverage))
+        '''
     if verbose:
         sys.stderr.write( "  %s [%.2f%s] records passed filtering.\n" % (len(matchData),len(matchData)*100.0/i,'%') )        
     return matchData
