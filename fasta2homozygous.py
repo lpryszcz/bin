@@ -239,7 +239,7 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.0b')   
+    parser.add_argument('--version', action='version', version='1.01b')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
     parser.add_argument("-i", "-f", "--fasta", nargs="+", type=file, 
@@ -264,6 +264,8 @@ def main():
         sys.stderr.write("Options: %s\n"%str(o))
 
     #process fasta
+    sys.stderr.write("Homozygous assembly/ies will be written with input name + '.homozygous.fa.gz'\n")
+    sys.stderr.write("#file name\tgenome size\tcontigs\theterozygous size\t[%]\theterozygous contigs\t[%]\tidentity [%]\tpossible joins\thomozygous size\t[%]\thomozygous contigs\t[%]\n")
     for fasta in o.fasta:
         out = gzip.open(fasta.name+".homozygous.fa.gz", "w")
         fasta2homozygous(out, fasta, o.identity, o.overlap, o.minLength, \
