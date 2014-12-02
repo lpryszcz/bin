@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 desc="""Report differentially expressed genes and their annotation.
+
+v1.1:
+- added expression for all controls, as this cause misunderstandings sometimes
 """
 epilog="""AUTHOR:
 l.p.pryszcz@gmail.com
@@ -126,9 +129,9 @@ def report(files, pfam, annotation, tab, pTh, verbose):
         fn2data[fn] = load_cuffdiff(f)
 
     #write output
-    header = "#transcript id\tgene id\tcontrol"
+    header = "#transcript id\tgene id"
     for fn in fnames:
-        header += "\t%s\tlog2(FC)\tP-value" % fn
+        header += "\tcontrol\t%s\tlog2(FC)\tP-value" % fn
     header += "\tannotation\n"
     sys.stdout.write( header )
     #open outfiles for ids
@@ -141,8 +144,8 @@ def report(files, pfam, annotation, tab, pTh, verbose):
         for exprTuple,out in zip(exprData,outfiles):
             geneid,locus,v1,v2,log_fc,p = exprTuple
             if not lineData:
-                lineData = [ transid,geneid,str(v1) ]
-            lineData += [ str(v2), str(log_fc),str(p) ]
+                lineData = [ transid,geneid ]
+            lineData += [ str(v1), str(v2), str(log_fc),str(p) ]
             #check p value
             if p<=pTh:
                 pFilter = True

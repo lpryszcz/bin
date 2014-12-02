@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+#Fetch fragmented assemblies from NCBI
+#USAGE: get_fragmented_assemblies.py [taxid]
 
 import os, re, sys, unicodedata
 from Bio import Entrez, SeqIO
@@ -16,6 +18,8 @@ def text2fname(value):
 
 #fungi
 taxid=4751
+if len(sys.argv)>1:
+  taxid = int(sys.argv[1])
 query="txid%s[Organism:exp] AND 1:100000[Contig N50] NOT 100000:100000000[Scaffold N50]"%taxid
 
 #get assembly ids
@@ -32,7 +36,7 @@ for i, aid in enumerate(ids, 1):
     assembly_id = response[0]['LinkSetDb'][-1]['Link'][0]['Id']
     handle = Entrez.efetch(db="nuccore", id=assembly_id, rettype="gb")
     r = SeqIO.parse(handle, 'gb').next()
-    species = r.annotations['organism']
+    species = "%s %s"%(r.annotations['organism'], r.name)
     baseName = text2fname(species)
     #write assembly info
     info = open(baseName+'.info', 'w'); info.write(str(r.annotations)); info.close()
@@ -73,4 +77,5 @@ for i, aid in enumerate(ids, 1):
         out.write("".join(r.format('fasta') for r in SeqIO.parse(handle, 'fasta') if len(r)))
     out.close()
     s += 1
+sys.stderr.write("\n%s %s\n"%(k, s))
 

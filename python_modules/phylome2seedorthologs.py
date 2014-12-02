@@ -22,9 +22,9 @@ def phylomedump_tree_iterator( tarfn,verbose=0 ):
     """PhylomeDB all_trees.tar.gz dump treeobj generator."""
     #open tarfile
     if tarfn.endswith(".gz"):
-        tar = tarfile.open(tarfn,"r:gz")
+        tar = tarfile.open(tarfn, "r:gz")
     else:
-        tar = tarfile.open(tarfn,"r")
+        tar = tarfile.open(tarfn, "r")
 
     i = k = 0
     #process entries
@@ -197,11 +197,16 @@ def orthologs2outfile(orthologs, coorthologs, outfn, verbose):
             out.write(line)
     out.close()
 
-def phylomedump2seedhomologs(tarfn, outfn, phyid, CSth, lkTh, verbose):
+def phylomedump2seedhomologs(tarfn, phyid, CSth, lkTh, verbose):
     """ """
+    #skip if file exists
+    outfn = os.path.join(os.path.dirname(tarfn), "orthologs.txt.gz")
+    if os.path.isfile(outfn):
+        return
+    #parse dump
     if verbose:
         sys.stderr.write("[%s] Parsing trees from: %s\n" % (datetime.ctime(datetime.now()), tarfn))
-    homologs = process_trees( tarfn,phyid,verbose )
+    homologs = process_trees(tarfn, phyid, verbose)
 
     #process all homologies and get co-homologies
     if verbose:
@@ -211,20 +216,21 @@ def phylomedump2seedhomologs(tarfn, outfn, phyid, CSth, lkTh, verbose):
     #store to file
     if verbose:
         sys.stderr.write( "[%s] Saving to outfile: %s [memory: %s KB]\n" % (datetime.ctime(datetime.now()), outfn, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss))
-    orthologs2outfile( orthologs,coorthologs,outfn,verbose )
+    orthologs2outfile(orthologs, coorthologs, outfn, verbose)
 
 def main():
     usage   = "%(prog)s [options] -v"
-    parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
+    parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog, \
+                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument("-v", dest="verbose",   default=False, action="store_true", help="verbose")
     parser.add_argument('--version', action='version', version='1.0')
-    parser.add_argument("-i", dest="infn",      required=True,
+    parser.add_argument("-i", dest="infn",      nargs="+",
                         help="input file name   ")
-    parser.add_argument("-p", dest="phyid",     required=True, type=int,
-                        help="phylome id        [%(default)s]")
-    parser.add_argument("-o", dest="outfn",     default="orthologs.txt.gz",
-                        help="output file name  [%(default)s]")
+    parser.add_argument("-p", dest="phyid",     nargs="*", type=int, 
+                        help="phylome id        [retrieve from fpath]")
+    #parser.add_argument("-o", dest="outfn",     default="orthologs.txt.gz",
+    #                    help="output file name  [%(default)s]")
     parser.add_argument("-c", dest="CS",        default=0.5, type=float,
                         help="CS cutoff         [%(default)s]")
     parser.add_argument("-l", dest="lk",        default=3.0, type=float,
@@ -246,8 +252,19 @@ def main():
         #    ROOTED_PHYLOMES[k] = rooting_dict[k]
         ROOTED_PHYLOMES.update(rooting_dict)
     #end
-    
-    phylomedump2seedhomologs(o.infn, o.outfn, o.phyid, o.CS, o.lk, o.verbose)
+        
+    #get phyids
+    if o.phyid:
+        phyids = o.phyid
+    else:
+        phyids = []
+        for fn in o.infn:
+            #phylomes/phylome_0004/all_trees.tar.gz -> 4
+            phyid = int(fn.split(os.path.sep)[-2].split("_")[-1])
+            phyids.append(phyid)
+    #process files
+    for fn, phyid in zip(o.infn, phyids):
+        phylomedump2seedhomologs(fn, phyid, o.CS, o.lk, o.verbose)
 
 if __name__=='__main__':
     t0  = datetime.now()

@@ -37,7 +37,8 @@ def fasta2agp(handle, outbase, minN, evidence, verbose):
             c.description = c.id
             contigs.write(c.format("fasta"))
             #write agp
-            agp.write(line%(r.id, pend+1, gstart, 2*j-1, "W", c.id, pend+1, gstart, "+"))
+            #agp.write(line%(r.id, pend+1, gstart, 2*j-1, "W", c.id, pend+1, gstart, "+"))
+            agp.write(line%(r.id, pend+1, gstart, 2*j-1, "W", c.id, 1, gstart-pend, "+"))
             agp.write(line%(r.id, gstart+1, gend, 2*j, "N", gend-gstart, "scaffold", "yes", evidence))
             #store previous end
             pend = gend
@@ -50,7 +51,8 @@ def fasta2agp(handle, outbase, minN, evidence, verbose):
         c.description = c.id 
         contigs.write(c.format("fasta"))
         #write agp
-        agp.write(line%(r.id, pend+1, gstart, 2*j-1, "W", c.id, pend+1, gstart, "+"))
+        #agp.write(line%(r.id, pend+1, gstart, 2*j-1, "W", c.id, pend+1, gstart, "+"))
+        agp.write(line%(r.id, pend+1, gstart, 2*j-1, "W", c.id, 1, gstart-pend, "+"))
     #close output streams
     agp.close()
     contigs.close()
