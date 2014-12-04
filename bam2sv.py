@@ -16,6 +16,8 @@ To be done:
 + split read alignment
 + rlen learning
 
++ check coverage over entire region to detect alignment issues
+
 Dependencies:
 - pysam (sudo easy_install -U pysam)
 """
