@@ -11,7 +11,7 @@ from scipy import stats
 
 ref_fai = sys.argv[1]
 beds = sys.argv[2:]
-telomerSize = 0 #150000
+telomerSize = 150000
 
 #load chrom sizes
 chrom2size = {}

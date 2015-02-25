@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+#
+sh ~/src/SraTailor/sh/main.sh > /tmp/sratailor.log 2>&1 &
+

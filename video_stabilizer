@@ -1,0 +1,82 @@
+#!/bin/sh
+# --------------------------------------------
+#  Video Shooting Stabilization
+#  Command-line & Nautilus script
+#  Depends on :
+#   * mlt 0.7.6 minimum
+#   * ffmpeg 0.9 minimum
+#   * yad
+#  Revision history :
+#  04/03/2012 - Creation by N. Bernaerts
+#  04/04/2012 - Add codecs as parameters
+# -------------------------------------------
+
+# ----------------------------------------------------
+#  User variable section
+#  Please, do not modify anything out of this section 
+# ----------------------------------------------------
+
+# You can define default encoding codec and rates in kbits/s
+VIDEO_CODEC="libx264"
+VIDEO_RATE=8000
+AUDIO_CODEC="libmp3lame"
+AUDIO_RATE=128
+
+# You can setup optional parameters for stabilization & h264 encoding
+OPTION_STABILIZER="shakiness=4"
+OPTION_ENCODER="tune=film preset=slow"
+
+# ------------------------------------
+#  check if script is called 
+#  as command-line or nautilus-script 
+# ------------------------------------
+if [ -n "$1" ] 
+then
+  # at least one parameter, called as command-line
+  FILE_PATH="$1"
+else
+  # no parameter, called as a nautilus script
+  FILE_PATH="${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS}"
+fi
+
+# ----------------
+#  Initialisation 
+# ----------------
+STABILIZE="TRUE"
+CANCELED="FALSE"
+
+# go in the video file directory
+cd $(dirname "${FILE_PATH}")
+
+# generate the filenames
+ORIGINAL=$(basename "${FILE_PATH}")
+FILE_NAME=`echo ${ORIGINAL} | sed 's/^\(.*\)[.].*$/\1/g'`
+FILE_STAB="${FILE_NAME}"-stab.mp4
+FILE_LOG="${FILE_NAME}".log
+FILE_MLT="${FILE_NAME}".mlt
+
+# -------------------------
+#  Phase 1 : Stabilization
+# -------------------------
+if [ "$STABILIZE" = "TRUE" ]
+then 
+  # start the stabilization phase with melt and videostab2 filter
+  melt -progress "${ORIGINAL}" -filter videostab2 ${OPTION_STABILIZER} -consumer xml:"${FILE_MLT}" all=1 real_time=-2 2>"${FILE_LOG}"
+fi
+
+
+# --------------------
+#  Phase 2 : Encoding
+# --------------------
+if [ "$VIDEO_RATE" -gt "0" ] 
+then 
+  # start melt encoding process with stabilized video and original audio
+  melt -progress "${FILE_MLT}" -audio-track "${ORIGINAL}" -consumer avformat:"${FILE_STAB}" vcodec=${VIDEO_CODEC} b=${VIDEO_RATE}k acodec=${AUDIO_CODEC} ab=${AUDIO_RATE}k ${OPTION_ENCODER} 2>"${FILE_LOG}"
+fi
+
+# ------------------------------------
+#  cleaning-up of all temporary files
+# ------------------------------------
+rm "${FILE_LOG}"
+rm "${FILE_MLT}"
+exit 0

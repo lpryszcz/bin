@@ -13,15 +13,17 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 
-def histplot(ax, x, handle, categories, title, xlab, ylab, log):
+def histplot(ax, x, handle, categories, title, xlab, ylab, xlog, ylog, normed=False):
     """
     """
     #fig = plt.figure()
     #ax = fig.add_subplot(111)
-    if log:
+    if xlog:
+    	ax.set_xscale('log')
+    if ylog:
     	ax.set_yscale('log')
     # the histogram of the data
-    n, bins, patches = ax.hist(x, categories, normed=0, facecolor='green', alpha=0.75)
+    n, bins, patches = ax.hist(x, categories, normed=normed, alpha=0.75, label=title)
 
     # hist uses np.histogram under the hood to create 'n' and 'bins'.
     # np.histogram returns the bin edges, so there will be 50 probability
@@ -39,8 +41,8 @@ def histplot(ax, x, handle, categories, title, xlab, ylab, log):
     #plt.text(60, .025, r'mean=%.2f,stdev=%.2f' % (np.mean(x),np.std(x)))
     ax.grid(True)
  
-def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin, \
-              verbose, dlimit=1):
+def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
+              vmax, vmin, collapse, normed, verbose, dlimit=1):
     """
     """
     if verbose:
@@ -77,23 +79,37 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, log, vmax, vmin
     mpl.rcParams['xtick.labelsize'] = 5
     mpl.rcParams['ytick.labelsize'] = 5
     #add subplots
+    plt.rc('axes', color_cycle=['b', 'grey', 'r', 'y', 'g']) #['c', 'm', 'y', 'k']
     for i, data in enumerate(x):
-        ax = fig.add_subplot(nrow, ncol, i+1)
-        if len(cols)==1 and title:
-            ax.set_title(title)
+        if collapse and i==0:
+            mpl.rcParams['axes.titlesize'] = 18
+            mpl.rcParams['axes.labelsize'] = 10
+            mpl.rcParams['xtick.labelsize'] = 9
+            mpl.rcParams['ytick.labelsize'] = 9
+            ax = fig.add_subplot(111)
+        elif i==0:
+            ax = fig.add_subplot(nrow, ncol, i+1)
+        #get name
         name = ""
         if names:
             name = names[i]
         if len(data)<dlimit:
             sys.stderr.write("[WARNING] Only %s data points for: %s\n"%(len(data), name))
             continue
-        histplot(ax, data, handle, bins, name, xlab, ylab, log)
-
+        #plot
+        histplot(ax, data, handle, bins, name, xlab, ylab, xlog, ylog, normed)
+        #add title
+        if len(cols)==1 and title or collapse:
+            ax.set_title(title)
+        #add subplots labels
         if i+1>=len(cols)-nrow:
-            ax.set_xlabel(xlab)
+            ax.set_xlabel(xlab)#, fontsize=30)
         if not i%ncol:
-            ax.set_ylabel(ylab)
-
+            ax.set_ylabel(ylab)#, fontsize=30)
+    #plot legend only if collapsed
+    if collapse:
+        ax.legend()
+    #save or show
     if type(out) is file and out.name=='<stdout>':
     	plt.show()
     else:
@@ -126,19 +142,25 @@ def main():
                         help="x-axis label    [%(default)s]")
     parser.add_argument("-y", "--ylab",    default="", 
                         help="y-axis label    [%(default)s]")
-    parser.add_argument("--log",           default=False, action="store_true",
-                        help="log scale       [%(default)s]")
+    parser.add_argument("--ylog", "--log", default=False, action="store_true",
+                        help="log Y scale")
+    parser.add_argument("--xlog",          default=False, action="store_true",
+                        help="log X scale")
     parser.add_argument("--max",           default=float('inf'), type=float,
                         help="max value       [%(default)s]")
     parser.add_argument("--min",           default=float('-inf'), type=float,
                         help="min value       [%(default)s]")
+    parser.add_argument("--collapse",      default=False, action="store_true",
+                        help="collapse into single subplot")
+    parser.add_argument("--normed",        default=0, choices=(0, 1), type=int,
+                        help="normalise values")
 
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write( "Options: %s\n" % str(o) )
 
-    plot_hist(o.input, o.output, o.col, o.names, o.bins, o.title, o.xlab, o.ylab, o.log, \
-              o.max, o.min, o.verbose)
+    plot_hist(o.input, o.output, o.col, o.names, o.bins, o.title, o.xlab, o.ylab, \
+              o.xlog, o.ylog, o.max, o.min, o.collapse, o.normed, o.verbose)
               
 if __name__=='__main__': 
     t0  = datetime.now()
