@@ -28,3 +28,4 @@ ps aux | grep -P "sshfs" | grep -v grep | awk '{print $2}' | xargs kill -s 9
 #isilonup
 sshfs -o "idmap=user,reconnect,workaround=all,compression=yes,ssh_command=ssh" ssh-server.crg.es:/nfs/users /mnt/users
 
+

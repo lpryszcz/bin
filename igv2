@@ -1,2 +1,2 @@
-#javaws ~/src/igv_hm.jnlp &
+# javaws -J-Xmx2000m "http://broadinstitute.org/igv/projects/current/igv.jnlp" &> /tmp/igv.log 
 ~/src/IGV/igv.sh "$@" &> /tmp/igv.log &
