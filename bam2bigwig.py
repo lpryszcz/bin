@@ -8,7 +8,7 @@ Mizerow, 25/02/2015
 """
 import os, pysam, resource, sys
 from datetime import datetime
-#from pybedtools.contrib.bigwig import *
+#from pybedtools.contrib.bigwig import bam_to_bigwig
 import pybedtools
 
 def get_mapped(bam, verbose=0):
@@ -25,7 +25,7 @@ def get_mapped(bam, verbose=0):
     sam = pysam.AlignmentFile(bam)
     return sam.mapped
 
-def bam2bigwig(bam, genome, output, scaled=True, verbose=1):
+def bam2bigwig(bam, genome, output, strand=None, scaled=True, verbose=1):
     """Convert BAM to BigWig scaled in reads per million mapped reads."""
     # skip if outfile exists
     if os.path.isfile(output):
@@ -41,6 +41,14 @@ def bam2bigwig(bam, genome, output, scaled=True, verbose=1):
     if verbose:
         sys.stderr.write("[%s] Converting BAM to BED...\n"%(datetime.ctime(datetime.now()), ))
     kwargs = dict(bg=True, split=True, g=faidx)
+    # store strand info
+    if strand in ("+", "-", "pos", "neg"):
+        if   strand=="pos":
+            strand="+"
+        elif strand=="neg":
+            strand="-"
+        kwargs['strand'] = strand
+    #store scaling info
     if scaled:
         # speed-up using samtools idxstats
         #readcount = mapped_read_count(bam)
@@ -77,6 +85,8 @@ def main():
                         help="genome FASTA file")
     parser.add_argument("-o", "--output",  required=True,
                         help="output stream   [stdout]")
+    parser.add_argument("-s", "--strand", default="both", choices=("both", "+","-", "pos", "neg"), 
+                        help="report coverage from + or - strand [%(default)s]")
     parser.add_argument("--scaling",       default=True,  action="store_false",
                         help="disable RPM scaling")
     
@@ -84,7 +94,7 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
         
-    bam2bigwig(o.bam, o.genome, o.output, o.scaling, o.verbose)
+    bam2bigwig(o.bam, o.genome, o.output, o.strand, o.scaling, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()
