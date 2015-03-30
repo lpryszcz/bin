@@ -63,7 +63,6 @@ def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
                                    np.all([s<c2i[c]['end'], c2i[c]['end']<e], axis=0)], axis=0)]
         else:
             ivals = np.empty_like(ivals)
-        #sys.stderr.write("%s:%s-%s %s entries\n" % (c,s,e, len(ivals)))
         # store current reference and max position
         pref = a.rname
         maxp = e
@@ -73,27 +72,25 @@ def count_overlapping_intervals(blocks, strands, ivals, counts):
     """Count overlapping intervals with given read alignment.
     The algorithm support spliced alignments. """
     # get intervals overlapping with given alignment blocks
-    '''##
+    ## this can be joined into single command, but it gets quite messy
     d = [np.all([s<ivals['start'], ivals['start']<e], axis=0) for s, e in blocks]
     d+= [np.all([s<ivals['end'], ivals['end']<e], axis=0) for s, e in blocks]
-    selected = ivals[np.any(d, axis=0)]'''
-    selected = ivals[np.any([np.any([np.all([s<ivals['start'], ivals['start']<e], axis=0),
-                                     np.all([s<ivals['end'], ivals['end']<e], axis=0)], axis=0)
-                             for s, e in blocks], axis=0)]    
-    #if len(selected):
-    # count -/+ reads
-    cminus = strands.count(True)
-    cplus  = strands.count(False)
-    # store info
-    for s, e, strand, ival in selected:
-        # - transcript on reverse
-        if strand:
-            counts[0][ival] += cminus
-            counts[1][ival] += cplus
-            # + transcript on forward
-        else:
-            counts[0][ival] += cplus
-            counts[1][ival] += cminus            
+    selected = ivals[np.any(d, axis=0)]
+    # check if any matches, as sometimes empty cause problems
+    if len(selected):
+        # count -/+ reads
+        cminus = strands.count(True)
+        cplus  = strands.count(False)
+        # store info
+        for s, e, strand, ival in selected:
+            # - transcript on reverse
+            if strand:
+                counts[0][ival] += cminus
+                counts[1][ival] += cplus
+                # + transcript on forward
+            else:
+                counts[0][ival] += cplus
+                counts[1][ival] += cminus            
     return counts
 
 def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
@@ -108,7 +105,7 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     for i, a in enumerate(sam, 1):
         if not i%1e5:
             sys.stderr.write(' %i\r'%i)
-        #if i>1e5: break
+        #if i<8*1e6: continue
         # filter poor quality
         if _filter(a, mapq):
             continue
@@ -121,7 +118,6 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
         else:
             # update ivals
             ivals, maxp, pref = buffer_intervals(c2i, ivals, sam, pa, maxp, pref, bufferSize)
-            #c = sam.references[pa.rname]
             # update counts
             counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts)
             # store current entry
@@ -140,6 +136,7 @@ def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
     if verbose:
         sys.stderr.write("Loading intervals...\n")
     c2i, entries = load_intervals(bed, verbose)
+    sys.stderr.write(" %s intervals from %s chromosomes loaded!\n"%(entries, len(c2i)) )
     # parse alignments & count interval overlaps
     if verbose:
         sys.stderr.write("Parsing alignments...\n")
@@ -166,7 +163,7 @@ def main():
                         help="output stream   [stdout]")
     parser.add_argument("-p", "--ploidy",    default=2, type=int, 
                         help="ploidy          [%(default)s]")
-    parser.add_argument("-q", "--mapq",      default=20, type=int, 
+    parser.add_argument("-q", "--mapq",      default=10, type=int, 
                         help="min mapping quality for variants [%(default)s]")
     parser.add_argument("--bufferSize",      default=1e6,  type=int, 
                         help="buffer size for intervals [%(default)s]")
