@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 desc="""Report coverage from BAM file. 
-
-By default, the program dumps reads of interest and depth of coverage information. This
-speeds up recalculation by the factor of 20X and should take <1% of BAM file size.
+Support spliced alignments. 
 
 Dependencies:
 - pysam (sudo easy_install -U pysam)
@@ -12,23 +10,9 @@ epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 30/03/2015
 """
 
-import os, sys
-import pysam, resource
+import os, sys, pysam
 from datetime import datetime
 import numpy as np
-
-def parse_bam(bam, dbname, verbose):
-    """Return chr2cov"""
-    # connect to sqlite3 db
-    cnx = sqlite3.connect(dbname)
-    cur = cnx.cursor()
-    # prepare tables
-    for ref in sam.references:
-        cur.execute("CREATE TABLE `%s` (start INT, end INT, id INT)"%ref)
-        
-    #chr2cov[alg.rname][alg.pos]
-
-    cnx.commit()
 
 def load_intervals(fn, verbose):
     """Return chr2intervals and number of entries"""
@@ -43,9 +27,9 @@ def load_intervals(fn, verbose):
             chrom, s, e, name, score, strand = rec.split('\t')[:6]
             s, e = int(s), int(e)
         if strand=="+":
-            strand = 1
-        else:
             strand = 0
+        else:
+            strand = 1
         # add chromosome
         if chrom not in chr2intervals:
             chr2intervals[chrom] = []
@@ -60,27 +44,6 @@ def load_intervals(fn, verbose):
         chr2intervals[chrom]=np.array(data, dtype=dtype)        
     return chr2intervals, i
     
-def add_reads(blocks, ac, ivals, counts):
-    """Add reads"""
-    '''# get chromosome name
-    c = sam.references[a.rname]
-    # count read alignment only once for each block/interval
-    selected = c2i[c][np.any([np.any([np.all([s<c2i[c]['start'], c2i[c]['start']<e], axis=0),
-                                      np.all([s<c2i[c]['end'], c2i[c]['end']<e], axis=0)], axis=0)
-                              for s, e in a.blocks], axis=0)]
-    
-    d = []
-    d+= [np.all([s<ivals['start'], ivals['start']<e], axis=0) for s, e in blocks]
-    d+= [np.all([s<ivals['end'], ivals['end']<e], axis=0) for s, e in blocks]
-    selected = ivals[np.any(d, axis=0)]'''
-    selected = ivals[np.any([np.any([np.all([s<ivals['start'], ivals['start']<e], axis=0),
-                                     np.all([s<ivals['end'], ivals['end']<e], axis=0)], axis=0)
-                             for s, e in blocks], axis=0)]
-
-    for s, e, strand, entry_id in selected:
-        counts[0][entry_id] += 1
-    return counts
-
 def _filter(a, mapq=0):
     """Return True if poor quality alignment"""
     if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail:
@@ -88,52 +51,87 @@ def _filter(a, mapq=0):
             
 def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
     """Return invervals buffer for faster selection"""
-    if a.aend>maxp or a.rname != pref:
+    if a.rname != pref:
+        maxp = 0
+    if a.aend>maxp:
         # get ref chrom
         c = sam.references[a.rname]
         s, e = maxp, maxp+bufferSize
         # update intervals
-        #sys.stderr.write(" buffering %s:%s-%s ...\r"%(c,s,e))
         if c in c2i:
             ivals = c2i[c][np.any([np.all([s<c2i[c]['start'], c2i[c]['start']<e], axis=0),
                                    np.all([s<c2i[c]['end'], c2i[c]['end']<e], axis=0)], axis=0)]
         else:
             ivals = np.empty_like(ivals)
-        #sys.stderr.write("  %s entries loaded!\r"%len(ivals))
+        #sys.stderr.write("%s:%s-%s %s entries\n" % (c,s,e, len(ivals)))
         # store current reference and max position
         pref = a.rname
         maxp = e
     return ivals, maxp, pref
 
+def count_overlapping_intervals(blocks, strands, ivals, counts):
+    """Count overlapping intervals with given read alignment.
+    The algorithm support spliced alignments. """
+    # get intervals overlapping with given alignment blocks
+    '''##
+    d = [np.all([s<ivals['start'], ivals['start']<e], axis=0) for s, e in blocks]
+    d+= [np.all([s<ivals['end'], ivals['end']<e], axis=0) for s, e in blocks]
+    selected = ivals[np.any(d, axis=0)]'''
+    selected = ivals[np.any([np.any([np.all([s<ivals['start'], ivals['start']<e], axis=0),
+                                     np.all([s<ivals['end'], ivals['end']<e], axis=0)], axis=0)
+                             for s, e in blocks], axis=0)]    
+    #if len(selected):
+    # count -/+ reads
+    cminus = strands.count(True)
+    cplus  = strands.count(False)
+    # store info
+    for s, e, strand, ival in selected:
+        # - transcript on reverse
+        if strand:
+            counts[0][ival] += cminus
+            counts[1][ival] += cplus
+            # + transcript on forward
+        else:
+            counts[0][ival] += cplus
+            counts[1][ival] += cminus            
+    return counts
+
 def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     """Parse BAM and return counts for sense/antisense of each interval"""
-    counts = (np.zeros(entries, dtype='uint16'), np.zeros(entries, dtype='uint16'))
+    counts = (np.zeros(entries, dtype='uint32'), np.zeros(entries, dtype='uint32'))
     # open BAM
     sam = pysam.AlignmentFile(bam)
     # keep info about previous read 
-    pa, ac = 0, 0
+    pa, strands = 0, []
     # keep info about intervals, max position and current reference
     ivals, maxp, pref = [], 0, 0
     for i, a in enumerate(sam, 1):
         if not i%1e5:
-            sys.stderr.write(' %i\r'%(i, )) #resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024))
-        #if i>1e6: break
+            sys.stderr.write(' %i\r'%i)
+        #if i>1e5: break
         # filter poor quality
         if _filter(a, mapq):
             continue
         if not pa:
-            pa, ac = a, 1
+            pa = a
             continue
         # check if similar to previous
         if pa.pos==a.pos and pa.cigarstring==a.cigarstring:
-            ac += 1
+            strands.append(a.is_reverse)
         else:
+            # update ivals
             ivals, maxp, pref = buffer_intervals(c2i, ivals, sam, pa, maxp, pref, bufferSize)
-            counts = add_reads(pa.blocks, ac, ivals, counts)
-            pa, ac = a, 1
+            #c = sam.references[pa.rname]
+            # update counts
+            counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts)
+            # store current entry
+            pa = a
+            strands = [a.is_reverse]
+    # update ivals
+    ivals, maxp, pref = buffer_intervals(c2i, ivals, sam, pa, maxp, pref, bufferSize)
     # add last alignment
-    if not _filter(a, mapq):
-        counts = add_reads(a.blocks, ac, ivals, counts)
+    counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts)
+    sys.stderr.write(' %i\n'%i)
     return counts
     
 def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
@@ -142,12 +140,14 @@ def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
     if verbose:
         sys.stderr.write("Loading intervals...\n")
     c2i, entries = load_intervals(bed, verbose)
-    # parse alignments
+    # parse alignments & count interval overlaps
     if verbose:
         sys.stderr.write("Parsing alignments...\n")
     counts = parse_bam(bam, mapq, c2i, entries, bufferSize, verbose)
-        
-    print counts[0].sum()
+    # report
+    sys.stderr.write("sense / antisense: %s / %s\n" % (sum(counts[0]), sum(counts[1])) )
+    for sense, antisense, line in zip(counts[0], counts[1], open(bed)):
+        out.write("%s\t%s\t%s\n"%(line[:-1], sense, antisense))
     
 def main():
     import argparse
