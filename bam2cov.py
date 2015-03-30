@@ -75,7 +75,7 @@ def add_reads(blocks, ac, ivals, counts):
     selected = ivals[np.any(d, axis=0)]'''
     selected = ivals[np.any([np.any([np.all([s<ivals['start'], ivals['start']<e], axis=0),
                                      np.all([s<ivals['end'], ivals['end']<e], axis=0)], axis=0)
-                             for s, e in a.blocks], axis=0)]
+                             for s, e in blocks], axis=0)]
 
     for s, e, strand, entry_id in selected:
         counts[0][entry_id] += 1
@@ -105,8 +105,9 @@ def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
         maxp = e
     return ivals, maxp, pref
 
-def parse_bam(bam, mapq, bufferSize, verbose):
+def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     """Parse BAM and return counts for sense/antisense of each interval"""
+    counts = (np.zeros(entries, dtype='uint16'), np.zeros(entries, dtype='uint16'))
     # open BAM
     sam = pysam.AlignmentFile(bam)
     # keep info about previous read 
@@ -141,11 +142,10 @@ def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
     if verbose:
         sys.stderr.write("Loading intervals...\n")
     c2i, entries = load_intervals(bed, verbose)
-    counts = (np.zeros(entries, dtype='uint16'), np.zeros(entries, dtype='uint16'))
     # parse alignments
     if verbose:
         sys.stderr.write("Parsing alignments...\n")
-    counts = parse_bam(bam, mapq, bufferSize, verbose)
+    counts = parse_bam(bam, mapq, c2i, entries, bufferSize, verbose)
         
     print counts[0].sum()
     
