@@ -59,12 +59,13 @@ def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
     if a.aend>maxp:
         # get ref chrom
         c = sam.references[a.rname]
-        #s, e = maxp, maxp+bufferSize
         s, e = a.pos, a.aend+bufferSize
         # update intervals
         if c in c2i:
-            ivals = c2i[c][np.any([np.all([s<c2i[c]['start'], c2i[c]['start']<e], axis=0),
-                                   np.all([s<c2i[c]['end'], c2i[c]['end']<e], axis=0)], axis=0)]
+            # select intervals that either start, end or encompass current window/buffer
+            ivals = c2i[c][np.any([np.all([s>=c2i[c]['start'], c2i[c]['end']>=s], axis=0),
+                                   np.all([e>=c2i[c]['start'], c2i[c]['end']>=e], axis=0),
+                                   np.all([s<=c2i[c]['start'], c2i[c]['end']<=e], axis=0)], axis=0)]
         else:
             ivals = np.empty_like(ivals)
         # store current reference and max position
@@ -77,8 +78,13 @@ def count_overlapping_intervals(blocks, strands, ivals, counts):
     The algorithm support spliced alignments. """
     # get intervals overlapping with given alignment blocks
     ## this can be joined into single command, but it gets quite messy
-    d = [np.all([s<ivals['start'], ivals['start']<e], axis=0) for s, e in blocks]
-    d+= [np.all([s<ivals['end'], ivals['end']<e], axis=0) for s, e in blocks]
+    # start overlapping with interval
+    d = [np.all([s>=ivals['start'], ivals['end']>=s], axis=0) for s, e in blocks]
+    # end overlapping with interval
+    d+= [np.all([e>=ivals['start'], ivals['end']>=e], axis=0) for s, e in blocks]
+    # interval inside read
+    d+= [np.all([s<=ivals['start'], ivals['end']<=e], axis=0) for s, e in blocks]
+    # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
     # check if any matches, as sometimes empty cause problems
     if len(selected):
@@ -109,6 +115,7 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     for i, a in enumerate(sam, 1):
         if not i%1e5:
             sys.stderr.write(' %i\r'%i)
+        #if i>1e5: break
         # filter poor quality
         if _filter(a, mapq):
             continue
