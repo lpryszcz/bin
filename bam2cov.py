@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 desc="""Report coverage from BAM file. 
-Support spliced alignments. 
+Support spliced alignments and mapping quality filtering.
+By default ignores secondary alignments, duplicates and quality failed reads. 
 
 Dependencies:
 - pysam (sudo easy_install -U pysam)
-- bcbio-gff (sudo easy_install -U bcbio-gff)
+
+TDB:
+- define minimum overlap
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 30/03/2015
@@ -56,7 +59,8 @@ def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
     if a.aend>maxp:
         # get ref chrom
         c = sam.references[a.rname]
-        s, e = maxp, maxp+bufferSize
+        #s, e = maxp, maxp+bufferSize
+        s, e = a.pos, a.aend+bufferSize
         # update intervals
         if c in c2i:
             ivals = c2i[c][np.any([np.all([s<c2i[c]['start'], c2i[c]['start']<e], axis=0),
@@ -127,7 +131,7 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     ivals, maxp, pref = buffer_intervals(c2i, ivals, sam, pa, maxp, pref, bufferSize)
     # add last alignment
     counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts)
-    sys.stderr.write(' %i\n'%i)
+    sys.stderr.write(' %i alignments processed.\n'%i)
     return counts
     
 def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
@@ -142,7 +146,7 @@ def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
         sys.stderr.write("Parsing alignments...\n")
     counts = parse_bam(bam, mapq, c2i, entries, bufferSize, verbose)
     # report
-    sys.stderr.write("sense / antisense: %s / %s\n" % (sum(counts[0]), sum(counts[1])) )
+    sys.stderr.write(" sense / antisense alignments: %s / %s\n" % (sum(counts[0]), sum(counts[1])) )
     for sense, antisense, line in zip(counts[0], counts[1], open(bed)):
         out.write("%s\t%s\t%s\n"%(line[:-1], sense, antisense))
     
@@ -165,7 +169,7 @@ def main():
                         help="ploidy          [%(default)s]")
     parser.add_argument("-q", "--mapq",      default=10, type=int, 
                         help="min mapping quality for variants [%(default)s]")
-    parser.add_argument("--bufferSize",      default=1e6,  type=int, 
+    parser.add_argument("--bufferSize",      default=100000,  type=int, 
                         help="buffer size for intervals [%(default)s]")
     
     o = parser.parse_args()
