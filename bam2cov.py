@@ -44,7 +44,7 @@ def load_intervals(fn, verbose):
     dtype = np.dtype({'names':   ['start',  'end',    'strand', 'entry_id'], \
                       'formats': ['uint32', 'uint32', 'bool_', 'uint32']})
     for chrom, data in chr2intervals.iteritems():
-        chr2intervals[chrom]=np.array(data, dtype=dtype)        
+        chr2intervals[chrom] = np.array(data, dtype=dtype)
     return chr2intervals, i
     
 def _filter(a, mapq=0):
@@ -65,7 +65,7 @@ def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
             # select intervals that either start, end or encompass current window/buffer
             ivals = c2i[c][np.any([np.all([s>=c2i[c]['start'], c2i[c]['end']>=s], axis=0),
                                    np.all([e>=c2i[c]['start'], c2i[c]['end']>=e], axis=0),
-                                   np.all([s<=c2i[c]['start'], c2i[c]['end']<=e], axis=0)], axis=0)]
+                                   np.all([s>c2i[c]['start'], c2i[c]['end']>e], axis=0)], axis=0)]
         else:
             ivals = np.empty_like(ivals)
         # store current reference and max position
@@ -76,14 +76,13 @@ def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
 def count_overlapping_intervals(blocks, strands, ivals, counts):
     """Count overlapping intervals with given read alignment.
     The algorithm support spliced alignments. """
-    # get intervals overlapping with given alignment blocks
-    ## this can be joined into single command, but it gets quite messy
+    ## get intervals overlapping with given alignment blocks
     # start overlapping with interval
-    d = [np.all([s>=ivals['start'], ivals['end']>=s], axis=0) for s, e in blocks]
+    d  = [np.all([s>=ivals['start'], ivals['end']>=s], axis=0) for s, e in blocks]
     # end overlapping with interval
-    d+= [np.all([e>=ivals['start'], ivals['end']>=e], axis=0) for s, e in blocks]
+    d += [np.all([e>=ivals['start'], ivals['end']>=e], axis=0) for s, e in blocks]
     # interval inside read
-    d+= [np.all([s<=ivals['start'], ivals['end']<=e], axis=0) for s, e in blocks]
+    d += [np.all([s<ivals['start'], ivals['end']<e], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
     # check if any matches, as sometimes empty cause problems
@@ -116,6 +115,7 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
         if not i%1e5:
             sys.stderr.write(' %i\r'%i)
         #if i>1e5: break
+        #if i<84*1e5: continue
         # filter poor quality
         if _filter(a, mapq):
             continue
@@ -171,7 +171,7 @@ def main():
     parser.add_argument("-i", "--bam", required=True,       
                         help="BAM file")
     parser.add_argument("-b", "--bed", required=True,       
-                        help="BED/GTF/GFF file")
+                        help="BED/GTF/GFF interval file")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
     parser.add_argument("-p", "--ploidy",    default=2, type=int, 
@@ -185,7 +185,7 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
         
-    #initialise structural variants
+    # calculate coverage from bam for given intervals
     bam2cov(o.bam, o.bed, o.output, o.mapq, o.bufferSize, o.verbose)
  
 if __name__=='__main__': 
