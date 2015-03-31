@@ -109,7 +109,6 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     for i, a in enumerate(sam, 1):
         if not i%1e5:
             sys.stderr.write(' %i\r'%i)
-        #if i<8*1e6: continue
         # filter poor quality
         if _filter(a, mapq):
             continue
@@ -131,7 +130,8 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     ivals, maxp, pref = buffer_intervals(c2i, ivals, sam, pa, maxp, pref, bufferSize)
     # add last alignment
     counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts)
-    sys.stderr.write(' %i alignments processed.\n'%i)
+    if verbose:
+        sys.stderr.write(' %i alignments processed.\n'%i)
     return counts
     
 def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
@@ -140,13 +140,15 @@ def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
     if verbose:
         sys.stderr.write("Loading intervals...\n")
     c2i, entries = load_intervals(bed, verbose)
-    sys.stderr.write(" %s intervals from %s chromosomes loaded!\n"%(entries, len(c2i)) )
+    if verbose:
+        sys.stderr.write(" %s intervals from %s chromosomes loaded!\n"%(entries, len(c2i)) )
     # parse alignments & count interval overlaps
     if verbose:
         sys.stderr.write("Parsing alignments...\n")
     counts = parse_bam(bam, mapq, c2i, entries, bufferSize, verbose)
+    if verbose:
+        sys.stderr.write(" sense / antisense alignments: %s / %s\n" % (sum(counts[0]), sum(counts[1])) )
     # report
-    sys.stderr.write(" sense / antisense alignments: %s / %s\n" % (sum(counts[0]), sum(counts[1])) )
     for sense, antisense, line in zip(counts[0], counts[1], open(bed)):
         out.write("%s\t%s\t%s\n"%(line[:-1], sense, antisense))
     
