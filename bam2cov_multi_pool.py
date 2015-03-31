@@ -142,7 +142,7 @@ def alignment_iterator(inQ, bam, mapq, nprocs, verbose):
     for p in range(nprocs):
         inQ.put('STOP')
     
-def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose, nprocs=1):
+def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose, nprocs=4):
     """Parse BAM and return counts for sense/antisense of each interval"""
     counts = (np.zeros(entries, dtype='uint32'), np.zeros(entries, dtype='uint32'))
     #get in & out queue
