@@ -21,6 +21,8 @@ def load_intervals(fn, verbose):
     """Return chr2intervals and number of entries"""
     chr2intervals = {}
     for i, rec in enumerate(open(fn)):
+        if rec.startswith('#') or not rec.strip():
+            continue
         # GTF / GFF
         if fn.endswith(('gtf','gff')):
             chrom, source, ftype, s, e, score, strand = rec.split('\t')[:7]
@@ -45,7 +47,7 @@ def load_intervals(fn, verbose):
                       'formats': ['uint32', 'uint32', 'bool_', 'uint32']})
     for chrom, data in chr2intervals.iteritems():
         chr2intervals[chrom] = np.array(data, dtype=dtype)
-    return chr2intervals, i
+    return chr2intervals, i+1
     
 def _filter(a, mapq=0):
     """Return True if poor quality alignment"""
@@ -63,35 +65,44 @@ def buffer_intervals(c2i, ivals, sam, a, maxp, pref, bufferSize):
         # update intervals
         if c in c2i:
             # select intervals that either start, end or encompass current window/buffer
-            ivals = c2i[c][np.any([np.all([s>=c2i[c]['start'], c2i[c]['end']>=s], axis=0),
-                                   np.all([e>=c2i[c]['start'], c2i[c]['end']>=e], axis=0),
-                                   np.all([s>c2i[c]['start'], c2i[c]['end']>e], axis=0)], axis=0)]
+            ivals = c2i[c][np.any([np.all([ c2i[c]['start']>=s, c2i[c]['start']<=e ], axis=0),
+                                   np.all([ c2i[c]['end']  >=s, c2i[c]['end']  <=e ], axis=0),
+                                   np.all([ c2i[c]['start']< s, c2i[c]['end']  > e ], axis=0)], axis=0)]
         else:
-            ivals = np.empty_like(ivals)
+            ivals = [] 
+        #sys.stderr.write(" new buffer with %s intervals: %s:%s-%s\n"%(len(ivals),c,s,e))
         # store current reference and max position
         pref = a.rname
         maxp = e
     return ivals, maxp, pref
 
-def count_overlapping_intervals(blocks, strands, ivals, counts):
+def count_overlapping_intervals(blocks, strands, ivals, counts, verbose=0):
     """Count overlapping intervals with given read alignment.
     The algorithm support spliced alignments. """
+    # skip if not ivals
+    if not len(ivals):
+        return counts
     ## get intervals overlapping with given alignment blocks
     # start overlapping with interval
-    d  = [np.all([s>=ivals['start'], ivals['end']>=s], axis=0) for s, e in blocks]
+    d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
     # end overlapping with interval
-    d += [np.all([e>=ivals['start'], ivals['end']>=e], axis=0) for s, e in blocks]
+    d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
     # interval inside read
-    d += [np.all([s<ivals['start'], ivals['end']<e], axis=0) for s, e in blocks]
+    d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
     # check if any matches, as sometimes empty cause problems
-    if len(selected):
+    if selected.size:
         # count -/+ reads
         cminus = strands.count(True)
         cplus  = strands.count(False)
         # store info
         for s, e, strand, ival in selected:
+            '''if ival>=len(counts[0]):
+                if verbose:
+                    info = "[WARNING] Entry ID (%s) out of range (%s): blocks: %s strands: %s selected: %s\n"
+                    sys.stderr.write(info%(ival, len(counts[0]), str(blocks), str(strands), str(selected)))
+                return counts'''
             # - transcript on reverse
             if strand:
                 counts[0][ival] += cminus
@@ -107,18 +118,22 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
     counts = (np.zeros(entries, dtype='uint32'), np.zeros(entries, dtype='uint32'))
     # open BAM
     sam = pysam.AlignmentFile(bam)
+    # count alg quality ok
+    qok = 0
     # keep info about previous read 
     pa, strands = 0, []
     # keep info about intervals, max position and current reference
     ivals, maxp, pref = [], 0, 0
     for i, a in enumerate(sam, 1):
-        if not i%1e5:
-            sys.stderr.write(' %i\r'%i)
         #if i>1e5: break
         #if i<84*1e5: continue
+        if verbose and not i%1e5:
+            sys.stderr.write(' %i algs; %i ok; of these sense / antisense: %s /%s \r'%
+                             (i, qok, sum(counts[0]), sum(counts[1])))
         # filter poor quality
         if _filter(a, mapq):
             continue
+        qok += 1
         if not pa:
             pa = a
             continue
@@ -129,14 +144,14 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
             # update ivals
             ivals, maxp, pref = buffer_intervals(c2i, ivals, sam, pa, maxp, pref, bufferSize)
             # update counts
-            counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts)
+            counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts, verbose)
             # store current entry
             pa = a
             strands = [a.is_reverse]
     # update ivals
     ivals, maxp, pref = buffer_intervals(c2i, ivals, sam, pa, maxp, pref, bufferSize)
     # add last alignment
-    counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts)
+    counts = count_overlapping_intervals(pa.blocks, strands, ivals, counts, verbose)
     if verbose:
         sys.stderr.write(' %i alignments processed.\n'%i)
     return counts
@@ -174,8 +189,6 @@ def main():
                         help="BED/GTF/GFF interval file")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
-    parser.add_argument("-p", "--ploidy",    default=2, type=int, 
-                        help="ploidy          [%(default)s]")
     parser.add_argument("-q", "--mapq",      default=10, type=int, 
                         help="min mapping quality for variants [%(default)s]")
     parser.add_argument("--bufferSize",      default=100000,  type=int, 
