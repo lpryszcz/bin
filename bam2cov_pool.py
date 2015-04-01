@@ -3,8 +3,7 @@ desc="""Report coverage from BAM file.
 Support spliced alignments and mapping quality filtering.
 By default ignores secondary alignments, duplicates and quality failed reads. 
 
-Dependencies:
-- pysam (sudo easy_install -U pysam)
+bam2cov_pool.py is nearly 2x faster on large BAM files than bam2cov.py. 
 
 TDB:
 - define minimum overlap
@@ -105,12 +104,13 @@ def worker(args):
     d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
-    cminus, cplus = strands.count(True), strands.count(False)    
+    cminus = strands.count(True)
+    cplus  = len(strands)-cminus #strands.count(False)   
     return cminus, cplus, list(selected)
 
 def cigar2blocks(pos, cigar):
-    """Return alignment blocks and aend
-    Note, here cigar2block doesn't break block upon insertion (I), while pysam does."""
+    """Return alignment blocks and aend. cigar2block doesn't break
+    block upon insertion (I), while pysam does."""
     blocks = [[pos, pos]]
     for c in cigarPat.findall(cigar):
         bases, s = int(c[:-1]), c[-1]
@@ -134,6 +134,7 @@ def is_reverse(flag):
     """Return true if read aligned to reverse strand"""
     if int(flag) & 16:
         return True
+    return False
     
 def alignment_iterator_samtools(bam, mapq, verbose):
     """Iterate aligments from BAM using samtools view subprocess"""
@@ -147,14 +148,11 @@ def alignment_iterator_samtools(bam, mapq, verbose):
     out1  = proc1.stdout
     if verbose:
         sys.stderr.write(" "+" | ".join([" ".join(cmd0), " ".join(cmd1)+"\n"]))
-    # open BAM through samtools view subprocess
-    sam = out1 #pysam.AlignmentFile(bam)
     # keep info about previous read 
-    ppos, pcigar, paend, pblocks, strands = 0, 0, 0, 0, []
+    strands = []
     # iterate only ok alignments
-    for i, line in enumerate(sam, 1):
+    for i, line in enumerate(out1, 1):
         #if i>1e5: break
-        #if i<84*1e5: continue
         if verbose and not i%1e5:
             sys.stderr.write(' %i \r'%i)
         flag, rname, pos, cigar = line[:-1].split('\t')
@@ -163,8 +161,9 @@ def alignment_iterator_samtools(bam, mapq, verbose):
         blocks  = cigar2blocks(pos, cigar)
         aend    = blocks[-1][-1]
         reverse = is_reverse(flag)
-        if not pcigar:
+        if not strands:
             ppos, pcigar, paend, pblocks, prname = pos, cigar, aend, blocks, rname
+            strands = [reverse]
             continue
         # check if similar to previous
         if ppos==pos and pcigar==cigar:
@@ -189,9 +188,9 @@ def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose, nprocs=4):
     # parse results
     for cminus, cplus, selected in p.imap_unordered(worker, iterator, chunksize=10000):
         # store info
-        for s, e, strand, ival in selected:
+        for s, e, reverse, ival in selected:
             # - transcript on reverse
-            if strand:
+            if reverse:
                 counts[0][ival] += cminus
                 counts[1][ival] += cplus
                 # + transcript on forward

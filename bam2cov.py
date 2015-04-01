@@ -3,8 +3,7 @@ desc="""Report coverage from BAM file.
 Support spliced alignments and mapping quality filtering.
 By default ignores secondary alignments, duplicates and quality failed reads. 
 
-Dependencies:
-- pysam (sudo easy_install -U pysam)
+bam2cov_pool.py is nearly 2x faster on large BAM files than bam2cov.py. 
 
 TDB:
 - define minimum overlap
@@ -97,7 +96,8 @@ def count_overlapping_intervals(blocks, strands, ivals, counts, verbose=0):
     if selected.size:
         # count -/+ reads
         cminus = strands.count(True)
-        cplus  = strands.count(False)
+        cplus  = len(strands)-cminus
+        #cplus  = strands.count(False)
         # store info
         for s, e, strand, ival in selected:
             # - transcript on reverse
@@ -182,14 +182,11 @@ def alignment_iterator_samtools(bam, mapq, verbose):
     out1  = proc1.stdout
     if verbose:
         sys.stderr.write(" "+" | ".join([" ".join(cmd0), " ".join(cmd1)+"\n"]))
-    # open BAM through samtools view subprocess
-    sam = out1 #pysam.AlignmentFile(bam)
     # keep info about previous read 
-    ppos, pcigar, paend, pblocks, strands = 0, 0, 0, 0, []
+    strands = []
     # iterate only ok alignments
-    for i, line in enumerate(sam, 1):
+    for i, line in enumerate(out1, 1):
         #if i>1e5: break
-        #if i<84*1e5: continue
         if verbose and not i%1e5:
             sys.stderr.write(' %i \r'%i)
         flag, rname, pos, cigar = line[:-1].split('\t')
@@ -198,8 +195,9 @@ def alignment_iterator_samtools(bam, mapq, verbose):
         blocks  = cigar2blocks(pos, cigar)
         aend    = blocks[-1][-1]
         reverse = is_reverse(flag)
-        if not pcigar:
+        if not strands:
             ppos, pcigar, paend, pblocks, prname = pos, cigar, aend, blocks, rname
+            strands = [reverse]
             continue
         # check if similar to previous
         if ppos==pos and pcigar==cigar:
