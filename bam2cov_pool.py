@@ -16,6 +16,7 @@ Mizerow, 30/03/2015
 import os, sys, pysam, re, subprocess
 from datetime import datetime
 import numpy as np
+from multiprocessing import Pool
 
 cigarPat = re.compile('\d+\w')
 
@@ -56,11 +57,11 @@ def _filter(a, mapq=0):
     if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail:
         return True
             
-def buffer_intervals(c2i, ivals, rname, pos, aend, maxp, pref, bufferSize):
+def buffer_intervals(c2i, ivals, pos, aend, rname, maxp, pref, bufferSize):
     """Return invervals buffer for faster selection"""
     if rname != pref:
         maxp = 0
-    if aend > maxp:
+    if aend>maxp:
         # get ref chrom
         c = rname
         s, e = pos, aend+bufferSize
@@ -74,16 +75,27 @@ def buffer_intervals(c2i, ivals, rname, pos, aend, maxp, pref, bufferSize):
             ivals = [] 
         #sys.stderr.write(" new buffer with %s intervals: %s:%s-%s\n"%(len(ivals),c,s,e))
         # store current reference and max position
-        pref = rname
+        pref = c
         maxp = e
     return ivals, maxp, pref
 
-def count_overlapping_intervals(blocks, strands, ivals, counts, verbose=0):
+def init_args(*args):
+    global c2i, bufferSize, ivals, maxp, pref
+    c2i, bufferSize = args
+    # keep info about intervals, max position and current reference
+    ivals, maxp, pref = [], 0, 0
+    
+def worker(args):
     """Count overlapping intervals with given read alignment.
     The algorithm support spliced alignments. """
+    global c2i, bufferSize, ivals, maxp, pref
+    # read args
+    blocks, strands, pos, aend, rname = args
+    # buffer intervals
+    ivals, maxp, pref = buffer_intervals(c2i, ivals, pos, aend, rname, maxp, pref, bufferSize)
     # skip if not ivals
     if not len(ivals):
-        return counts
+        return 0, 0, []
     ## get intervals overlapping with given alignment blocks
     # start overlapping with interval
     d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
@@ -93,55 +105,8 @@ def count_overlapping_intervals(blocks, strands, ivals, counts, verbose=0):
     d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
-    # check if any matches, as sometimes empty cause problems
-    if selected.size:
-        # count -/+ reads
-        cminus = strands.count(True)
-        cplus  = strands.count(False)
-        # store info
-        for s, e, strand, ival in selected:
-            # - transcript on reverse
-            if strand:
-                counts[0][ival] += cminus
-                counts[1][ival] += cplus
-                # + transcript on forward
-            else:
-                counts[0][ival] += cplus
-                counts[1][ival] += cminus            
-    return counts
-
-def alignment_iterator(bam, mapq, verbose):
-    """Iterate alignments from BAM"""
-    # open BAM
-    sam = pysam.AlignmentFile(bam)
-    # count alg quality ok
-    qok = 0
-    # keep info about previous read 
-    pa, strands = 0, []
-    for i, a in enumerate(sam, 1):
-        #if i>1e5: break
-        #if i<84*1e5: continue
-        if verbose and not i%1e5:
-            sys.stderr.write(' %i algs; %i ok \r'%(i, qok))
-        # filter poor quality
-        if _filter(a, mapq):
-            continue
-        qok += 1
-        if not pa:
-            pa = a
-            continue
-        # check if similar to previous
-        if pa.pos==a.pos and pa.cigarstring==a.cigarstring:
-            strands.append(a.is_reverse)
-        else:
-            yield pa.blocks, strands, pa.pos, pa.aend, sam.references[pa.rname]
-            # store current entry
-            pa = a
-            strands = [a.is_reverse]
-    # info
-    if verbose:
-        sys.stderr.write(' %i alignments processed.\n'%i)
-    yield pa.blocks, strands, pa.pos, pa.aend, sam.references[pa.rname]
+    cminus, cplus = strands.count(True), strands.count(False)    
+    return cminus, cplus, list(selected)
 
 def cigar2blocks(pos, cigar):
     """Return alignment blocks and aend
@@ -213,18 +178,26 @@ def alignment_iterator_samtools(bam, mapq, verbose):
     if verbose:
         sys.stderr.write(' %i alignments processed.\n'%i)
     yield pblocks, strands, ppos, paend, prname
-    
-def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose):
+        
+def parse_bam(bam, mapq, c2i, entries, bufferSize, verbose, nprocs=4):
     """Parse BAM and return counts for sense/antisense of each interval"""
-    #counts = (np.zeros(entries, dtype='uint32'), np.zeros(entries, dtype='uint32'))
     counts = ([0]*entries, [0]*entries)
-    # keep info about intervals, max position and current reference
-    ivals, maxp, pref = [], 0, 0
-    for blocks, strands, pos, aend, rname in alignment_iterator_samtools(bam, mapq, verbose):
-        # update ivals
-        ivals, maxp, pref = buffer_intervals(c2i, ivals, rname, pos, aend, maxp, pref, bufferSize)
-        # add alignments
-        counts = count_overlapping_intervals(blocks, strands, ivals, counts, verbose)
+    # init workers
+    p = Pool(nprocs, initializer=init_args, initargs=(c2i, bufferSize))
+    # init iterator
+    iterator = alignment_iterator_samtools(bam, mapq, verbose) 
+    # parse results
+    for cminus, cplus, selected in p.imap_unordered(worker, iterator, chunksize=10000):
+        # store info
+        for s, e, strand, ival in selected:
+            # - transcript on reverse
+            if strand:
+                counts[0][ival] += cminus
+                counts[1][ival] += cplus
+                # + transcript on forward
+            else:
+                counts[0][ival] += cplus
+                counts[1][ival] += cminus    
     return counts
     
 def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
@@ -242,6 +215,7 @@ def bam2cov(bam, bed, out=sys.stdout, mapq=0, bufferSize=1000000, verbose=1):
     if verbose:
         sys.stderr.write(" sense / antisense alignments: %s / %s\n" % (sum(counts[0]), sum(counts[1])) )
     # report
+    #return 
     for sense, antisense, line in zip(counts[0], counts[1], open(bed)):
         out.write("%s\t%s\t%s\n"%(line[:-1], sense, antisense))
     
