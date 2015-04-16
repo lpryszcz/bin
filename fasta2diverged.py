@@ -26,7 +26,7 @@ def get_heterozygous(positions, divergence):
             if not hetero or len(hetero[-1])==2:
                 hetero.append([pp,])
             pp = p
-        elif len(hetero[-1])==1:
+        elif hetero and len(hetero[-1])==1:
             hetero[-1].append(pp)
         pp = p
     if hetero and len(hetero[-1])==1:
