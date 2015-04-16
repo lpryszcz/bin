@@ -46,21 +46,21 @@ def get_features(bed1, expcount1, bed2, expcount2, window):
                 d[1] = e
             else:
                 gdata = add_feature(d, gdata, limit)
-                d = [s,e,1,'','']
+                d = [s,e,0,'',''] #1
         #orange for hapB
         elif get_log2(s,e,c1,expcount1,window)>0:
             if d[-1] == "orange":
                 d[1] = e
             else:
                 gdata = add_feature(d, gdata, limit)
-                d = [s,e,1,'','orange']
+                d = [s,e,0,'','orange'] #1
         #grey for hapA
         else:
             if d[-1] == "grey":
                 d[1] = e
             else:
                 gdata = add_feature(d, gdata, limit)
-                d = [s,e,-1,'','grey']
+                d = [s,e,0,'','grey'] #-1
         gdata = add_feature(d, gdata, limit) 
     return gdata
 
@@ -101,7 +101,8 @@ def annotated_chromosomes(fasta, output, spname, homosnps, heterosnps, scale, \
         sys.stderr.write("%s chromosomes. The largest chromosome is %s bp\n"%(len(chr2length), max_len))
     #init diagram
     chr_diagram = BasicChromosome.Organism()
-    chr_diagram.page_size = (multi*29.7*cm, multi*21*cm) #A4 landscape
+    multisize = 5
+    chr_diagram.page_size = (multi*29.7*cm*multisize, multi*21*cm*multisize) #A4 landscape
     chr_diagram.output_format=output.split('.')[-1]
     chr_diagram.title_size=20*multi
     #add chromosomes
