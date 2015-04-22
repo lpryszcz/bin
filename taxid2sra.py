@@ -132,6 +132,8 @@ def xml2data( child,taxid2srs,verbose ):
         strain          = SCIENTIFIC_NAME.text
         #get strain tag - this may cause problems with non-ENA accessions!
         SAMPLE_ATTRIBUTES = SAMPLE.find("SAMPLE_ATTRIBUTES")
+        if SAMPLE_ATTRIBUTES is None:
+            continue
         for SAMPLE_ATTRIBUTE in SAMPLE_ATTRIBUTES.findall("SAMPLE_ATTRIBUTE"):
             #print SAMPLE_ATTRIBUTE.find("TAG").text
             if SAMPLE_ATTRIBUTE.find("TAG").text == "strain":
