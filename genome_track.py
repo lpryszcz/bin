@@ -121,13 +121,14 @@ def bed2SeqFeature(bed1, expcount1, bed2, expcount2, window):
     bed1.sort()
     bed2.sort()
     for (s,e,c1),(s2,e2,c2) in zip(bed1,bed2):
-        color = 0
-        #mark heterozygous SNP-rich with orange
+        # hapA
+        color = "darkgrey"#0
+        #mark heterozygous SNP-rich with orange # hetero
         if   get_log2(s,e,c2,expcount2,window)>0:
-            color = "orange"
-        #mark homozygous SNP-rich with darkgrey
+            color = 0 #"orange"
+        #mark homozygous SNP-rich with darkgrey # hapB
         elif get_log2(s,e,c1,expcount1,window)>0:
-            color = "darkgrey"
+            color = "orange" #"darkgrey"
             
         #store dels and dups
         if color:

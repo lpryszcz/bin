@@ -317,7 +317,7 @@ def filter_single(infile, out, minlen, maxlen, limit, minqual, qual64offset, qse
                   stripHeaders, outformat, pi):
     """Filter single reads."""
     #define parser
-    fqparser = fqtrimmer(infile, minlen, maxlen, limit, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
+    fqparser = rawtrimmer(infile, minlen, maxlen, limit, minqual, qual64offset, qseq, stripHeaders, outformat, pi)
     #process output of subprocesses
     both = filtered = 0
     for i, rec in enumerate(fqparser, pi+1):
