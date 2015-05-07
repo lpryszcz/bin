@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-desc="""Report major isoform for each gene for each condition.
+desc="""Report genes with evidence of isoform switching. 
+For each gene, number of transcripts, cumulative expression,
+major isoforms for each condition and each major isoform are reported.
+Lowly expressed genes in given condition are coded with `0` (--minFPKM < 1),
+while genes without clear major isoform are marked with `-1` (--frac 0.25). 
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 6/05/2015
