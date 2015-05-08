@@ -3,7 +3,14 @@ desc="""Report genes with evidence of isoform switching.
 For each gene, number of transcripts, cumulative expression,
 major isoforms for each condition and each major isoform are reported.
 Lowly expressed genes in given condition are coded with `0` (--minFPKM < 1),
-while genes without clear major isoform are marked with `-1` (--frac 0.25). 
+while genes without clear major isoform are marked with `-1` (--frac 0.25).
+
+CHANGELOG:
+v1.1
+- sailfish / salmon supported (.sf)
+- support ensembl transcripts fasta files i.e. cdna, ncrna
+v1.0
+- cufflinks supported (isoforms.fpkm_tracking)
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 6/05/2015
@@ -22,6 +29,23 @@ def get_conditions(line):
         conditions.append(lData[i][:-5])
     return conditions
 
+def load_gene2transcripts(transcripts):
+    """Return gene2transcripts.
+    Supports ensembl fasta files.
+    """
+    # ENSDART00000007748 ensembl:known chromosome:Zv9:21:822304:832471:-1 gene:ENSDARG00000016476
+    gene2transcripts = {}
+    for line in transcripts:
+        if line.startswith(">"):
+            lData = line[1:].split()
+            tid = lData[0]
+            gid = filter(lambda x: x.startswith("gene:"), lData)[0].split(':')[1]
+            if gid not in gene2transcripts:
+                gene2transcripts[gid] = [tid]
+            else:
+                gene2transcripts[gid].append(tid)
+    return gene2transcripts
+        
 def parse_fpkm(handle, conditions):
     """Parse fpkm file from cufflinks and yield expression info
     for all trascripts of given gene. """
@@ -50,19 +74,56 @@ def parse_fpkm(handle, conditions):
     if pgid:
         yield pgid, transcripts, fpkms
 
-def fpkm2major(handle, out, frac, minFpkm, link, verbose):
+def parse_sf(handles, conditions, transcripts):
+    """Parse multiple .sf handles and return expression info
+    for all trascripts of each gene."""
+    # get gene2transcripts
+    gene2transcripts = load_gene2transcripts(transcripts)
+    # get tid2gid
+    tid2gid = {} #tid: gid for
+    for gid, tids in gene2transcripts.iteritems():
+        for tid in tids:
+            tid2gid[tid] = gid
+    # prepare
+    gene2fpkms = {gid: [[0]*len(tids) for i in range(len(conditions))] \
+                  for gid, tids in gene2transcripts.iteritems()}
+    # parse handles
+    for i, handle in enumerate(handles):
+        for line in handle:
+            if line.startswith('#'):
+                continue
+            # unload line
+            tid, length, tpm, fpkm, reads = line.split('\t')
+            # get gid
+            gid = tid2gid[tid]
+            # store fpkm for given condition and transcript
+            gene2fpkms[gid][i][gene2transcripts[gid].index(tid)] = float(fpkm)
+    # yield data
+    for gid, fpkms in gene2fpkms.iteritems():
+        yield gid, gene2transcripts[gid], fpkms
+        
+def fpkm2major(handle, out, frac, minFpkm, link, transcripts, verbose):
     """Parse expression and report major isoform for each condition"""
-    # get conditions
-    conditions = get_conditions(handle.readline())
-    if verbose:
-        sys.stderr.write("%s conditions: %s\n"%(len(conditions), ", ".join(conditions)))
+    # cufflinks
+    if not transcripts:
+        # get conditions
+        conditions = get_conditions(handle.readline())
+        if verbose:
+            sys.stderr.write("%s conditions: %s\n"%(len(conditions), ", ".join(conditions)))
+        parser = parse_fpkm(handle, conditions)
+    else:
+        # get conditions
+        ## salmon/RZE024/quant.sf -> RZE024
+        conditions = [h.name.split("/")[-2] for h in handle]
+        # get parser
+        parser = parse_sf(handle, conditions, transcripts)
 
     # get major isoforms
     header = "#\n#gene id\tno. of transcripts\tFPKM sum\t%s\t%s\n"
     out.write(header%('\t'.join(conditions), '\t'.join(map(str, range(5)))))
     line = "%s\t%s\t%.2f\t%s\t\t%s\n"
     j = k = 0
-    for i, (gid, transcripts, fpkms) in enumerate(parse_fpkm(handle, conditions), 1):
+    for i, (gid, transcripts, fpkms) in enumerate(parser, 1):
         if len(transcripts)<2:
             continue
         k += 1
@@ -114,17 +175,19 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.0a')   
+    parser.add_argument('--version', action='version', version='1.1a')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
-    parser.add_argument("-i", "--fpkm", default=sys.stdin, type=file, 
-                        help="isoforms.fpkm_tracking file [stdin]")
+    parser.add_argument("-i", "--fpkm", default=sys.stdin, type=file, nargs="+", 
+                        help="isoforms.fpkm_tracking or .sf file(s) [stdin]")
     parser.add_argument("-o", "--output", default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
     parser.add_argument("-f", "--frac", default=0.25, type=float, 
                         help="major isoform has to be larger at least -f than the second most expressed [%(default)s]")
     parser.add_argument("-m", "--minFPKM", default=1.0, type=float, 
                         help="min FPKM to report [%(default)s]")
+    parser.add_argument("-t", "--transcripts", default="", type=file, 
+                        help="transcripts file; needed to get gene2transcripts for .sf input [%(default)s]")
     parser.add_argument("--link", default='=hyperlink("http://www.ensembl.org/Danio_rerio/Gene/Summary?db=core;g=%s", "%s")',
                         help="add hyperlink [%(default)s]")
     
@@ -132,7 +195,7 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
         
-    fpkm2major(o.fpkm, o.output, o.frac, o.minFPKM, o.link, o.verbose)
+    fpkm2major(o.fpkm, o.output, o.frac, o.minFPKM, o.link, o.transcripts, o.verbose)
  
 if __name__=='__main__': 
     t0 = datetime.now()
