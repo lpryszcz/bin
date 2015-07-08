@@ -24,13 +24,19 @@ def load_intervals(fn, verbose):
     for i, rec in enumerate(open(fn)):
         if rec.startswith('#') or not rec.strip():
             continue
+        rdata = rec.split('\t')
+        score, strand = 1, "+"    
         # GTF / GFF
         if fn.endswith(('gtf','gff')):
-            chrom, source, ftype, s, e, score, strand = rec.split('\t')[:7]
+            chrom, source, ftype, s, e, score, strand = rdata[:7]
             s, e = int(s)-1, int(e)
         # BED
         else:
-            chrom, s, e, name, score, strand = rec.split('\t')[:6]
+            # unstranded intervals
+            if len(rdata)<6:
+                chrom, s, e = rdata[:3]
+            else:
+                chrom, s, e, name, score, strand = rdata[:6]
             s, e = int(s), int(e)
         if strand=="+":
             strand = 0
