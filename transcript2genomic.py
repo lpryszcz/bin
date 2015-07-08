@@ -28,7 +28,7 @@ def load_transcripts(gtf):
   # sort
   for tid in tid2pos:
     tid2pos[tid].sort()
-    if tid2pos[tid][-1] == "-":
+    if tid2pos[tid][0][-1] == "-":
       tid2pos[tid].reverse()
   return tid2pos
   
@@ -43,7 +43,7 @@ def get_genomic_coordinate(pos, tdata, length=1):
     offset += elen
   # get + / - coordinate
   if strand == "+":
-    gs = s + pos - offset
+    gs = s + pos - offset - 1
   else:
     gs = e - pos + offset
   return chrom, gs, gs+length, strand  
