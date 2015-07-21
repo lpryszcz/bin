@@ -63,7 +63,7 @@ def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands):
     #remove insertions
     alts = _remove_indels( alts )
     #get base frequencies
-    bases, freqs = set(), []
+    bases, freqs = [], []
     for base_count, base in zip((alts.upper().count(b) for b in alphabet), alphabet):
         freq = base_count*1.0/cov
         #check freq
@@ -73,7 +73,7 @@ def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands):
         if bothStrands: 
             if not base.upper() in alts or not base.lower() in alts:
                 continue
-        bases.add(base)
+        bases.append(base)
         freqs.append(freq)
     return bases, freqs
 
@@ -123,15 +123,23 @@ def parse_mpileup(dna, rna, minDepth, minDNAfreq, minRNAfreq,
         bases, freqs = get_major_alleles(cov, alg, minRNAfreq, alphabet, bothStrands)
         if not bases or bases==baseRef:
             continue
+        # remove ref base from alternative bases
+        refBase = baseRef[0]
+        if refBase in bases:
+            idx = bases.index(refBase)
+            freqs = freqs[:idx] + freqs[idx+1:]
+            bases.remove(refBase)
         #print refCov, refAlgs, refQuals, refData
         #print cov, alg, quals, samplesData
-        if len(baseRef) != 1 and len(bases) != 1:
+        if len(baseRef) != 1 or len(bases) != 1:
             info = "[WARNING] Wrong number of bases: %s:%s %s %s\n"
             sys.stderr.write(info%(contig, pos, ",".join(baseRef), ",".join(bases)))
             continue
-            
+        # skip if the same base
+        #if not bases.difference(baseRef):
+        #    continue
         gmeanQ, meanQ = get_meanQ(refQuals), get_meanQ(quals)
-        yield (contig, pos, baseRef.pop(), bases.pop(), refCov, gmeanQ, refFreq.pop(), \
+        yield (contig, pos, refBase, bases.pop(), refCov, gmeanQ, refFreq.pop(), \
                cov, meanQ, freqs.pop())
   
 def main():
