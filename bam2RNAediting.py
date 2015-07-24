@@ -156,7 +156,7 @@ def main():
                         help="input DNA-Seq BAM file(s)")
     parser.add_argument("--minDepth", default=5,  type=int,
                         help="minimal depth of coverage [%(default)s]")
-    parser.add_argument("--minRNAfreq",  default=0.2, type=float,
+    parser.add_argument("--minRNAfreq",  default=0.01, type=float,
                         help="min frequency for RNA editing base [%(default)s]")
     parser.add_argument("--minDNAfreq",  default=0.99, type=float,
                         help="min frequency for genomic base [%(default)s]")
