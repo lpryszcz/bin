@@ -160,7 +160,7 @@ def main():
                         help="min frequency for RNA editing base [%(default)s]")
     parser.add_argument("--minDNAfreq",  default=0.99, type=float,
                         help="min frequency for genomic base [%(default)s]")
-    parser.add_argument("--mpileup_opts",   default="-C -I -q 15 -Q 20",  
+    parser.add_argument("--mpileup_opts",   default="-I -q 15 -Q 20",  
                         help="options passed to mpileup         [%(default)s]")
   
     o = parser.parse_args()
