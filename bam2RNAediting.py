@@ -130,6 +130,9 @@ def parse_mpileup(dna, rna, minDepth, minDNAfreq, minRNAfreq,
             freqs = freqs[:idx] + freqs[idx+1:]
             bases.remove(refBase)
         #print refCov, refAlgs, refQuals, refData
+
+        # rescue major alt haplotype if the other is only very low freq
+        
         #print cov, alg, quals, samplesData
         if len(baseRef) != 1 or len(bases) != 1:
             info = "[WARNING] Wrong number of bases: %s:%s %s %s\n"
@@ -162,14 +165,23 @@ def main():
                         help="min frequency for genomic base [%(default)s]")
     parser.add_argument("--mpileup_opts",   default="-I -q 15 -Q 20",  
                         help="options passed to mpileup         [%(default)s]")
+    parser.add_argument("-t", "--threads", default=1,  type=int,
+                        help="number of cores to use [%(default)s] NOT IMPLEMENTED YET!")
   
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
     
     #parse pileup
-    parser = parse_mpileup(o.dna, o.rna, o.minDepth, o.minDNAfreq, o.minRNAfreq, \
-                           o.mpileup_opts, o.verbose)
+    if o.threads<2:
+        parser = parse_mpileup(o.dna, o.rna, o.minDepth, o.minDNAfreq, o.minRNAfreq, \
+                               o.mpileup_opts, o.verbose)
+    else:
+        # get chromosomes
+        
+        # process by chromosome
+        p = Pool(o.threads)
+        parser = Pool.ima
 
     info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
     for data in parser:
