@@ -42,7 +42,7 @@ def histplot(ax, x, handle, categories, title, xlab, ylab, xlog, ylog, normed=Fa
     ax.grid(True)
  
 def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
-              vmax, vmin, collapse, normed, verbose, dlimit=1):
+              vmax, vmin, collapse, normed, legendLoc, verbose, dlimit=1):
     """
     """
     if verbose:
@@ -108,7 +108,7 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
             ax.set_ylabel(ylab)#, fontsize=30)
     #plot legend only if collapsed
     if collapse:
-        ax.legend()
+        ax.legend(loc=legendLoc)
     #save or show
     if type(out) is file and out.name=='<stdout>':
     	plt.show()
@@ -154,13 +154,16 @@ def main():
                         help="collapse into single subplot")
     parser.add_argument("--normed",        default=0, choices=(0, 1), type=int,
                         help="normalise values")
+    parser.add_argument("--legendLoc",     default=1, choices=(1, 2, 3, 4), type=int,
+                        help="legend location (1=top right, 2=top left, 3=bottom left, 4=bottom right")
+    
 
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write( "Options: %s\n" % str(o) )
 
     plot_hist(o.input, o.output, o.col, o.names, o.bins, o.title, o.xlab, o.ylab, \
-              o.xlog, o.ylog, o.max, o.min, o.collapse, o.normed, o.verbose)
+              o.xlog, o.ylog, o.max, o.min, o.collapse, o.normed, o.legendLoc, o.verbose)
               
 if __name__=='__main__': 
     t0  = datetime.now()
