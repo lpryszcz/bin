@@ -21,7 +21,7 @@ def histplot(ax, x, handle, categories, title, xlab, ylab, xlog, ylog, normed=Fa
     if xlog:
     	ax.set_xscale('log')
     if ylog:
-    	ax.set_yscale('log')
+        ax.set_yscale('log', nonposy='clip')
     # the histogram of the data
     n, bins, patches = ax.hist(x, categories, normed=normed, alpha=0.75, label=title)
 
