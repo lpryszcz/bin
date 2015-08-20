@@ -67,6 +67,7 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
         ncol += 1
     if ncol*nrow < len(cols):
         nrow += 1
+    nrow, ncol = 3, 6
     if verbose:
         sys.stderr.write(" %s columns x %s rows\n"%(ncol, nrow))
     #start figure
@@ -81,13 +82,14 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
     #add subplots
     plt.rc('axes', color_cycle=['b', 'grey', 'r', 'y', 'g']) #['c', 'm', 'y', 'k']
     for i, data in enumerate(x):
-        if collapse and i==0:
-            mpl.rcParams['axes.titlesize'] = 18
-            mpl.rcParams['axes.labelsize'] = 10
-            mpl.rcParams['xtick.labelsize'] = 9
-            mpl.rcParams['ytick.labelsize'] = 9
-            ax = fig.add_subplot(111)
-        elif i==0:
+        if collapse:
+            if i==0:
+                mpl.rcParams['axes.titlesize'] = 18
+                mpl.rcParams['axes.labelsize'] = 10
+                mpl.rcParams['xtick.labelsize'] = 9
+                mpl.rcParams['ytick.labelsize'] = 9
+                ax = fig.add_subplot(111)
+        else:
             ax = fig.add_subplot(nrow, ncol, i+1)
         #get name
         name = ""
