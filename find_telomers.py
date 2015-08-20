@@ -11,8 +11,7 @@ for fn in */q10_1.fastq; do
 done
 """
 
-import sys
-import re
+import gzip, re, sys
 from copy     import copy
 from Bio.Seq  import Seq
 from datetime import datetime
@@ -107,7 +106,10 @@ def main():
   k=5
   seqs={}
   for fn in sys.argv[1:]:
-    f=open(fn)
+    if fn.endswith('.gz'):
+      f=gzip.open(fn)
+    else:
+      f=open(fn)
     while 1:
       #read sequence id (contain occurencies info), sequence and it's reverse complement
       sid  = f.readline()[1:-1] #>5-1870
