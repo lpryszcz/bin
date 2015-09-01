@@ -18,7 +18,7 @@ import numpy as np
 
 def init_RNALfold(bin="", verbose=1):
     #open subprocess
-    args = ['RNALfold', ]
+    args = ['%sRNALfold'%bin, ]
     if verbose:
         sys.stderr.write("Running %s ...\n" % " ".join(args))
     proc = subprocess.Popen(args, shell=1, stdout=subprocess.PIPE, \
@@ -123,11 +123,11 @@ def seq2elementary_structure(seq, proc):
         signals.append(sig)
     return "".join(signals)
         
-def bed2rnafold(out, bed, fasta, window, verbose):
+def bed2rnafold(out, bed, fasta, window, verbose, ViennaPath):
     """ """
     out.write("###\n# %s\n"%bed.name)
     # init RNALfold
-    proc = init_RNALfold()
+    proc = init_RNALfold(bin=ViennaPath)
 
     # iterate bed entries and get sequences
     Es = Ls = Ss = 0
@@ -172,7 +172,9 @@ def main():
                         help="output stream [stdout]")
     parser.add_argument("-w", "--window", default=100,  type=int,
                         help="window size [%(default)s]")
-  
+    parser.add_argument("--ViennaPath", default="", #~/src/ViennaRNA/Progs
+                        help="path to Vienna Package [%(default)s]")
+    
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
@@ -183,7 +185,7 @@ def main():
     # iter bed files
     sys.stderr.write("#name\tediting\tloop\tstem\n")
     for bed in o.bed:
-        bed2rnafold(o.out, bed, fasta, o.window, o.verbose)
+        bed2rnafold(o.out, bed, fasta, o.window, o.verbose, o.ViennaPath)
     
 if __name__=='__main__': 
     t0 = datetime.now()
