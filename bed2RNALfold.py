@@ -131,7 +131,7 @@ def bed2rnafold(out, bed, fasta, window, verbose, ViennaPath):
 
     # iterate bed entries and get sequences
     Es = Ls = Ss = 0
-    for seq, beds, chrom, start, end in bed2seq(bed, fasta, window/2):
+    for seq, beds, chrom, start, end in bed2seq(bed, fasta, window):
         #
         structure = seq2elementary_structure(seq, proc)
         # mark edited sites
@@ -170,7 +170,7 @@ def main():
                         help="reference genome fasta")
     parser.add_argument("-o", "--out", default=sys.stdout, type=argparse.FileType("w"), 
                         help="output stream [stdout]")
-    parser.add_argument("-w", "--window", default=100,  type=int,
+    parser.add_argument("-w", "--window", default=25,  type=int,
                         help="window size [%(default)s]")
     parser.add_argument("--ViennaPath", default="", #~/src/ViennaRNA/Progs
                         help="path to Vienna Package [%(default)s]")
