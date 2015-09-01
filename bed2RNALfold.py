@@ -42,8 +42,8 @@ def bed2seq(bed, fasta, window):
                 # get seq
                 _chrom = beds[0][0]
                 _s = beds[0][1] - window
-                if s<0:
-                    s=0
+                if _s<0:
+                    _s=0
                 _e = beds[-1][2] + window
                 seq = fasta.fetch(_chrom, _s, _e)
                 # yield
@@ -58,8 +58,8 @@ def bed2seq(bed, fasta, window):
         # get seq
         _chrom = beds[0][0]
         _s = beds[0][1] - window
-        if s<0:
-            s=0
+        if _s<0:
+            _s=0
         _e = beds[-1][2] + window
         seq = fasta.fetch(_chrom, _s, _e)
         # yield
