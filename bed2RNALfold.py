@@ -16,7 +16,7 @@ import numpy as np
 # https://github.com/pkerpedjiev/forgi or sudo easy_install -U forgi
 #import forgi.graph.bulge_graph as cgb
 
-def init_RNALfold(bin="", verbose=1):
+def init_RNALfold(bin="", verbose=0):
     #open subprocess
     args = ['%sRNALfold'%bin, ]
     if verbose:
