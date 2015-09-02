@@ -33,7 +33,12 @@ def bed2seq(bed, fasta, window):
     pchrom, pe = "", 0
     beds = []
     for l in bed:
-        chrom, s, e, name = l[:-1].split('\t')[:4]
+        lData = l[:-1].split('\t')
+        if len(lData)>3:
+            chrom, s, e, name = lData[:4]
+        else:
+            chrom, s, e = lData[:3]
+            name = ""
         s, e = int(s), int(e)
         if chrom != pchrom or s>pe+window:
             # report
@@ -148,7 +153,7 @@ def bed2rnafold(out, bed, fasta, window, verbose, ViennaPath):
         # report
         region = ">%s:%s-%s"%(chrom, start, end)
         header = "%s\t%s\t%s\t%s" % (region, len(beds), ls, ss)
-        out.write("%s\n%s\n%s\n%s\n" % (region, seq, structure, editing))
+        out.write("%s\n%s\n%s\n%s\n" % (header, seq, structure, editing))
         # stats
         Es += len(beds)
         Ls += ls
