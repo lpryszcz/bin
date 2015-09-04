@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 desc="""Take list of genes, find overlaps and produce nice Venn.
 Dependencies
-numpy
-pyplot
-https://github.com/konstantint/matplotlib-venn
+- numpy
+- pyplot
+- matplotlib-venn #https://github.com/konstantint/matplotlib-venn
 """
 epilog="""Author:
 l.p.pryszcz@gmail.com
@@ -120,7 +120,7 @@ def venn(files, output, columns, splitname, title, dpi, format, verbose):
     """
     """
     #load data
-    samples,variants = load_columns(files, output, columns, splitname, verbose)
+    samples, variants = load_columns(files, output, columns, splitname, verbose)
 
     #get overlaps
     venn = variants2venn(samples, variants, output)

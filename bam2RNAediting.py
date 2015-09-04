@@ -2,6 +2,12 @@
 desc="""Identify RNA editing sites. 
  
 CHANGELOG:
+v1.11
+- use fasta file as reference
+
+TBD:
+- rescue major alt haplotype if the other is only very low freq
+- multithreading support
 """
 epilog="""Author:
 l.p.pryszcz@gmail.com
@@ -91,11 +97,14 @@ def get_meanQ(quals, offset=33):
     """Return mean quality"""
     return np.mean([ord(q)-offset for q in quals])
     
-def parse_mpileup(dna, rna, minDepth, minDNAfreq, minRNAfreq,
+def parse_mpileup(dna, rna, fasta, minDepth, minDNAfreq, minRNAfreq,
                   mpileup_opts, verbose, bothStrands=0, alphabet='ACGT'):
     """Run mpileup subprocess and parse output."""
     #open subprocess
-    args = ['samtools', 'mpileup'] + mpileup_opts.split() + dna + rna 
+    args = ['samtools', 'mpileup']
+    if not dna:
+        args += ["-f", fasta]
+    args += mpileup_opts.split() + dna + rna 
     if verbose:
         sys.stderr.write("Running samtools mpileup...\n %s\n" % " ".join(args))
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, bufsize=65536)
@@ -104,17 +113,27 @@ def parse_mpileup(dna, rna, minDepth, minDNAfreq, minRNAfreq,
         lineTuple = line.split('\t')
         #get coordinate
         contig, pos, baseRef = lineTuple[:3]
+        # DNA bam files
+        if dna:
+            refData = lineTuple[3:3+3*len(dna)]
+            samplesData = lineTuple[3+3*len(dna):]
 
-        refData = lineTuple[3:3+3*len(dna)]
-        samplesData = lineTuple[3+3*len(dna):]
-        
-        refCov, refAlgs, refQuals = concatenate_mpileup(refData)
-        if refCov < minDepth:
-            continue
-        baseRef, refFreq = get_major_alleles(refCov, refAlgs, minDNAfreq, alphabet, bothStrands)
-        if not baseRef:
-            continue
-                                                 
+            refCov, refAlgs, refQuals = concatenate_mpileup(refData)
+            if refCov < minDepth:
+                continue
+            baseRef, refFreq = get_major_alleles(refCov, refAlgs, minDNAfreq, alphabet, bothStrands)
+            if not baseRef:
+                continue
+            # mean qual
+            gmeanQ = get_meanQ(refQuals)
+        # use reference fasta
+        else:
+            baseRef, refFreq, refCov, gmeanQ = baseRef, set([1.0]), 100, 40.0
+            baseRef = baseRef.upper()
+            if baseRef not in "ACGT":
+                continue
+            samplesData = lineTuple[3:]
+            
         cov, alg, quals = concatenate_mpileup(samplesData) #in zip(outFiles, samplesData[0::3], samplesData[1::3], samplesData[2::3]):
         cov = int(cov)
         if cov<minDepth:
@@ -141,10 +160,21 @@ def parse_mpileup(dna, rna, minDepth, minDNAfreq, minRNAfreq,
         # skip if the same base
         #if not bases.difference(baseRef):
         #    continue
-        gmeanQ, meanQ = get_meanQ(refQuals), get_meanQ(quals)
+        meanQ = get_meanQ(quals)
         yield (contig, pos, refBase, bases.pop(), refCov, gmeanQ, refFreq.pop(), \
                cov, meanQ, freqs.pop())
-  
+
+def init_args(*args):
+    global c2i, bufferSize, ivals, maxp, pref
+    c2i, bufferSize = args
+    # keep info about intervals, max position and current reference
+    ivals, maxp, pref = [], 0, 0
+    
+def worker(args):
+    """Count overlapping intervals with given read alignment.
+    The algorithm support spliced alignments. """
+    global c2i, bufferSize, ivals, maxp, pref
+        
 def main():
 
     usage  = "%(prog)s [options] -b ref.bam *.bam" 
@@ -152,11 +182,14 @@ def main():
                                       formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help="verbose")    
-    parser.add_argument('--version', action='version', version='1.1')
+    parser.add_argument('--version', action='version', version='1.11')
     parser.add_argument("-r", "--rna", nargs="+", 
                         help="input RNA-Seq BAM file(s)")
-    parser.add_argument("-d", "--dna", nargs="+", 
+    refpar = parser.add_mutually_exclusive_group(required=True)
+    refpar.add_argument("-d", "--dna", nargs="*", default = [], 
                         help="input DNA-Seq BAM file(s)")
+    refpar.add_argument("-f", "--fasta", default = None, 
+                        help="reference FASTA file")
     parser.add_argument("--minDepth", default=5,  type=int,
                         help="minimal depth of coverage [%(default)s]")
     parser.add_argument("--minRNAfreq",  default=0.01, type=float,
@@ -172,16 +205,16 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
     
-    #parse pileup
+    #parse pileup in single-thread mode 
     if o.threads<2:
-        parser = parse_mpileup(o.dna, o.rna, o.minDepth, o.minDNAfreq, o.minRNAfreq, \
+        parser = parse_mpileup(o.dna, o.rna, o.fasta, o.minDepth, o.minDNAfreq, o.minRNAfreq, \
                                o.mpileup_opts, o.verbose)
     else:
         # get chromosomes
         
         # process by chromosome
-        p = Pool(o.threads)
-        parser = Pool.ima
+        p = Pool(o.threads, initializer=init_args, initargs=(c2i, bufferSize))
+        parser = Pool.imap(worker, iterator, chunksize=10000)
 
     info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
     for data in parser:
