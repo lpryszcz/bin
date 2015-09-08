@@ -62,7 +62,7 @@ def main():
     parser.add_argument('--version', action='version', version='1.0b')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
-    parser.add_argument("-b", "--bed", nargs="+", default=[sys.stdin],
+    parser.add_argument("-b", "--bed", nargs="+", default=[sys.stdin], type=file, 
                         help="BED file        [stdin]")   
     #parser.add_option("-c", dest="cov_fract", default=0.75, type=float,
     #                  help="frac of mean coverage  [%default]")
