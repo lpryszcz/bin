@@ -24,7 +24,7 @@ def regex2reverse_complement(regex):
         nregex.append(nr)
     return nregex
 
-def rec2matches(out, r, pat, handle, strand="+", score=0):
+def rec2matches(out, r, pat, handle, strand="+", score=0, i=0):
     """Match sequences"""
     for i, m in enumerate(pat.finditer(str(r.seq)), 1):
         s, e = m.span()
@@ -38,20 +38,25 @@ def regex2bed(handle, out, regex, bothStrands, ignoreCase, verbose):
         flags = re.IGNORECASE
     # get positive and reverse complement patterns
     pRegex = '|'.join(regex)
-    mRegex = '|'.join(regex2reverse_complement(regex)); print 
+    mRegex = '|'.join(regex2reverse_complement(regex))
     pPat = re.compile(pRegex, flags=flags)
     mPat = re.compile(mRegex, flags=flags)
     # report matches
     if verbose:
         sys.stderr.write("Scanning chromosomes for %s %s ...\n#chromosome\tlength\t+ matches\t- matches\n"%(pRegex, mRegex))
-    pCount = mCount = 0
+    i = pCount = mCount = 0
+    pCounts, mCounts = [], []
     for i, r in enumerate(SeqIO.parse(handle, 'fasta'), 1):
         #match plus / minus patterns separately
         pCount = rec2matches(out, r, pPat, handle, "+")
         if bothStrands:
             mCount = rec2matches(out, r, mPat, handle, "-")
+        pCounts.append(pCount)
+        mCounts.append(mCount)
         if verbose:
             sys.stderr.write("%s\t%s\t%s\t%s\n"%(r.id, len(r), pCount, mCount))
+
+    sys.stderr.write("# %s + and %s - matches in %s chromosomes\n"%(sum(pCounts), sum(mCounts), i))
 
 def main():
     import argparse
