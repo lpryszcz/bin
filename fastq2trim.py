@@ -14,7 +14,7 @@ def fastq2trim(handle, out, start, end, verbose):
     #out.write("\n".join(r[start:end].format("fastq")
     #                    for r in SeqIO.parse(handle, "fastq")))
     for r in SeqIO.parse(handle, "fastq"):
-        out.write(r[start:end].format("fastq")+"\n")
+        out.write(r[start:end].format("fastq"))
 
 def main():
     import argparse
