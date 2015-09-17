@@ -11,8 +11,6 @@ from Bio import SeqIO
 
 def fastq2trim(handle, out, start, end, verbose):
     """Parse fastQ and report trimmed sequences"""
-    #out.write("\n".join(r[start:end].format("fastq")
-    #                    for r in SeqIO.parse(handle, "fastq")))
     for r in SeqIO.parse(handle, "fastq"):
         out.write(r[start:end].format("fastq"))
 
