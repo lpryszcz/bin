@@ -81,7 +81,7 @@ def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands):
 def mpileup2calls(ref, data, minDepth, minFreq, bothStrands, null="-"):
     """Return base calls from mpileup"""
     calls = []
-    for cov, algs, quals in zip(data[0::3], data[1::3], data[2::3]):
+    for cov, alg, qual in zip(data[0::3], data[1::3], data[2::3]):
         cov = int(cov)
         if cov<minDepth:
             calls.append(null)
