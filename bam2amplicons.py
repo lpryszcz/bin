@@ -82,11 +82,13 @@ def mpileup2calls(ref, data, minDepth, minFreq, bothStrands, null="-"):
     """Return base calls from mpileup"""
     calls = []
     for cov, algs, quals in zip(data[0::3], data[1::3], data[2::3]):
+        print cov, algs, quals
         cov = int(cov)
         if cov<minDepth:
             calls.append(null)
             continue
         # check for SNP
+        print bases, freqs
         bases, freqs = get_major_alleles(cov, alg, minFreq, alphabet, bothStrands)
         if not bases:
             calls.append(null)
@@ -117,8 +119,8 @@ def parse_mpileup(bams, fasta, minDepth, minFreq, mpileup_opts, verbose, \
 
         calls = mpileup2calls(baseRef, samplesData, minDepth, minFreq, bothStrands)
         uniqCalls = set(filter(lambda x: x!="-", calls))
-        if len(uniqCalls)>1 or refBase not in uniqCalls:
-            yield [contig, pos, refBase] + calls
+        if len(uniqCalls)>1 or baseRef not in uniqCalls:
+            yield [contig, pos, baseRef] + calls
 
 def main():
 
