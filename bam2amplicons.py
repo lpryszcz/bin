@@ -105,6 +105,7 @@ def parse_mpileup(bams, fasta, minDepth, minFreq, mpileup_opts, verbose, \
     if verbose:
         sys.stderr.write("Running samtools mpileup...\n %s\n" % " ".join(args))
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, bufsize=65536)
+    genotyped = [0]*len(bams)
     for line in proc.stdout:
         line      = line.strip()
         lineTuple = line.split('\t')
@@ -116,13 +117,21 @@ def parse_mpileup(bams, fasta, minDepth, minFreq, mpileup_opts, verbose, \
         if baseRef not in "ACGT":
             continue
         samplesData = lineTuple[3:]
-
+        # get calls
         calls = mpileup2calls(baseRef, samplesData, minDepth, minFreq, \
                               bothStrands, alphabet)
         uniqCalls = set(filter(lambda x: x!="-", calls))
         if len(uniqCalls)>1 or uniqCalls and baseRef not in uniqCalls:
             #print len(calls), calls
             yield tuple([contig, pos, baseRef] + calls)
+        # stats
+        for i, c in enumerate(calls):
+            if c!="-":
+                genotyped[c] += 1
+    # report genotyped
+    sys.stderr.write("#sample\tgenotyped positions\n")
+    for b, g in zip(bams, genotyped):
+        sys.stderr.write("%s\t%s\n"%(b, g))
 
 def main():
 
@@ -153,7 +162,7 @@ def main():
     parser = parse_mpileup(o.input, o.fasta, o.minDepth, o.minFreq, o.mpileup_opts, o.verbose)
 
     o.output.write("#chrom\tpos\tref\t%s\n"%"\t".join(f for f in o.input))
-    info = "%s\t%s\t%s\t"+"\t%s"*len(o.input)+"\n"
+    info = "%s\t%s\t%s"+"\t%s"*len(o.input)+"\n"
     for data in parser:
         o.output.write(info%data)
     
