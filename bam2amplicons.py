@@ -127,7 +127,7 @@ def parse_mpileup(bams, fasta, minDepth, minFreq, mpileup_opts, verbose, \
         # stats
         for i, c in enumerate(calls):
             if c!="-":
-                genotyped[c] += 1
+                genotyped[i] += 1
     # report genotyped
     sys.stderr.write("#sample\tgenotyped positions\n")
     for b, g in zip(bams, genotyped):
