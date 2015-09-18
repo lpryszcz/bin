@@ -141,7 +141,7 @@ def main():
     parser.add_argument("--minDepth", default=5,  type=int,
                         help="minimal depth of coverage [%(default)s]")
     parser.add_argument("--minFreq",  default=0.2, type=float,
-                        help="min frequency for RNA editing base [%(default)s]")
+                        help="min frequency for alternative base [%(default)s]")
     parser.add_argument("--mpileup_opts",   default="-I -q 15 -Q 20",  
                         help="options passed to mpileup         [%(default)s]")
   
