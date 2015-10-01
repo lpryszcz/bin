@@ -25,13 +25,19 @@ def load_intervals(fn, verbose):
     for i, rec in enumerate(open(fn)):
         if rec.startswith('#') or not rec.strip():
             continue
+        rdata = rec.split('\t')
+        score, strand = 1, "+"    
         # GTF / GFF
         if fn.endswith(('gtf','gff')):
-            chrom, source, ftype, s, e, score, strand = rec.split('\t')[:7]
+            chrom, source, ftype, s, e, score, strand = rdata[:7]
             s, e = int(s)-1, int(e)
         # BED
         else:
-            chrom, s, e, name, score, strand = rec.split('\t')[:6]
+            # unstranded intervals
+            if len(rdata)<6:
+                chrom, s, e = rdata[:3]
+            else:
+                chrom, s, e, name, score, strand = rdata[:6]
             s, e = int(s), int(e)
         if strand=="+":
             strand = 0
@@ -97,11 +103,12 @@ def worker(args):
         return 0, 0, []
     ## get intervals overlapping with given alignment blocks
     # start overlapping with interval
-    d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
+    d  = [np.all([ (s+e)/2.>=ivals['start'], (s+e)/2.<=ivals['end'] ], axis=0) for s, e in blocks]
+    #d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
     # end overlapping with interval
-    d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
     # interval inside read
-    d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
     cminus = strands.count(True)

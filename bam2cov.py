@@ -91,11 +91,11 @@ def count_overlapping_intervals(blocks, strands, ivals, counts, verbose=0):
         return counts
     ## get intervals overlapping with given alignment blocks
     # start overlapping with interval
-    d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
+    d  = [np.all([ (s+e)/2.>=ivals['start'], (s+e)/2.<=ivals['end'] ], axis=0) for s, e in blocks]
     # end overlapping with interval
-    d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
     # interval inside read
-    d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
     # check if any matches, as sometimes empty cause problems
