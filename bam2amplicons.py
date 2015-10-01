@@ -46,17 +46,22 @@ def get_alt_allele(base_ref, cov, alg, minFreq, alphabet, reference, bothStrands
     alts = _remove_indels(alts)
     #get base counts
     baseCounts = [(alts.upper().count(base), base) for base in alphabet]
+    # count also bases like reference
+    if base_ref!="N":
+        basei = alphabet.index(base_ref.upper().index())
+        baseCounts[basei] += alts.count('.')
+        baseCounts[basei] += alts.count(',')
     #get base frequencies
     for base_count, base in sorted(baseCounts):
         freq = base_count*1.0/len(alts)#cov
-        if base!=base_ref and freq >= minFreq:
+        if freq >= minFreq: #base!=base_ref
             #check if alt base in both strands
             if bothStrands: 
                 if not base.upper() in alts or not base.lower() in alts:
                     return
             return (base, freq) # base!=base_ref and
 
-def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands):
+def get_major_alleles(base_ref, cov, alg, minFreq, alphabet, bothStrands):
     """Return major alleles that passed filtering and their frequencies."""
     #remove deletions
     alts = alg
@@ -65,7 +70,9 @@ def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands):
     alts = _remove_indels( alts )
     #get base frequencies
     bases, freqs = [], []
-    for base_count, base in zip((alts.upper().count(b) for b in alphabet), alphabet):
+    # patch for ref
+    alts = alts.replace(".", base_ref).replace(",", base_ref).upper()
+    for base_count, base in zip((alts.count(b) for b in alphabet), alphabet):
         freq = base_count*1.0/cov
         #check freq
         if freq < minFreq:
@@ -89,7 +96,7 @@ def mpileup2calls(ref, data, minDepth, minFreq, bothStrands, \
             continue
         # check for SNP
         #print bases, freqs
-        bases, freqs = get_major_alleles(cov, alg, minFreq, alphabet, bothStrands)
+        bases, freqs = get_major_alleles(ref, cov, alg, minFreq, alphabet, bothStrands)
         if not bases:
             calls.append(null)
             continue
