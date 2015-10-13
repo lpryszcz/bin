@@ -58,8 +58,8 @@ def load_intervals(fn, verbose):
     return chr2intervals, i+1
     
 def _filter(a, mapq=0):
-    """Return True if poor quality alignment"""
-    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail:
+    """Return True if poor quality alignment or second in pair."""
+    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail or alg.is_read2:
         return True
             
 def buffer_intervals(c2i, ivals, pos, aend, rname, maxp, pref, bufferSize):

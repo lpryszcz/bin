@@ -2,6 +2,14 @@
 desc="""Identify enhanvers (eRNAs) from RNA-Seq.
 Enhancers are defined as genomic regions having similar level of expression. 
 
+It's rather slow right now, 17h per fish genome (1.5G). Instead consider bam2cov_pool.py approach:
+
+# get 100bp windows of non-coding part of the genome
+w=500; awk -F'\t' 'BEGIN {OFS = FS; utr=10000} {s=$2-utr; e=$3+utr; if(s<0){s=0}; print $1,s,e}' DANRE.gene.bed | bedtools merge | bedtools subtract -a <(awk -F'\t' 'BEGIN {OFS = FS} {print $1,0,$2}' DANRE.fa.fai) -b - | bedtools makewindows -b - -w $w | awk '$3-$2=='$w > DANRE.noncoding.w$w.bed
+# 
+bam2cov_pool.py -v -i Nkx-GFPplus-24h.bam -b ../../ref/DANRE.noncoding.w500.bed -o Nkx-GFPplus-24h.bam.noncoding_cov.w500.txt
+
+
 CHANGELOG:
 v1.1
 """
