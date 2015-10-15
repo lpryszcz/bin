@@ -146,7 +146,8 @@ def is_reverse(flag):
 def alignment_iterator_samtools(bam, mapq, verbose):
     """Iterate aligments from BAM using samtools view subprocess"""
     # start samtools view subprocess
-    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3840", bam]
+    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3968", bam]
+    # 3968 = skip: read2, secondary, QC fail, duplicates and supplementary (http://broadinstitute.github.io/picard/explain-flags.html)
     proc0 = subprocess.Popen(cmd0, bufsize=-1, stdout=subprocess.PIPE)
     out0  = proc0.stdout
     # start cut subprocess
