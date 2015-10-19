@@ -7,6 +7,10 @@ bam2cov_pool.py is nearly 2x faster on large BAM files than bam2cov.py.
 
 TDB:
 - define minimum overlap
+
+CHANGELOG:
+v1.1
+- skip counting read2 for paired-end libs (like samtools view -F 128)
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 30/03/2015
