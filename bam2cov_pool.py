@@ -7,6 +7,10 @@ bam2cov_pool.py is nearly 2x faster on large BAM files than bam2cov.py.
 
 TDB:
 - define minimum overlap
+
+CHANGELOG:
+v1.1
+- skip counting read2 for paired-end libs (like samtools view -F 128)
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 30/03/2015
@@ -58,8 +62,8 @@ def load_intervals(fn, verbose):
     return chr2intervals, i+1
     
 def _filter(a, mapq=0):
-    """Return True if poor quality alignment"""
-    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail:
+    """Return True if poor quality alignment or second in pair."""
+    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail or alg.is_read2:
         return True
             
 def buffer_intervals(c2i, ivals, pos, aend, rname, maxp, pref, bufferSize):
@@ -146,7 +150,8 @@ def is_reverse(flag):
 def alignment_iterator_samtools(bam, mapq, verbose):
     """Iterate aligments from BAM using samtools view subprocess"""
     # start samtools view subprocess
-    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3840", bam]
+    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3968", bam]
+    # 3968 = skip: read2, secondary, QC fail, duplicates and supplementary (http://broadinstitute.github.io/picard/explain-flags.html)
     proc0 = subprocess.Popen(cmd0, bufsize=-1, stdout=subprocess.PIPE)
     out0  = proc0.stdout
     # start cut subprocess
