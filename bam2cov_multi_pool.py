@@ -51,8 +51,8 @@ def load_intervals(fn, verbose):
     return chr2intervals, i+1
     
 def _filter(a, mapq=0):
-    """Return True if poor quality alignment"""
-    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail:
+    """Return True if poor quality alignment or second in pair."""
+    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail or alg.is_read2:
         return True
             
 def buffer_intervals(c2i, ivals, pos, aend, rname, maxp, pref, bufferSize):
@@ -96,11 +96,12 @@ def worker(args):
         return 0, 0, []
     ## get intervals overlapping with given alignment blocks
     # start overlapping with interval
-    d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
+    d  = [np.all([ (s+e)/2.>=ivals['start'], (s+e)/2.<=ivals['end'] ], axis=0) for s, e in blocks]
+    #d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
     # end overlapping with interval
-    d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
     # interval inside read
-    d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
     cminus, cplus = strands.count(True), strands.count(False)    

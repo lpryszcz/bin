@@ -7,6 +7,10 @@ bam2cov_pool.py is nearly 2x faster on large BAM files than bam2cov.py.
 
 TDB:
 - define minimum overlap
+
+CHANGELOG:
+v1.1
+- skip counting read2 for paired-end libs (like samtools view -F 128)
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 30/03/2015
@@ -25,13 +29,19 @@ def load_intervals(fn, verbose):
     for i, rec in enumerate(open(fn)):
         if rec.startswith('#') or not rec.strip():
             continue
+        rdata = rec.split('\t')
+        score, strand = 1, "+"    
         # GTF / GFF
         if fn.endswith(('gtf','gff')):
-            chrom, source, ftype, s, e, score, strand = rec.split('\t')[:7]
+            chrom, source, ftype, s, e, score, strand = rdata[:7]
             s, e = int(s)-1, int(e)
         # BED
         else:
-            chrom, s, e, name, score, strand = rec.split('\t')[:6]
+            # unstranded intervals
+            if len(rdata)<6:
+                chrom, s, e = rdata[:3]
+            else:
+                chrom, s, e, name, score, strand = rdata[:6]
             s, e = int(s), int(e)
         if strand=="+":
             strand = 0
@@ -52,8 +62,8 @@ def load_intervals(fn, verbose):
     return chr2intervals, i+1
     
 def _filter(a, mapq=0):
-    """Return True if poor quality alignment"""
-    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail:
+    """Return True if poor quality alignment or second in pair."""
+    if a.mapq<mapq or a.is_secondary or a.is_duplicate or a.is_qcfail or alg.is_read2:
         return True
             
 def buffer_intervals(c2i, ivals, pos, aend, rname, maxp, pref, bufferSize):
@@ -97,11 +107,12 @@ def worker(args):
         return 0, 0, []
     ## get intervals overlapping with given alignment blocks
     # start overlapping with interval
-    d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
+    d  = [np.all([ (s+e)/2.>=ivals['start'], (s+e)/2.<=ivals['end'] ], axis=0) for s, e in blocks]
+    #d  = [np.all([ s>=ivals['start'], s<=ivals['end'] ], axis=0) for s, e in blocks]
     # end overlapping with interval
-    d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ e>=ivals['start'], e<=ivals['end'] ], axis=0) for s, e in blocks]
     # interval inside read
-    d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
+    #d += [np.all([ s< ivals['start'], e> ivals['end'] ], axis=0) for s, e in blocks]
     # select intervals fulfilling any of above
     selected = ivals[np.any(d, axis=0)]
     cminus = strands.count(True)
@@ -139,7 +150,8 @@ def is_reverse(flag):
 def alignment_iterator_samtools(bam, mapq, verbose):
     """Iterate aligments from BAM using samtools view subprocess"""
     # start samtools view subprocess
-    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3840", bam]
+    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3968", bam]
+    # 3968 = skip: read2, secondary, QC fail, duplicates and supplementary (http://broadinstitute.github.io/picard/explain-flags.html)
     proc0 = subprocess.Popen(cmd0, bufsize=-1, stdout=subprocess.PIPE)
     out0  = proc0.stdout
     # start cut subprocess
