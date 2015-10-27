@@ -106,8 +106,8 @@ def parse_mpileup( fpath,out_base,minDepth,minFreq,indels,alphabet='ACGT' ):
   contigs=[]
   totCov={}; totLen={}; pContig=pPos=0
   for line in handle: 
-    line=line.strip()
-    contig,pos,base_ref,cov,alg,quals=line.split('\t')#; contig,pos,base,cov,alg,quals
+    #line=line.strip()
+    contig,pos,base_ref,cov,alg,quals=line[:-1].split('\t')#; contig,pos,base,cov,alg,quals
     pos,cov=int(pos),int(cov)
     #check whether same or next contig
     if pContig!=contig:

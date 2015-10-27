@@ -17,7 +17,7 @@ def compare_csv( fnames,exclude,include,fraction,columns,delimiter,minCommon,spl
     exclude = set( exclude )
     include = set( include )
     #define columns
-    if columns.isdigit(): #select column range if digit
+    if type(columns) is str or type(columns) is int: #select column range if digit
         columns = int( columns )
     else:                 #otherwise select given number of columns
         columns = [ int(x) for x in columns.split(',') ]
@@ -91,7 +91,7 @@ def main():
                       help="include")
     parser.add_option("-f", dest="fraction", default=1.0, type=float,
                       help="exclude/include fraction [%default]")
-    parser.add_option("-c", dest="columns",   default=1, type=str, 
+    parser.add_option("-c", dest="columns",   default=1, type=int, 
                       help="""if int: this number of first column will be compared;
  or comma separated column numbers (0-based) [%default]""")
     parser.add_option("-d", dest="delimiter", default="\t", 
