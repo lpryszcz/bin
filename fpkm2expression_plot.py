@@ -49,13 +49,18 @@ def parse_sf(handles, conditions, transcripts, genes=[]):
             if line.startswith('#'):
                 continue
             # unload line
-            tid, length, tpm, fpkm, reads = line.split('\t')
+            lData = line[:-1].split('\t')
+            if len(lData)==5:
+                tid, length, tpm, fpkm, reads = lData
+            # salmon v4.1+ https://github.com/COMBINE-lab/salmon/releases
+            else:
+                tid, length, tpm, reads = lData
             # get gid
             gid = tid2gid[tid]
             if genes and gid not in genes:
                 continue            
             # store fpkm for given condition and transcript
-            gene2fpkms[gid][i][gene2transcripts[gid].index(tid)] = float(fpkm)
+            gene2fpkms[gid][i][gene2transcripts[gid].index(tid)] = float(tpm)
     # yield data
     for gid, fpkms in gene2fpkms.iteritems():
         if genes and gid not in genes:
@@ -96,7 +101,7 @@ def fpkm2expression_plot(genes, handle, out, transcripts, FPKMfrac, verbose):
             ax.bar(ind, _fpkms, width, bottom=bottom, label=transcripts[j], color=colors[ji])
             plt.xticks(ind+width/2., conditions, rotation=90, fontsize=9)
             #plt.xlabel("bound             unbound             total")
-            ax.set_ylabel("FPKM")
+            ax.set_ylabel("TPM")
             # update handles
             bottom += _fpkms
             ji += 1

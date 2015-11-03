@@ -1,9 +1,13 @@
 #!/usr/bin/env python
-# Round expression values
+# Round and normalise expression values
 
-# USAGE: cat txt | ./tab2rounded.py > rounded.txt
+# USAGE: cat txt | tab2rounded.py [1.0] > rounded.txt
 
 import os, sys
+
+norm = 1.0
+if len(sys.argv)>1:
+    norm = float(sys.argv[1])
 
 ids = set()
 for i, l in enumerate(sys.stdin):
@@ -18,5 +22,5 @@ for i, l in enumerate(sys.stdin):
         else:
             gid = gid+".1"
     ids.add(gid)
-    ndata = [gid,] + [str(int(round(float(x)))) for x in ldata[1:]]
+    ndata = [gid,] + [str(int(round(float(x)*norm))) for x in ldata[1:]]
     sys.stdout.write("\t".join(ndata)+"\n")    
