@@ -118,10 +118,10 @@ def fpkm2major(handle, out, frac, minTPM, link, transcripts, verbose):
     # cufflinks
     if not transcripts:
         # get conditions
-        conditions = get_conditions(handle.readline())
+        conditions = get_conditions(handle[0].readline())
         if verbose:
             sys.stderr.write("%s conditions: %s\n"%(len(conditions), ", ".join(conditions)))
-        parser = parse_fpkm(handle, conditions)
+        parser = parse_fpkm(handle[0], conditions)
     else:
         # get conditions
         ## salmon/RZE024/quant.sf -> RZE024
@@ -189,7 +189,7 @@ def main():
     parser.add_argument('--version', action='version', version='1.2a')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
-    parser.add_argument("-i", "--input", default=sys.stdin, type=file, nargs="+", 
+    parser.add_argument("-i", "--input", default=[sys.stdin], type=file, nargs="+", 
                         help="isoforms.fpkm_tracking or .sf file(s) from salmon [stdin]")
     parser.add_argument("-o", "--output", default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
