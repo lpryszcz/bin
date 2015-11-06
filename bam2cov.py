@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 desc="""Report coverage from BAM file. 
 Support spliced alignments and mapping quality filtering.
-By default ignores secondary alignments, duplicates and quality failed reads. 
+By default ignores secondary alignments, duplicates and quality failed reads.
+Takes into account only the first read from pair. 
 
 bam2cov_pool.py is nearly 2x faster on large BAM files than bam2cov.py. 
 
 TDB:
 - define minimum overlap
+
+CHANGELOG:
+v1.1
+- skip counting read2 for paired-end libs (like samtools view -F 128)
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 30/03/2015
@@ -179,7 +184,7 @@ def is_reverse(flag):
 def alignment_iterator_samtools(bam, mapq, verbose):
     """Iterate aligments from BAM using samtools view subprocess"""
     # start samtools view subprocess
-    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3840", bam]
+    cmd0  = ["samtools", "view", "-q%s"%mapq, "-F3968", bam]
     proc0 = subprocess.Popen(cmd0, bufsize=-1, stdout=subprocess.PIPE)
     out0  = proc0.stdout
     # start cut subprocess
@@ -255,7 +260,7 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.0b')   
+    parser.add_argument('--version', action='version', version='1.1')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
     parser.add_argument("-i", "--bam", required=True,       

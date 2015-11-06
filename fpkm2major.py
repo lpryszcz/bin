@@ -5,6 +5,10 @@ major isoforms for each condition and each major isoform are reported.
 Lowly expressed genes in given condition are coded with `0` (--TPM < 1),
 while genes without clear major isoform are marked with `-1` (--frac 0.25).
 
+If you provide transcripts on command-line (-t / --transcripts) the program assumes Salmon output as input.
+Otherwise, the cuffdiff output is assumed as input. 
+
+
 CHANGELOG:
 v1.2
 - use TPM for salmon v4.1+ with fpkm column removed
@@ -193,8 +197,8 @@ def main():
                         help="major isoform has to be larger at least -f than the second most expressed [%(default)s]")
     parser.add_argument("-m", "--minTPM", default=1.0, type=float, 
                         help="min TPM to report [%(default)s]")
-    parser.add_argument("-t", "--transcripts", required=1, type=file, 
-                        help="transcripts file; needed to get gene2transcripts for .sf input [%(default)s]")
+    parser.add_argument("-t", "--transcripts", type=file, default=None,
+                        help="transcripts file in .fasta; needed to get gene2transcripts for .sf input [%(default)s]")
     parser.add_argument("--link", default='=hyperlink("http://www.ensembl.org/Danio_rerio/Gene/Summary?db=core;g=%s", "%s")',
                         help="add hyperlink [%(default)s]")
     
