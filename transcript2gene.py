@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-desc="""Combine values for transcripts and report summed values for genes. 
+desc="""Combine values for transcripts and report summed values for genes.
+
+CHANGELOG:
+- v1.1
+-- .tsv annotation support
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Warsaw, 30/09/2015
@@ -9,14 +13,22 @@ import os, sys
 import numpy as np
 from datetime import datetime
 
-def get_transcript2gene(handle):
+def get_transcript2gene_tsv(handle):
+    """Load transcript-gene relationships from tab-delimited file."""
+    tid2gid = {}
+    for l in handle:
+        tid, gid = l[:-1].split('\t')
+        tid2gid[tid] = gid
+    return tid2gid
+    
+def get_transcript2gene_gtf(handle):
     """Load transcript-gene relationships from ensembl GTF."""
     tid2gid = {}
     for l in handle:
         l = l.strip()
         if l.startswith('#') or not l: 
             continue
-      
+        
         contig,source,feature,start,end,score,strand,frame,comments = l.split('\t')
         if feature != "transcript":
             continue
@@ -38,11 +50,15 @@ def get_transcript2gene(handle):
             tid2gid[tid] = gid
     return tid2gid
    
-def transcript2gene(handle, out, gtf, header=0, verbose=0):
+def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
     """Report summed gene expression from transcripts"""
     if verbose:
-        sys.stderr.write("Parsing GTF...\n")
-    tid2gid = get_transcript2gene(gtf)
+        sys.stderr.write("Parsing annotation...\n")
+    if gtf:
+        tid2gid = get_transcript2gene_gtf(gtf)
+    elif tsv:
+        tid2gid = get_transcript2gene_tsv(tsv)
+        
     if verbose:
         sys.stderr.write(" %s transcripts parsed.\n"%len(tid2gid))
 
@@ -80,23 +96,27 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.0a')   
+    parser.add_argument('--version', action='version', version='1.1a')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
     parser.add_argument("-i", "--input", default=sys.stdin, type=file,  
                         help="input stream    [stdin]")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
-    parser.add_argument("-g", "--gtf",   required=True, type=file, 
-                        help="annotation gtf")
     parser.add_argument("--header", default=0, type=int, 
                         help="header lines [%(default)s]")
+    # mutually exclusive annotation
+    annota = parser.add_mutually_exclusive_group(required=True)
+    annota.add_argument("-g", "--gtf",   type=file, 
+                        help="annotation .gtf")
+    annota.add_argument("-t", "--tsv",   type=file, 
+                        help="annotation .tsv")
     
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
-    transcript2gene(o.input, o.output, o.gtf, o.header, o.verbose)
+    transcript2gene(o.input, o.output, o.gtf, o.tsv, o.header, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()
