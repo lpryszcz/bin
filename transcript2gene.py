@@ -17,7 +17,7 @@ def get_transcript2gene_tsv(handle):
     """Load transcript-gene relationships from tab-delimited file."""
     tid2gid = {}
     for l in handle:
-        tid, gid = l[:-1].split('\t')
+        tid, gid = l[:-1].split()
         tid2gid[tid] = gid
     return tid2gid
     
