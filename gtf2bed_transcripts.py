@@ -10,7 +10,10 @@ def comment2transcript(comment):
   k2v={}
   for kv in comment.strip(';').split(';'):
     kv.strip()
-    k, v = kv.split(' "')
+    try:
+      k, v = kv.split(' "')
+    except:
+      continue
     k = k.strip()
     v = v.strip('"')
     k2v[k] = v
