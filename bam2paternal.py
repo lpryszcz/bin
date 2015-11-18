@@ -187,10 +187,11 @@ def main():
     header = "#chrom\tposition\tfemale base\tmale base\tfemale coverage\tfemale meanQ\tmale coverage\tmale meanQ"
     for fn in o.bam[2:]:
         header += "\t%s coverage\t%s meanQ\t%s female base freq\t%s male base freq"%tuple([fn,]*4)
+    o.output.write(header+"\n")
     # report 
     info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
     for data in parser:
-        sys.stdout.write(info%data)
+        o.output.write(info%data)
     
 if __name__=='__main__': 
     t0 = datetime.now()
