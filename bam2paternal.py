@@ -165,6 +165,8 @@ def main():
                         help="input RNA-Seq BAM file(s)")
     parser.add_argument("-l", "--regions", default="", 
                         help="list of positions (chr pos) or regions (BED)")
+    parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
+                        help="output stream   [stdout]")
     parser.add_argument("--minDepth", default=5,  type=int,
                         help="minimal depth of coverage [%(default)s]")
     parser.add_argument("--minfreq",  default=0.01, type=float,
@@ -181,7 +183,11 @@ def main():
         
     #parse pileup in single-thread mode 
     parser = parse_mpileup(o.bam, o.minDepth, o.minfreq, o.mpileup_opts, o.regions, o.verbose)
-
+    # header
+    header = "#chrom\tposition\tfemale base\tmale base\tfemale coverage\tfemale meanQ\tmale coverage\tmale meanQ"
+    for fn in o.bam[2:]:
+        header += "\t%s coverage\t%s meanQ\t%s female base freq\t%s male base freq"%tuple([fn,]*4)
+    # report 
     info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
     for data in parser:
         sys.stdout.write(info%data)
