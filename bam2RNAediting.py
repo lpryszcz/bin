@@ -183,6 +183,8 @@ def main():
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.11')
+    parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
+                        help="output stream   [stdout]")
     parser.add_argument("-r", "--rna", nargs="+", 
                         help="input RNA-Seq BAM file(s)")
     refpar = parser.add_mutually_exclusive_group(required=True)
@@ -218,7 +220,7 @@ def main():
 
     info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
     for data in parser:
-        sys.stdout.write(info%data)
+        o.out.write(info%data)
     
 if __name__=='__main__': 
     t0 = datetime.now()
