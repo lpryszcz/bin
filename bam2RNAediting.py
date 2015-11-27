@@ -206,7 +206,7 @@ def main():
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
-    
+        
     #parse pileup in single-thread mode 
     if o.threads<2:
         parser = parse_mpileup(o.dna, o.rna, o.fasta, o.minDepth, o.minDNAfreq, o.minRNAfreq, \
@@ -220,7 +220,7 @@ def main():
 
     info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
     for data in parser:
-        o.out.write(info%data)
+        o.output.write(info%data)
     
 if __name__=='__main__': 
     t0 = datetime.now()
