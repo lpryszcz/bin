@@ -19,9 +19,13 @@ def _remove_indels(alts):
     """
     Remove indels from mpileup.     .$....,,,,....,.,,..,,.,.,,,,,,,....,.,...,.,.,....,,,........,.A.,...,,......^0.^+.^$.^0.^8.^F.^].^],
     ........,.-25ATCTGGTGGTTGGGATGTTGCCGCT..
+    And ignore introns:     >>><<<<><><
+    
     """
     #But first strip start/end read info.
     alts = "".join(read_start_pat.split(alts)).replace('$', '')
+    # skip introns
+    alts = alts.replace(">","").replace("<","")
     #remove indels info
     m = indel_pat.search(alts)
     while m:
@@ -138,7 +142,7 @@ def parse_mpileup(bam, minDepth, minfreq, mpileup_opts, regions, verbose,
             if cov<minDepth:
                 continue
             # check for SNP
-            bases, freqs = get_major_alleles(cov, alg, 0, alphabet, bothStrands)
+            bases, freqs = get_major_alleles(cov, alg, 0.000001, alphabet, bothStrands)
             if not bases or bases==baseRef:
                 continue
             # get freq of female / male base
