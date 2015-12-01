@@ -2,6 +2,9 @@
 desc="""Identify RNA editing sites. 
  
 CHANGELOG:
+v1.12
+- skip alt base calling if less than 3 reads (--minAltReads)
+- -o / --output option added
 v1.11
 - use fasta file as reference
 
@@ -61,7 +64,7 @@ def get_alt_allele(base_ref, cov, alg, minFreq, alphabet, reference, bothStrands
                     return
             return (base, freq) # base!=base_ref and
 
-def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands):
+def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands, minCount=3):
     """Return major alleles that passed filtering and their frequencies."""
     #remove deletions
     alts = alg
@@ -71,6 +74,9 @@ def get_major_alleles(cov, alg, minFreq, alphabet, bothStrands):
     #get base frequencies
     bases, freqs = [], []
     for base_count, base in zip((alts.upper().count(b) for b in alphabet), alphabet):
+        # skip if alt base calling if less than 3 reads
+        if base_count < minCount:
+            continue
         freq = base_count*1.0/cov
         #check freq
         if freq < minFreq:
@@ -182,7 +188,7 @@ def main():
                                       formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help="verbose")    
-    parser.add_argument('--version', action='version', version='1.11')
+    parser.add_argument('--version', action='version', version='1.12')
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
     parser.add_argument("-r", "--rna", nargs="+", 
@@ -194,6 +200,8 @@ def main():
                         help="reference FASTA file")
     parser.add_argument("--minDepth", default=5,  type=int,
                         help="minimal depth of coverage [%(default)s]")
+    parser.add_argument("--minAltReads", default=3,  type=int,
+                        help="minimum no. of reads with alternative base to call RNA editing [%(default)s]")
     parser.add_argument("--minRNAfreq",  default=0.01, type=float,
                         help="min frequency for RNA editing base [%(default)s]")
     parser.add_argument("--minDNAfreq",  default=0.99, type=float,
