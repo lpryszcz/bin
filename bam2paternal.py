@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-desc="""Calculate paternal expression.  
+desc="""Calculate paternal expression.
+
+CHANGELOG:
+1.0b
+- recognise the introns properly
+1.0a
+- 
 """
 epilog="""Author:
 l.p.pryszcz@gmail.com
@@ -24,8 +30,6 @@ def _remove_indels(alts):
     """
     #But first strip start/end read info.
     alts = "".join(read_start_pat.split(alts)).replace('$', '')
-    # skip introns
-    alts = alts.replace(">","").replace("<","")
     #remove indels info
     m = indel_pat.search(alts)
     while m:
@@ -127,8 +131,9 @@ def parse_mpileup(bam, minDepth, minfreq, mpileup_opts, regions, verbose,
             continue
         fRef, fFreq = get_major_alleles(fCov, fAlgs, minfreq, alphabet, bothStrands)
         mRef, mFreq = get_major_alleles(mCov, mAlgs, minfreq, alphabet, bothStrands)
-        if not fRef or not mRef or fRef==mRef:
+        if not fRef or not mRef or set(fRef).intersection(mRef):
             continue
+        #print fRef, mRef, fRef==mRef
         # get main base of female and male
         fBase = fRef[0]
         mBase = mRef[0]            
@@ -164,7 +169,7 @@ def main():
                                       formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help="verbose")    
-    parser.add_argument('--version', action='version', version='1.0a')
+    parser.add_argument('--version', action='version', version='1.0b')
     parser.add_argument("-b", "--bam", nargs="+", 
                         help="input RNA-Seq BAM file(s)")
     parser.add_argument("-l", "--regions", default="", 

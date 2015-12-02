@@ -10,6 +10,8 @@ Otherwise, the cuffdiff output is assumed as input.
 
 
 CHANGELOG:
+v1.3
+- calculate FPKM for salmon output
 v1.2
 - use TPM for salmon v4.1+ with fpkm column removed
 v1.1
@@ -108,7 +110,9 @@ def parse_sf(handles, conditions, transcripts):
             # get gid
             gid = tid2gid[tid]
             # store fpkm for given condition and transcript
-            gene2fpkms[gid][i][gene2transcripts[gid].index(tid)] = float(tpm)
+            length, tpm = float(length), float(tpm)
+            fpkm = tpm*1000.0 / length
+            gene2fpkms[gid][i][gene2transcripts[gid].index(tid)] = float(fpkm)
     # yield data
     for gid, fpkms in gene2fpkms.iteritems():
         yield gid, gene2transcripts[gid], fpkms
@@ -130,7 +134,7 @@ def fpkm2major(handle, out, frac, minTPM, link, transcripts, verbose):
         parser = parse_sf(handle, conditions, transcripts)
 
     # get major isoforms
-    header = "#\n#gene id\tno. of transcripts\tTPM sum\t%s\t%s\n"
+    header = "#\n#gene id\tno. of transcripts\tFPKM sum\t%s\t%s\n"
     out.write(header%('\t'.join(conditions), '\t'.join(map(str, range(5)))))
     line = "%s\t%s\t%.2f\t%s\t\t%s\n"
     j = k = 0
@@ -186,7 +190,7 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.2a')   
+    parser.add_argument('--version', action='version', version='1.3a')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
     parser.add_argument("-i", "--input", default=[sys.stdin], type=file, nargs="+", 
@@ -195,8 +199,8 @@ def main():
                         help="output stream   [stdout]")
     parser.add_argument("-f", "--frac", default=0.25, type=float, 
                         help="major isoform has to be larger at least -f than the second most expressed [%(default)s]")
-    parser.add_argument("-m", "--minTPM", default=1.0, type=float, 
-                        help="min TPM to report [%(default)s]")
+    parser.add_argument("-m", "--minFPKM", default=1.0, type=float, 
+                        help="min FPKM to report [%(default)s]")
     parser.add_argument("-t", "--transcripts", type=file, default=None,
                         help="transcripts file in .fasta; needed to get gene2transcripts for .sf input [%(default)s]")
     parser.add_argument("--link", default='=hyperlink("http://www.ensembl.org/Danio_rerio/Gene/Summary?db=core;g=%s", "%s")',
@@ -206,7 +210,7 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
         
-    fpkm2major(o.input, o.output, o.frac, o.minTPM, o.link, o.transcripts, o.verbose)
+    fpkm2major(o.input, o.output, o.frac, o.minFPKM, o.link, o.transcripts, o.verbose)
  
 if __name__=='__main__': 
     t0 = datetime.now()
