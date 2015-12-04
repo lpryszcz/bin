@@ -7,13 +7,46 @@ l.p.pryszcz@gmail.com
 Barcelona, 29/11/2012
 """
 
-import argparse, os, sys
+import argparse, os, sys, random
 from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
-from scipy.stats import stats, wilcoxon
- 
+from scipy.stats import stats, wilcoxon, ranksums
+
+def group_values(x, y):
+  """Group values in y to seperate lists using x"""
+  key2group = {}
+  for k, v in zip(x, y):
+    if k not in key2group:
+      key2group[k] = []
+    key2group[k].append(v)
+  return [v for k, v in sorted(key2group.iteritems())]
+
+def pairwise_wilcoxon(x, y, bootstrapping=10):
+  """Return pairwise wilcoson stats"""
+  setx = set(x)
+  sety = set(y)
+  if   len(setx)<20:  
+    values = group_values(x, y)
+  elif len(sety)<20:
+    values = group_values(y, x)
+  else:
+    return
+  # 1 vs rest
+  first = values[0]
+  second = [i for items in values[1:] for i in items]
+  t, p = ranksums(first, second) 
+  print "Wilcoxon first-vs-the_rest (N=%s vs N=%s): T=%s p=%s" % ((len(first), len(second), t, p))
+  # first -vs - second
+  second = values[1]
+  t, p = ranksums(first, second) 
+  print "Wilcoxon first-vs-second (N=%s vs N=%s): T=%s p=%s" % ((len(first), len(second), t, p))
+  '''for i in range(bootstrapping):
+    sfirst = random.sample(first, len(rest))
+    t, p = wilcoxon(sfirst, rest)
+    print "%s Wilcoxon (1st-vs-rest): T=%s p=%s" % (i+1, t, p)'''
+
 def plot(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
               vmax, vmin, vMinSum, collapse, normed, alpha, legendLoc, colors,\
               verbose, dlimit=1):
@@ -57,10 +90,13 @@ def plot(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
     x, y = x
     
     # get correlation
-    print "%s points"%len(x)
+    print "%s points\n mean X: %s +/- %s\n mean Y: %s +/- %s"%(len(x), np.mean(x), np.std(x), np.mean(y), np.std(y))
     print "Pearson: r=%s p=%s" % stats.pearsonr(x, y)
     print "Spearman: r=%s p=%s" % stats.spearmanr(x, y)
-    print "Wilcoxon: T=%s p=%s" % wilcoxon(x, y)
+    print "Wilcoxon: T=%s p=%s" % ranksums(x, y) # wilcoxon(x, y)
+    
+    pairwise_wilcoxon(x, y)
+    
     ax = fig.add_subplot(111)
     ax.plot(x, y, 'b.', alpha=0.5)
 
