@@ -23,7 +23,7 @@ def group_values(x, y):
     key2group[k].append(v)
   return [v for k, v in sorted(key2group.iteritems())]
 
-def pairwise_wilcoxon(x, y, bootstrapping=10):
+def pairwise_wilcoxon(x, y, bootstrapping=10, ranksums=ranksums):
   """Return pairwise wilcoson stats"""
   setx = set(x)
   sety = set(y)
@@ -37,10 +37,12 @@ def pairwise_wilcoxon(x, y, bootstrapping=10):
   first = values[0]
   second = [i for items in values[1:] for i in items]
   t, p = ranksums(first, second) 
+  print " mean first: %s +/- %s\n mean the_rest: %s +/- %s"%(np.mean(first), np.std(first), np.mean(second), np.std(second))  
   print "Wilcoxon first-vs-the_rest (N=%s vs N=%s): T=%s p=%s" % ((len(first), len(second), t, p))
   # first -vs - second
   second = values[1]
   t, p = ranksums(first, second) 
+  print " mean first: %s +/- %s\n mean seond: %s +/- %s"%(np.mean(first), np.std(first), np.mean(second), np.std(second))  
   print "Wilcoxon first-vs-second (N=%s vs N=%s): T=%s p=%s" % ((len(first), len(second), t, p))
   '''for i in range(bootstrapping):
     sfirst = random.sample(first, len(rest))

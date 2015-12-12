@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 desc="""Generate expression plot similar to cummeRbund from .sf expression values.
+
+CHANGELOG:
+v1.3
+- calculate FPKM for salmon output
+
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 8/05/2015
@@ -58,9 +63,12 @@ def parse_sf(handles, conditions, transcripts, genes=[]):
             # get gid
             gid = tid2gid[tid]
             if genes and gid not in genes:
-                continue            
+                continue
+            # get fpkm
+            length, tpm = float(length), float(tpm)
+            fpkm = tpm*1000.0 / length
             # store fpkm for given condition and transcript
-            gene2fpkms[gid][i][gene2transcripts[gid].index(tid)] = float(tpm)
+            gene2fpkms[gid][i][gene2transcripts[gid].index(tid)] = float(fpkm)
     # yield data
     for gid, fpkms in gene2fpkms.iteritems():
         if genes and gid not in genes:
@@ -101,7 +109,7 @@ def fpkm2expression_plot(genes, handle, out, transcripts, FPKMfrac, verbose):
             ax.bar(ind, _fpkms, width, bottom=bottom, label=transcripts[j], color=colors[ji])
             plt.xticks(ind+width/2., conditions, rotation=90, fontsize=9)
             #plt.xlabel("bound             unbound             total")
-            ax.set_ylabel("TPM")
+            ax.set_ylabel("FPKM")
             # update handles
             bottom += _fpkms
             ji += 1
@@ -116,7 +124,7 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.0')   
+    parser.add_argument('--version', action='version', version='1.3')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
     parser.add_argument("-i", "--fpkm", default=sys.stdin, type=file, nargs="+", 
