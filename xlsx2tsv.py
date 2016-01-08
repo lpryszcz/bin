@@ -1,27 +1,26 @@
 #!/usr/bin/env python
 """
-xlsx2tsv  filename.xlsx  [sheet number or name]
+xlsx2tsv file1.xlsx [file2.xlsx ... fileN.xlsx]
 
-Parse a .xlsx (Excel OOXML, which is not OpenOffice) into tab-separated values.
-If it has multiple sheets, need to give a sheet number or name.
+Parse a .xlsx file(s) (Excel OOXML, which is not OpenOffice) into tab-separated values.
+Output directory (ie. file1.xls_sheets/) is created per each input file.
+In this directory the sheets from given xlsx file are stored as separate .tsv files. 
 Outputs honest-to-goodness tsv, no quoting or embedded \\n\\r\\t.
-
-One reason I wrote this is because Mac Excel 2008 export to csv or tsv messes
-up encodings, converting everything to something that's not utf8 (macroman
-perhaps).  This script seems to do better.
 
 The spec for this format is 5220 pages.  I did not use it.  This was helpful:
 http://blogs.msdn.com/excel/archive/2008/08/14/reading-excel-files-from-linux.aspx
 But mostly I guessed how the format works.  So bugs are guaranteed.
 
-brendan o'connor - anyall.org - gist.github.com/22764
-
-# Modified by lpryszcz (bioinfoexpert.org). 
-
+# by brendan o'connor - anyall.org - gist.github.com/22764
+# Modified by lpryszcz (http://bioinfoexpert.com/) 
 """
 
 import xml.etree.ElementTree as ET
-import os,sys,zipfile,re,itertools
+import os, sys, zipfile, re, itertools
+
+if len(sys.argv)<2:
+  print __doc__.strip()
+  sys.exit(1)
 
 def letter2col_index(letter):
   """ A -> 0, B -> 1, Z -> 25, AA -> 26, BA -> 52 """
