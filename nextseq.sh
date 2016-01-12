@@ -7,7 +7,9 @@
 me=`basename $0`
 host=`hostname`
 
-# load env variables
+# load env variables 
+## make sure line `[ -z "$PS1" ]` is commented in .bashrc
+## http://stackoverflow.com/a/15574078/632242
 source /home/lpryszcz/.bashrc
 
 EMAILMESSAGE="/tmp/nextseq.log"
