@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-desc="""Converts Illumina .bcl files into FastQ. 
-Designed to work as cron service. 
+desc="""Converts binary Illumina files (.bcl) to FastQ. Designed to work as cron service.
+It proceeds only if given run has been sequenced (.bcl present),
+but not yet successfully converted (no .fastq files). 
 
 Dependencies:
-- bcl2fastq
+- bcl2fastq 
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Warsaw, 11/01/2016
@@ -23,6 +24,23 @@ def _isCompleted(fpath):
     else:
         sys.stderr.write("[WARNING][isCompleted] %s says %s\n"%(fpath, e.text))
 
+def _isProcessed(outdir):
+    """Return True if current run is successfully processed.
+    If there are some files missing, remove output directory
+    and rerun conversion.
+    """
+    reportFn = os.path.join(outdir, "Reports/html/index.html")
+    # not output directory
+    if not os.path.isdir(outdir):
+        return
+    # missing report - uncompleted run
+    elif not os.path.isfile(reportFn):
+        # remove outdir
+        sys.stderr.write("[WARNING] Incomplete conversion detected: %s. Remove it!\n"%outdir) #Cleaning up & reruning...
+        #os.system("rm -r %s"%outdir)
+        #return
+    return True
+        
 def get_experiment_id(fpath):
     """Return True if run not processed"""
     xml = ET.parse(open(fpath))
@@ -42,21 +60,22 @@ def get_new_runs(fqdir, raw):
     for fpath in sorted(glob(os.path.join(raw, "*", "RunCompletionStatus.xml"))):
         rundir = os.path.dirname(fpath)
         runID  = os.path.basename(rundir)
+        outdir = os.path.join(fqdir, runID)
         # report only if run completed and given runID is not already processed
-        if _isCompleted(fpath) and not os.path.isdir(os.path.join(fqdir, runID)):
+        if _isCompleted(fpath) and not _isProcessed(outdir):
             fpath2 = os.path.join(rundir, "RunParameters.xml")
             expID = get_experiment_id(fpath2)
-            yield rundir, runID, expID
+            yield rundir, outdir, runID, expID
         
 def process_runs(fqdir, raw, threads, bindir, verbose, bufsize=-1):
-    """Return new directories to process."""
+    """Convert binary NextSeq files (.bcl) to FastQ."""
     # process unconverted runs
-    for i, (curdir, runID, expID) in enumerate(get_new_runs(fqdir, raw), 1):
+    for i, (curdir, outdir, runID, expID) in enumerate(get_new_runs(fqdir, raw), 1):
         if verbose:
             sys.stderr.write("[%s] %s %s\n"%(datetime.ctime(datetime.now()), runID, expID))
         # bcl2fastq
         #prepare outdir and paths
-        outdir = os.path.join(fqdir, runID)
+        #outdir = os.path.join(fqdir, runID)
         interopdir = os.path.join(outdir, "InterOp")
         os.makedirs(outdir)
         # define args
@@ -65,7 +84,7 @@ def process_runs(fqdir, raw, threads, bindir, verbose, bufsize=-1):
                 "--interop-dir", interopdir, "--no-lane-splitting",
                 "-r", threads, "-d", threads, "-p", threads, "-w", threads]
         #execute
-        with open(os.path.join(outdir, "blc2fastq.log"), "w") as logFile:
+        with open(os.path.join(outdir, "bcl2fastq.log"), "w") as logFile:
             proc = subprocess.Popen(args, bufsize=bufsize, stdout=logFile, stderr=logFile)
             proc.wait()
         # link experiment to run id
