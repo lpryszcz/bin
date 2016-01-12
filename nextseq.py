@@ -104,7 +104,7 @@ def main():
                         help="working (.fastq) directory [%(default)s]")
     parser.add_argument("-r", "--raw", default="/mnt/illumina_raw/NextSeq_data",
                         help="raw (.bcl) directory       [%(default)s]")
-    parser.add_argument("-t", "--threads", default=16, type=int, 
+    parser.add_argument("-t", "--threads", default=4, type=int, 
                         help="threads                    [%(default)s]")
     parser.add_argument("--bindir", default="",
                         help="binary directory prefix    [%(default)s]")
