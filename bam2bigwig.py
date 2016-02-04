@@ -9,7 +9,8 @@ Require:
 - pybedtools
 - pysam
 
-# you can avoid genome fasta if faidx is generated from bam header
+TBD:
+- you can avoid genome fasta if faidx is generated from bam header
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 25/02/2015
