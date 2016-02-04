@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 desc="""Convert BAM to BigWig.
 Inspired by: https://www.biostars.org/p/64495/#64680
-Added support for non-UCSC genomes. 
+Added support for non-UCSC genomes.
+
+Require:
+- bedGraphToBigWig
+- samtools
+- pybedtools
+- pysam
+
+# you can avoid genome fasta if faidx is generated from bam header
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 25/02/2015
