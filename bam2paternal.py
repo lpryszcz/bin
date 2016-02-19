@@ -142,27 +142,28 @@ def parse_mpileup(bam, minDepth, minfreq, mpileup_opts, regions,
         mmeanQ = get_meanQ(mQuals)
         # report only freq of maternal and paternal alleles from RNAseq
         sFreqs = []
+        mCount = 0
         for cov, alg, quals in zip(rData[0::3], rData[1::3], rData[2::3]):
             cov = int(cov)
             meanQ = get_meanQ(quals)
             if cov<minDepth:
                 if report_missing:
+                    mCount += 1
                     sFreqs.append("%i\t%s\t%s\t%s"%(cov, meanQ, missing, missing))
                 continue
             # check for SNP
             bases, freqs = get_major_alleles(cov, alg, 0.000001, alphabet, bothStrands)
             if not bases or bases==baseRef:
                 if report_missing:
+                    mCount += 1
                     sFreqs.append("%i\t%s\t%s\t%s"%(cov, meanQ, missing, missing))
                 continue
             # get freq of female / male base
             _fFreq = get_frequency(fBase, bases, freqs)
             _mFreq = get_frequency(mBase, bases, freqs)            
             sFreqs.append("%i\t%s\t%s\t%s"%(cov, meanQ, _fFreq, _mFreq))
-        # wrap info
-        # skip if not all samples passsed
-        # print contig, pos, fBase, mBase, sFreqs
-        if len(sFreqs)<len(bam)-2:
+        # skip if not all samples passsed or all samples missing if report_missing=True
+        if len(sFreqs)<len(bam)-2 or mCount==len(bam)-2:
             continue
         yield (contig, pos, fBase, mBase, fCov, fmeanQ, mCov, mmeanQ, '\t'.join(sFreqs))
         
