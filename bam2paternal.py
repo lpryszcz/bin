@@ -103,8 +103,8 @@ def get_frequency(refBase, bases, freqs):
         freq = freqs[idx]
     return freq
     
-def parse_mpileup(bam, minDepth, minfreq, mpileup_opts, regions, verbose, 
-                  bothStrands=0, alphabet='ACGT'):
+def parse_mpileup(bam, minDepth, minfreq, mpileup_opts, regions,
+                  report_missing, verbose, bothStrands=0, alphabet='ACGT', missing="-"):
     """Run mpileup subprocess and parse output."""
     # add regions to mpileup opts
     if regions:
@@ -142,23 +142,28 @@ def parse_mpileup(bam, minDepth, minfreq, mpileup_opts, regions, verbose,
         mmeanQ = get_meanQ(mQuals)
         # report only freq of maternal and paternal alleles from RNAseq
         sFreqs = []
+        mCount = 0
         for cov, alg, quals in zip(rData[0::3], rData[1::3], rData[2::3]):
             cov = int(cov)
+            meanQ = get_meanQ(quals)
             if cov<minDepth:
+                if report_missing:
+                    mCount += 1
+                    sFreqs.append("%i\t%s\t%s\t%s"%(cov, meanQ, missing, missing))
                 continue
             # check for SNP
             bases, freqs = get_major_alleles(cov, alg, 0.000001, alphabet, bothStrands)
             if not bases or bases==baseRef:
+                if report_missing:
+                    mCount += 1
+                    sFreqs.append("%i\t%s\t%s\t%s"%(cov, meanQ, missing, missing))
                 continue
             # get freq of female / male base
             _fFreq = get_frequency(fBase, bases, freqs)
             _mFreq = get_frequency(mBase, bases, freqs)            
-            meanQ = get_meanQ(quals)
             sFreqs.append("%i\t%s\t%s\t%s"%(cov, meanQ, _fFreq, _mFreq))
-        # wrap info
-        # skip if not all samples passsed
-        #print contig, pos, fBase, mBase, sFreqs
-        if len(sFreqs)<len(bam)-2:
+        # skip if not all samples passsed or all samples missing if report_missing=True
+        if len(sFreqs)<len(bam)-2 or mCount==len(bam)-2:
             continue
         yield (contig, pos, fBase, mBase, fCov, fmeanQ, mCov, mmeanQ, '\t'.join(sFreqs))
         
@@ -176,6 +181,8 @@ def main():
                         help="list of positions (chr pos) or regions (BED)")
     parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream   [stdout]")
+    parser.add_argument("-r", "--report_missing", default=False, action="store_true",  
+                        help="report positions with missing values")
     parser.add_argument("--minDepth", default=5,  type=int,
                         help="minimal depth of coverage [%(default)s]")
     parser.add_argument("--minfreq",  default=0.01, type=float,
@@ -191,7 +198,8 @@ def main():
         sys.exit("Provide at least 3 BAM files!")
         
     #parse pileup in single-thread mode 
-    parser = parse_mpileup(o.bam, o.minDepth, o.minfreq, o.mpileup_opts, o.regions, o.verbose)
+    parser = parse_mpileup(o.bam, o.minDepth, o.minfreq, o.mpileup_opts, o.regions, \
+                           o.report_missing, o.verbose)
     # header
     header = "#chrom\tposition\tfemale base\tmale base\tfemale coverage\tfemale meanQ\tmale coverage\tmale meanQ"
     for fn in o.bam[2:]:
