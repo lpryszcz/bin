@@ -25,9 +25,9 @@ def psl2best(handle, overlap):
         # score or update score if better
         score = matches * 5 + mismatches * -3 + Tgapc * -4 + Tgaps * -1
         if q not in q2t:
-            q2t = (t, score)
+            q2t[q] = (t, score)
         elif score > q2t[q][1]:
-            q2t = (t, score)
+            q2t[q] = (t, score)
     return q2t
 
 def brh(fastas, out, overlap, verbose):
@@ -44,6 +44,7 @@ def brh(fastas, out, overlap, verbose):
     # parse psl
     q2t1 = psl2best(open(out1), overlap)
     q2t2 = psl2best(open(out2), overlap)
+    
     for q, (t, score) in q2t1.iteritems():
         if q2t2[t] and q==q2t2[t][0]:
             out.write("%s\t%s\n"%(q, t))
