@@ -47,7 +47,10 @@ def get_transcript2gene_gtf(handle):
         if "transcript_id" in description and "gene_id" in description:
             tid = description["transcript_id"]
             gid = description["gene_id"]
-            tid2gid[tid] = gid
+            genename = "-"
+            if "gene_name" in description:
+                genename = description["gene_name"]
+            tid2gid[tid] = (gid, genename)
     return tid2gid
    
 def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
@@ -67,11 +70,12 @@ def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
     gid2data = {}
     for i, l in enumerate(handle):
         # write header
+        lData = l[:-1].split('\t')
         if i<header:
-            out.write(l)
+            lData = ["geneid", "genename"] + lData[1:]
+            out.write("\t".join(lData)+"\n")
             continue
         # unload data
-        lData = l[:-1].split('\t')
         tid, info = lData[0], map(float, lData[1:])
         # check if tid in dict
         if tid not in tid2gid:
@@ -88,7 +92,7 @@ def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
         # sum values for each column
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
-        out.write("%s\t%s\n"%(gid, summed))
+        out.write("%s\t%s\n"%("\t".map(gid), genename, summed))
         
 def main():
     import argparse
