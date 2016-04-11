@@ -96,7 +96,7 @@ def transcript2gene(handle, out, gtf, tsv, header=0, link="", verbose=0):
         # sum values for each column
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
-        out.write("%s\t%s\t%s\n"%(_link(geneid), genename, summed))
+        out.write("%s\t%s\t%s\n"%(_link(link, geneid), genename, summed))
 
 def _link(link, gid):
     """Return link"""
@@ -110,7 +110,7 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.1a')   
+    parser.add_argument('--version', action='version', version='1.2b')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
     parser.add_argument("-i", "--input", default=sys.stdin, type=file,  
