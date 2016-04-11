@@ -94,7 +94,7 @@ def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
         # sum values for each column
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
-        out.write("%s\t%s\n"%("\t".join(gid), genename, summed))
+        out.write("%s\t%s\n"%("\t".join(gid), summed))
         
 def main():
     import argparse
