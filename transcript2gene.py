@@ -4,6 +4,7 @@ desc="""Combine values for transcripts and report summed values for genes.
 CHANGELOG:
 - v1.2
 -- report also gene_name beside geneid
+-- added hyperlinks
 - v1.1
 -- .tsv annotation support
 """
@@ -55,7 +56,7 @@ def get_transcript2gene_gtf(handle):
             tid2gid[tid] = (gid, genename)
     return tid2gid
    
-def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
+def transcript2gene(handle, out, gtf, tsv, header=0, link="", verbose=0):
     """Report summed gene expression from transcripts"""
     if verbose:
         sys.stderr.write("Parsing annotation...\n")
@@ -91,10 +92,17 @@ def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
         gid2data[gid].append(info)
     # sum up
     for gid, values in gid2data.iteritems():
+        geneid, genename = gid
         # sum values for each column
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
-        out.write("%s\t%s\n"%("\t".join(gid), summed))
+        out.write("%s\t%s\t%s\n"%(_link(geneid), genename, summed))
+
+def _link(link, gid):
+    """Return link"""
+    if link:
+        return link % tuple([gid]*link.count('%s'))
+    return gid
         
 def main():
     import argparse
@@ -111,6 +119,8 @@ def main():
                         help="output stream   [stdout]")
     parser.add_argument("--header", default=0, type=int, 
                         help="header lines [%(default)s]")
+    parser.add_argument("--link", default='=hyperlink("http://www.ensembl.org/Danio_rerio/Gene/Summary?db=core;g=%s", "%s")',
+                        help="add hyperlink [%(default)s]")                        
     # mutually exclusive annotation
     annota = parser.add_mutually_exclusive_group(required=True)
     annota.add_argument("-g", "--gtf",   type=file, 
@@ -122,7 +132,7 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
-    transcript2gene(o.input, o.output, o.gtf, o.tsv, o.header, o.verbose)
+    transcript2gene(o.input, o.output, o.gtf, o.tsv, o.header, o.link, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()
