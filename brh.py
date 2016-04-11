@@ -46,7 +46,7 @@ def brh(fastas, out, overlap, verbose):
     q2t2 = psl2best(open(out2), overlap)
     
     for q, (t, score) in q2t1.iteritems():
-        if q2t2[t] and q==q2t2[t][0]:
+        if t in q2t2 and q==q2t2[t][0]:
             out.write("%s\t%s\n"%(q, t))
         
 def main():
