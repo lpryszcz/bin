@@ -2,6 +2,8 @@
 desc="""Combine values for transcripts and report summed values for genes.
 
 CHANGELOG:
+- v1.2
+-- report also gene_name beside geneid
 - v1.1
 -- .tsv annotation support
 """
@@ -92,7 +94,7 @@ def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
         # sum values for each column
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
-        out.write("%s\t%s\n"%("\t".map(gid), genename, summed))
+        out.write("%s\t%s\n"%("\t".join(gid), genename, summed))
         
 def main():
     import argparse
