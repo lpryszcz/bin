@@ -51,20 +51,22 @@ def transcript2gene(handle, out, gtf, header=0, verbose=0):
     gid2data = {}
     for i, l in enumerate(handle):
         # write header
+        lData = l[:-1].split('\t')
+        # no. of header lines
         if i<header:
-            out.write(l)
+            lData = ["geneid", "gene name"]+lData[1:]
+            out.write("\t".join(lData)+"\n")
             continue
         # unload data
-        lData = l[:-1].split('\t')
-        tid, info = lData[0], map(float, lData[1:])
+        tid = lData[0] #map(float, lData[1:])
         # check if tid in dict
         if tid not in tid2gid:
             sys.stderr.write("[WARNING] Transcript '%s' not found in tid2gid!\n"%tid)
-            out.write('\n')
-            continue
-        gid = tid2gid[tid]
+            gid = "-"
+        else:
+            gid = tid2gid[tid]
         # add gid
-        out.write('%s\n'%(gid))
+        out.write('%s\t%s\t%s\n'%(tid, gid, "\t".join(lData[1:])))
         
 def main():
     import argparse
@@ -81,13 +83,18 @@ def main():
                         help="output stream   [stdout]")
     parser.add_argument("-g", "--gtf",   required=True, type=file, 
                         help="annotation gtf")
-    parser.add_argument("--header", default=0, type=int, 
-                        help="header lines [%(default)s]")
+    parser.add_argument("--header", default="0", 
+                        help="header lines or header text [%(default)s]")
     
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
-
+    # add header
+    if o.header.isdigit():
+        o.header = int(o.header)
+    else:
+        o.output.write(o.header.strip()+"\n")
+        o.header = 0
     transcript2gene(o.input, o.output, o.gtf, o.header, o.verbose)
 
 if __name__=='__main__': 
