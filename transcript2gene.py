@@ -2,6 +2,9 @@
 desc="""Combine values for transcripts and report summed values for genes.
 
 CHANGELOG:
+- v1.2
+-- report also gene_name beside geneid
+-- added hyperlinks
 - v1.1
 -- .tsv annotation support
 """
@@ -47,10 +50,13 @@ def get_transcript2gene_gtf(handle):
         if "transcript_id" in description and "gene_id" in description:
             tid = description["transcript_id"]
             gid = description["gene_id"]
-            tid2gid[tid] = gid
+            genename = "-"
+            if "gene_name" in description:
+                genename = description["gene_name"]
+            tid2gid[tid] = (gid, genename)
     return tid2gid
    
-def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
+def transcript2gene(handle, out, gtf, tsv, header=0, link="", verbose=0):
     """Report summed gene expression from transcripts"""
     if verbose:
         sys.stderr.write("Parsing annotation...\n")
@@ -67,11 +73,12 @@ def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
     gid2data = {}
     for i, l in enumerate(handle):
         # write header
+        lData = l[:-1].split('\t')
         if i<header:
-            out.write(l)
+            lData = ["geneid", "genename"] + lData[1:]
+            out.write("\t".join(lData)+"\n")
             continue
         # unload data
-        lData = l[:-1].split('\t')
         tid, info = lData[0], map(float, lData[1:])
         # check if tid in dict
         if tid not in tid2gid:
@@ -85,10 +92,17 @@ def transcript2gene(handle, out, gtf, tsv, header=0, verbose=0):
         gid2data[gid].append(info)
     # sum up
     for gid, values in gid2data.iteritems():
+        geneid, genename = gid
         # sum values for each column
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
-        out.write("%s\t%s\n"%(gid, summed))
+        out.write("%s\t%s\t%s\n"%(_link(link, geneid), genename, summed))
+
+def _link(link, gid):
+    """Return link"""
+    if link:
+        return link % tuple([gid]*link.count('%s'))
+    return gid
         
 def main():
     import argparse
@@ -96,7 +110,7 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version='1.1a')   
+    parser.add_argument('--version', action='version', version='1.2b')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
     parser.add_argument("-i", "--input", default=sys.stdin, type=file,  
@@ -105,6 +119,8 @@ def main():
                         help="output stream   [stdout]")
     parser.add_argument("--header", default=0, type=int, 
                         help="header lines [%(default)s]")
+    parser.add_argument("--link", default='=hyperlink("http://www.ensembl.org/Danio_rerio/Gene/Summary?db=core;g=%s", "%s")',
+                        help="add hyperlink [%(default)s]")                        
     # mutually exclusive annotation
     annota = parser.add_mutually_exclusive_group(required=True)
     annota.add_argument("-g", "--gtf",   type=file, 
@@ -116,7 +132,7 @@ def main():
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
-    transcript2gene(o.input, o.output, o.gtf, o.tsv, o.header, o.verbose)
+    transcript2gene(o.input, o.output, o.gtf, o.tsv, o.header, o.link, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()

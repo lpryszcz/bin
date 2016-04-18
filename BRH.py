@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""
-Compute best reciprocal blast hits for two multifasta protein files.
+"""Compute best reciprocal blast hits for two multifasta protein files.
 Build blast db and launch blastp in 2 directions. 
 Keep only best reciprocal matches.
 
@@ -13,6 +12,8 @@ Biopython
 
 Author:
 lpryszcz@crg.es
+
+!!! Deprecated, use brh.py instead !!!
 """
 
 from Bio import SeqIO
