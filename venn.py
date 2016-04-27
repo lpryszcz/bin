@@ -30,6 +30,13 @@ for i, fn in enumerate(fnames):
     venns += nvenns
     names += nnames
     
+# remove overlaps
+for i, n in enumerate(names[len(fnames):], len(fnames)):
+    # get fnames idx that have to be excluded from given group
+    notin = [fnames.index(fn) for fn in set(fnames).difference(n.split(linker))]#; print n, notin
+    if notin:
+        venns[i] = venns[i].difference(set().union(*[venns[j] for j in notin]))
+    
 # get uniq per group
 for i in range(len(fnames)):
     venns[i] = venns[i].difference(set().union(*venns[:i]+venns[i+1:]))
