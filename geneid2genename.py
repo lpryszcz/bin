@@ -33,9 +33,10 @@ def get_transcript2gene(handle):
 
         #
         if "transcript_id" in description and "gene_name" in description:
-            gid = description["gene_name"]
-            tid = description["gene_id"]
-            tid2gid[tid] = gid
+            genename = description["gene_name"]
+            tid = description["transcript_id"]
+            gid = description["gene_id"]
+            tid2gid[tid] = (gid, genename)
     return tid2gid
    
 def transcript2gene(handle, out, gtf, header=0, verbose=0):
