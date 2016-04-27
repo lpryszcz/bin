@@ -22,14 +22,15 @@ for i, fn in enumerate(fnames):
     #ids = get_ids(fn)
     ids = set(l.split('\t')[0].strip() for l in open(fn) if not l.startswith('#'))
     print i+1, fn, len(ids)#, list(ids)[:10]
-    nvenns = []
+    nvenns, nnames = [], []
     for j, s in enumerate(venns):
         nvenns.append(ids.intersection(s))
-        names.append(names[j]+" - "+fn)
+        nnames.append(names[j]+" - "+fn)
     # insert fn and ids
     names.insert(i, fn)
     venns.insert(i, ids)
     venns += nvenns
+    names += nnames
     
 # get uniq per group
 for i in range(len(fnames)):
@@ -38,5 +39,5 @@ for i in range(len(fnames)):
 #print len(venns)
 print "\n%s groups: "%len(venns)
 for i, (n, s) in enumerate(zip(names, venns), 1):
-    print i, n, len(s)
+ #!/usr/bin/env python
 
