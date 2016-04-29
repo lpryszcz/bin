@@ -38,9 +38,10 @@ def regex2bed(handle, out, regex, bothStrands, ignoreCase, verbose):
         flags = re.IGNORECASE
     # get positive and reverse complement patterns
     pRegex = '|'.join(regex)
-    mRegex = '|'.join(regex2reverse_complement(regex))
     pPat = re.compile(pRegex, flags=flags)
-    mPat = re.compile(mRegex, flags=flags)
+    if bothStrands:
+        mRegex = '|'.join(regex2reverse_complement(regex))
+        mPat = re.compile(mRegex, flags=flags)
     # report matches
     if verbose:
         sys.stderr.write("Scanning chromosomes for %s %s ...\n#chromosome\tlength\t+ matches\t- matches\n"%(pRegex, mRegex))
