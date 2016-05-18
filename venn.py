@@ -57,8 +57,13 @@ for i, (n, s) in enumerate(zip(names, venns), 1):
                 continue
             if get_id(l) in id2txt:
                 id2txt[get_id(l)].append(l[:-1])
-    # 
+    #
+    if header:
+        header += '\n'
+    lines = '\n'.join('\t'.join(x) for x in id2txt.itervalues())
+    if lines:
+        lines += '\n'
     with open(n+".txt", 'w') as out:
-        out.write(header+'\n'+'\n'.join('\t'.join(x) for x in id2txt.itervalues())+'\n')
+        out.write(header+lines)
 
 
