@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Calculate venn diagrams
 
-import sys
+import os, sys
 
 fnames = sys.argv[1:]; print "%s input files: %s"%(len(fnames)," ".join(fnames))
 
@@ -25,7 +25,7 @@ for i, fn in enumerate(fnames):
     nvenns = []
     for j, s in enumerate(venns):
         nvenns.append(ids.intersection(s))
-        names.append(names[j]+" - "+fn)
+        names.append(names[j]+"-"+fn)
     # insert fn and ids
     names.insert(i, fn)
     venns.insert(i, ids)
@@ -36,7 +36,11 @@ for i in range(len(fnames)):
     venns[i] = venns[i].difference(set().union(*venns[:i]+venns[i+1:]))
 
 #print len(venns)
+if not os.path.isdir('venn'): os.makedirs('venn')
+
 print "\n%s groups: "%len(venns)
 for i, (n, s) in enumerate(zip(names, venns), 1):
     print i, n, len(s)
+    with open("venn/%s"%n, 'w') as out:
+      out.write("\n".join(s)+'\n')
 
