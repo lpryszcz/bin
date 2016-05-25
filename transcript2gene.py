@@ -75,7 +75,10 @@ def transcript2gene(handle, out, gtf, tsv, header=0, link="", verbose=0):
         # write header
         lData = l[:-1].split('\t')
         if i<header:
-            lData = ["geneid", "genename"] + lData[1:]
+            if gtf:
+                lData = ["geneid", "genename"] + lData[1:]
+            elif tsv:
+                lData = ["geneid", ] + lData[1:]
             out.write("\t".join(lData)+"\n")
             continue
         # unload data
@@ -92,11 +95,16 @@ def transcript2gene(handle, out, gtf, tsv, header=0, link="", verbose=0):
         gid2data[gid].append(info)
     # sum up
     for gid, values in gid2data.iteritems():
-        geneid, genename = gid
+        geneid = gid
+        if gtf:
+            geneid, genename = gid
         # sum values for each column
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
-        out.write("%s\t%s\t%s\n"%(_link(link, geneid), genename, summed))
+        if gtf:
+            out.write("%s\t%s\t%s\n"%(_link(link, geneid), genename, summed))
+        elif tsv:
+            out.write("%s\t%s\n"%(_link(link, geneid), summed))
 
 def _link(link, gid):
     """Return link"""
