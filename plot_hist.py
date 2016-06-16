@@ -70,11 +70,11 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
         ncol += 1
     if ncol*nrow < len(cols):
         nrow += 1
-    nrow, ncol = 3, 6
+    #nrow, ncol = 3, 6
     if verbose:
         sys.stderr.write(" %s columns x %s rows\n"%(ncol, nrow))
     #start figure
-    fig = plt.figure()
+    fig = plt.figure(figsize=(15, 15)) # set size
     #http://matplotlib.org/users/customizing.html
     #mpl.rcParams['figure.subplot.wspace'] = 0.3
     mpl.rcParams['figure.subplot.hspace'] = 0.5
@@ -83,7 +83,8 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
     mpl.rcParams['xtick.labelsize'] = 5
     mpl.rcParams['ytick.labelsize'] = 5
     #add subplots
-    plt.rc('axes', color_cycle=colors) #['c', 'm', 'y', 'k']
+    #plt.rc('axes', color_cycle=colors) #['c', 'm', 'y', 'k']
+    #mpl.rcParams['axes.color_cycle'] = colors
     for i, data in enumerate(x):
         if collapse:
             if i==0:

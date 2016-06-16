@@ -2,7 +2,7 @@
 # Produce venn diagrams. So far only reporting overlapping entries. 
 # USAGE: venn.py file1 file2 [file3 ... fileN]
 
-import sys
+import os, sys
 
 if len(sys.argv)<3:
     sys.exit("Provide 2 or more files!\n ie. venn.py file1 file2 [file3 ... fileN]\n")
@@ -42,6 +42,8 @@ for i in range(len(fnames)):
     venns[i] = venns[i].difference(set().union(*venns[:i]+venns[i+1:]))
 
 #print len(venns)
+if not os.path.isdir('venn'): os.makedirs('venn')
+
 print "\n%s groups: "%len(venns)
 for i, (n, s) in enumerate(zip(names, venns), 1):
     print '', i, len(s), n
@@ -55,7 +57,13 @@ for i, (n, s) in enumerate(zip(names, venns), 1):
                 continue
             if get_id(l) in id2txt:
                 id2txt[get_id(l)].append(l[:-1])
-    # 
+    #
+    if header:
+        header += '\n'
+    lines = '\n'.join('\t'.join(x) for x in id2txt.itervalues())
+    if lines:
+        lines += '\n'
     with open(n+".txt", 'w') as out:
-        out.write(header+'\n'+'\n'.join('\t'.join(x) for x in id2txt.itervalues())+'\n')
+        out.write(header+lines)
+
 
