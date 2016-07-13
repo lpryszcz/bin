@@ -2,7 +2,9 @@
 desc="""FastA index (.fai) handler compatible with samtools faidx (http://www.htslib.org/doc/faidx.html)
 
 CHANGELOG:
-v0.11
+v0.11b
+- warn about empty sequences & duplicated sequence IDs
+v0.11a
 - speed-up: load sequence slice if requested
 - return reverse complement if start > stop ie. `-r contig1:100-10`
 """
@@ -17,9 +19,10 @@ class FastaIndex(object):
     """Facilitate Fasta index (.fai) operations compatible
     with samtools faidx (http://www.htslib.org/doc/faidx.html).
     """
-    def __init__(self, handle, verbose=0):
+    def __init__(self, handle, verbose=0, log=sys.stderr):
         """ """
         self.verbose = verbose
+        self.log = log.write
         self.genomeSize = 0
         # guess handle
         if type(handle) is str and os.path.isfile(handle):
@@ -48,7 +51,7 @@ class FastaIndex(object):
     def _generate_index(self): 
         """Return fasta records"""
         if self.verbose:
-            sys.stderr.write("Generating FastA index...\n")
+            self.log("Generating FastA index...\n")
         header = ""
         seq = []
         self.id2stats = {}
@@ -58,6 +61,8 @@ class FastaIndex(object):
                     if header:
                         stats = self.get_stats(header, seq, offset)
                         seqid = self.get_id(header)
+                        if seqid in self.id2stats:
+                            self.log("[WARNING] Duplicated sequence ID: %s\n"%seqid)
                         self.id2stats[seqid] = stats
                         out.write("%s\t%s\n"%(seqid, "\t".join(map(str, stats))))
                     header = l
@@ -69,6 +74,8 @@ class FastaIndex(object):
             if header: 
                 stats = self.get_stats(header, seq, offset)
                 seqid = self.get_id(header)
+                if seqid in self.id2stats:
+                    self.log("[WARNING] Duplicated sequence ID: %s\n"%seqid)
                 self.id2stats[seqid] = stats
                 out.write("%s\t%s\n"%(seqid, "\t".join(map(str, stats))))
 
@@ -159,7 +166,7 @@ class FastaIndex(object):
             else:
                 contig = region
         elif not contig:
-            sys.stderr.write("Provide region or contig!\n")
+            self.log("Provide region or contig!\n")
             return            
         # get record
         record = self.__getitem__(contig, start, stop)
@@ -180,13 +187,19 @@ class FastaIndex(object):
             linebases = set(len(s.strip()) for s in seq[:-1])   
             linebytes = set(len(s) for s in seq[:-1])
             if len(linebases)>1:
-                sys.stderr.write("[WARNING] Uneven line lengths in %s: %s\n"%(header, ",".join(map(str, linebases))))        
+                self.log("[WARNING] Uneven line lengths in %s: %s\n"%(header, ",".join(map(str, linebases))))        
             linebases, linebytes = max(linebases), max(linebytes)
-        else:
+        elif len(seq)==1:
             linebases, linebytes = len(seq[0].strip()), len(seq[0])
+        # handle empty sequences https://github.com/lpryszcz/redundans/issues/13
+        else:
+            linebases, linebytes = 60, 61 #len(seq[0].strip()), len(seq[0])
         seq = "".join(s.strip() for s in seq)
         seqlen = len(seq)
         self.genomeSize += seqlen
+        # warn about empty sequences
+        if not seqlen:
+            self.log("[WARNING] No sequence for: %s\n"%header[1:-1])            
         # count ACGT
         bases = {'A': 0, 'C': 0, 'G': 0, 'T': 0, 'N': 0}
         for b in seq.upper():
@@ -204,7 +217,7 @@ def main():
     parser	= argparse.ArgumentParser(description=desc, epilog=epilog, \
                                           formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('--version', action='version', version='0.11a')	 
+    parser.add_argument('--version', action='version', version='0.11b')	 
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")	
     parser.add_argument("-i", "--fasta", type=file, 

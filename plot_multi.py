@@ -104,7 +104,6 @@ def plot(handles, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
     #add subplots labels
     ax.set_xlabel(xlab)#, fontsize=30)
     ax.set_ylabel(ylab)#, fontsize=30)
-    ax.legend(loc=legendLoc)
     #plot legend only if collapsed
     if xlog:
     	ax.set_xscale('log')
@@ -118,7 +117,9 @@ def plot(handles, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
     else:
         fpath = out #handle.name+".png"
         fformat = fpath.split('.')[-1] 
-        plt.savefig(fpath, dpi=300, format=fformat, orientation='landscape', transparent=False)
+        plt.savefig(fpath.replace(fformat,'nolegend.'+fformat), dpi=300, format=fformat, orientation='landscape', transparent=False)
+        ax.legend(loc=legendLoc)
+        plt.savefig(fpath, dpi=300, format=fformat, orientation='landscape', transparent=False)        
         sys.stderr.write("Figure written to: %s\n" % fpath)
     
     
