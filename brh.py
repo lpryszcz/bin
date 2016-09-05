@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-desc="""Report orthologs in means of best reciprocal hits (BRH) between two proteomes. 
+desc="""Report orthologs in means of best reciprocal hits (BRH) between two proteomes.
+
+TBD:
+- 2x faster if subprocess implemented
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Bratislava, 11/04/2016
