@@ -61,8 +61,9 @@ def get_new_runs(fqdir, raw):
         rundir = os.path.dirname(fpath)
         runID  = os.path.basename(rundir)
         outdir = os.path.join(fqdir, runID)
-        # report only if run completed and given runID is not already processed
-        if _isCompleted(fpath) and not _isProcessed(outdir):
+        sampleSheetFpath = os.path.join(rundir, "SampleSheet.csv")
+        # report only if run completed and given runID is not already processed AND SampleSheet.csv present
+        if _isCompleted(fpath) and not _isProcessed(outdir) and os.path.isfile(sampleSheetFpath):
             fpath2 = os.path.join(rundir, "RunParameters.xml")
             expID = get_experiment_id(fpath2)
             yield rundir, outdir, runID, expID
