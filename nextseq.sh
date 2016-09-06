@@ -30,11 +30,11 @@ echo "" >> $EMAILMESSAGE
 # email subject
 SUBJECT="[nextseq]"
 # Email To ?
-EMAIL="lpryszcz@iimcb.gov.pl"
+EMAIL="lpryszcz@iimcb.gov.pl mlapinski@iimcb.gov.pl"
 echo "Greetings from $host :)" >> $EMAILMESSAGE
 
 # send an email using /bin/mail only if WARNING in $EMAILMESSAGE
 grep=`grep WARNING $EMAILMESSAGE`
 if [ ! -z "$grep" ]; then 
-    mail -s "$SUBJECT" "$EMAIL" < $EMAILMESSAGE
+    mail -s "$SUBJECT" $EMAIL < $EMAILMESSAGE
 fi
