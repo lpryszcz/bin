@@ -36,5 +36,5 @@ echo "Greetings from $host :)" >> $EMAILMESSAGE
 # send an email using /bin/mail only if WARNING in $EMAILMESSAGE
 grep=`grep WARNING $EMAILMESSAGE`
 if [ ! -z "$grep" ]; then 
-    mail -s "$SUBJECT" "$EMAIL" < $EMAILMESSAGE
+    mail -s "$SUBJECT" $EMAIL < $EMAILMESSAGE
 fi
