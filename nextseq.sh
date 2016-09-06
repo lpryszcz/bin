@@ -30,7 +30,7 @@ echo "" >> $EMAILMESSAGE
 # email subject
 SUBJECT="[nextseq]"
 # Email To ?
-EMAIL="lpryszcz@iimcb.gov.pl"
+EMAIL="lpryszcz@iimcb.gov.pl mlapinski@iimcb.gov.pl"
 echo "Greetings from $host :)" >> $EMAILMESSAGE
 
 # send an email using /bin/mail only if WARNING in $EMAILMESSAGE
