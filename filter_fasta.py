@@ -12,11 +12,12 @@ from datetime import datetime
 from Bio import SeqIO
 
 def filter_fasta(handle, minLength=0, upper=0, simpleHeader=False, window=50, \
-                 skip_xs=0, skip_ns=0):
+                 skip_xs=0, skip_ns=0, totalSize=0):
   """
   """
+  totsize = 0
   for r in SeqIO.parse(handle, 'fasta'):
-    if minLength and len(str(r.seq))<minLength: continue
+    if minLength and len(r)<minLength: continue
     #
     j=0
     seq='%s\n' % r.seq[j:j+window]
@@ -32,6 +33,10 @@ def filter_fasta(handle, minLength=0, upper=0, simpleHeader=False, window=50, \
     if upper: seq=seq.upper()
     if simpleHeader:  print '>%s\n%s' % ( r.id,         seq )
     else:             print '>%s\n%s' % ( r.description,seq )
+    # break if total size exceeded
+    totsize += len(r)
+    if totalSize and totsize>totalSize:
+      break
 
 def main():
 
@@ -42,6 +47,8 @@ def main():
                         help="input stream [stdin]")
     parser.add_argument("-l", "--minLength", dest="minLength", default=0, type=int,
                         help="define minimal length of transcript")
+    parser.add_argument("-t", "--totalSize", default=0, type=int,
+                        help="max size to output")
     parser.add_argument("-s", "--simpleHeader", action="store_true", default=False,
                         help="simplify header f.e. '101751 length 5971 cvg_62.5_tip_0' > '101751' ")
     parser.add_argument("-v", "--verbose", action="store_true", default=False,
@@ -62,7 +69,7 @@ def main():
         sys.stderr.write("Options: %s\n"%str(o))
   
     filter_fasta(o.input, o.minLength, o.upper, o.simpleHeader, o.lineLenght, \
-                 o.skip_xs, o.skip_ns)
+                 o.skip_xs, o.skip_ns, o.totalSize)
 
 if __name__=='__main__': 
     t0  = datetime.now()
