@@ -4,6 +4,7 @@ desc="""FastA index (.fai) handler compatible with samtools faidx (http://www.ht
 CHANGELOG:
 v0.11b
 - warn about empty headers, sequences & duplicated sequence IDs
+- retrieve sequences single-line FASTA correctly
 v0.11a
 - speed-up: load sequence slice if requested
 - return reverse complement if start > stop ie. `-r contig1:100-10`
@@ -31,8 +32,11 @@ class FastaIndex(object):
             if handle.name.endswith(('.gz','.bz')):
                 raise Exception("Compressed files are currently not supported!")
             self.handle = handle
+        else:
+            sys.stderr.write("[ERROR] Couldn't guess handle for %s\n"%str(handle))
+            sys.exit(1)
             
-        self.fasta  = handle.name
+        self.fasta  = self.handle.name
         self.faidx  = self.fasta + ".fai"
         # create new index if no .fai or .fai younger than .fasta
         if not os.path.isfile(self.faidx) or \
@@ -53,11 +57,11 @@ class FastaIndex(object):
         if header:
             # get seqid and sequence stats
             seqid = self.get_id(header)
-            stats = self.get_stats(header, seq, offset)
             # catch empty headers
             if not seqid:
-                self.log("[WARNING] No header at line: %s\n"%pi)
+                self.log("[WARNING] No header at line: %s\n"%", ".join(map(str, (pi,seqid,header))))
                 return
+            stats = self.get_stats(header, seq, offset)
             # warn about empty sequences
             if not stats[0]:
                 self.log("[WARNING] No sequence for: %s at line: %s\n"%(seqid, pi))
@@ -84,6 +88,7 @@ class FastaIndex(object):
                     pi = i
                 else:
                     seq.append(l)
+            # process last entry
             self.__process_seqentry(out, header, seq, offset, pi)
 
     def _load_fai(self):
@@ -107,8 +112,8 @@ class FastaIndex(object):
         """Iterate over the keys."""
         for seqid in self.id2stats: #sorted(self.id2stats.keys(), key=lambda x: self.id2stats[x][1]):
             yield seqid
-            
-    def __getitem__(self, key, start=None, stop=None):
+
+    def __getitem__(self, key, start=None, stop=None, name=None):
         """x.__getitem__(y) <==> x[y]"""
         if key not in self.id2stats:
             raise KeyError
@@ -126,11 +131,14 @@ class FastaIndex(object):
             if start>stop:
                 reverse_complement = 1
                 start, stop = stop, start
+            if stop > size:
+                stop = size
             # 1-base, inclusive end
             start -= 1
             # get bytesize and update offset
             offset += start / linebases * linebytes + start % linebases
-            bytesize = (stop-start) / linebases * linebytes + (stop-start) % linebases
+            realsize = stop-start
+            bytesize = realsize / linebases * linebytes + realsize % linebases
             # read sequence slice
             self.handle.seek(offset)
             seq = self.handle.read(bytesize).replace('\n', '')
@@ -141,12 +149,17 @@ class FastaIndex(object):
         # load whole sequence record
         else:
             # get bytesize
-            bytesize = size / linebases * linebytes + size % linebases + linediff
+            bytesize = size / linebases * linebytes + size % linebases
+            ## add line diff for last line only for multiline fasta if last line is not complete
+            if size / linebytes and size % linebases:
+                bytesize += linediff 
             # read entire sequence
             self.handle.seek(offset)
             seq = self.handle.read(bytesize)
-            
-        record = ">%s\n%s"%(seqid, seq)
+        # update name
+        if not name:
+            name = seqid
+        record = ">%s\n%s"%(name, seq)
         return record
 
     def get_reverse_complement(self, seq):
