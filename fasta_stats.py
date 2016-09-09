@@ -23,7 +23,10 @@ def fasta_stats(handle):
     size = sum(lengths)
     lengths1000 = [l for l in lengths if l>=1000]
     contigs1000 = len(lengths1000)
-    A, C, G, T = map(sum, zip(*[stats[-4:] for stats in id2stats.itervalues()]))
+    basecounts = map(sum, zip(*[stats[-4:] for stats in id2stats.itervalues()]))
+    if len(basecounts)!=4:
+        return "%s\t[ERROR] Couldn't read file content\n"%handle.name
+    (A, C, G, T) = counts
     GC = 100.0*(G+C)/(A+T+G+C)
     nonACGT = size - A - C - G - T
     # N50 & N90
