@@ -4,6 +4,7 @@ desc="""FastA index (.fai) handler compatible with samtools faidx (http://www.ht
 CHANGELOG:
 v0.11c
 - auto-regenerate .fai if corrupted
+- symlink .fai if fasta itself is symlink
 - warn about empty/corrupted files
 - solved 1-off problem for sequences ending with completely full last line
 v0.11b
@@ -20,12 +21,24 @@ Bratislava, 15/06/2016
 import os, sys
 from datetime import datetime
 
+def symlink(file1, file2):
+    """Create symbolic link taking care of real path."""
+    if not os.path.isfile(file2):
+        # check if need for absolute path
+        file1abs = os.path.join(os.path.realpath(os.path.curdir), file1)
+        if os.path.isfile(file1abs):
+            os.symlink(file1abs, file2)
+        # otherwise create symbolic link without full path
+        else:
+            os.symlink(file1, file2)
+
 class FastaIndex(object):
     """Facilitate Fasta index (.fai) operations compatible
     with samtools faidx (http://www.htslib.org/doc/faidx.html).
     """
     def __init__(self, handle, verbose=0, log=sys.stderr):
         """ """
+        ext = ".fai"
         self.verbose = verbose
         self.log = log.write
         self.genomeSize = 0
@@ -41,7 +54,14 @@ class FastaIndex(object):
             sys.exit(1)
             
         self.fasta  = self.handle.name
-        self.faidx  = self.fasta + ".fai"
+        self.faidx  = self.fasta + ext
+        # check if fasta is symlink
+        if not os.path.isfile(self.faidx) and os.path.islink(self.fasta):
+            _fasta = os.path.realpath(self.fasta)
+            _faidx = _fasta+ext
+            # symlink faidx if faidx exists and linked fasta is older than its faidx
+            if os.path.isfile(_faidx) and os.stat(_fasta).st_mtime < os.stat(_faidx).st_mtime:
+                symlink(_faidx, self.faidx)
         # create new index if no .fai, .fai loading failed or .fai younger than .fasta
         if not os.path.isfile(self.faidx) or not self._load_fai() or \
            os.stat(self.fasta).st_mtime > os.stat(self.faidx).st_mtime:
@@ -233,7 +253,31 @@ class FastaIndex(object):
                 except:
                     errors += 1
         return (seqlen, offset, linebases, linebytes, \
-                bases['A'], bases['C'], bases['G'], bases['T'])    
+                bases['A'], bases['C'], bases['G'], bases['T'])
+
+    def sort(self, reverse=1, minLength=0, genomeFrac=0):
+        """Return list of contigs sorted by descending size (reverse=1).
+
+        The list of returned contigs can be limited by: 
+        - minLength  - return contigs longer than bases [0]
+        - genomeFrac - return the longest contigs until genomeFrac is reached [all]
+        """
+        # get all contigs
+        contigs = self.id2stats.keys()
+        contigi = len(contigs)
+        # filter by contig length
+        if minLength:
+            contigs = filter(lambda x: self.id2stats[x][0]>=minLength, self.id2stats)
+        # sort by descending size
+        sorted_contigs = sorted(contigs, key=lambda x: self.id2stats[x][0], reverse=reverse)
+        # filter longest contigs by genome fraction
+        if genomeFrac:
+            totsize = 0
+            for contigi, c in enumerate(sorted_contigs, 1):
+                totsize += self.id2stats[c][0]
+                if totsize >= genomeFrac*self.genomeSize:
+                    break
+        return sorted_contigs[:contigi]
 
 def main():
     import argparse
