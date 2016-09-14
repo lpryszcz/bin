@@ -8,14 +8,14 @@ epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 14/09/2016
 """
 
-import math, os, resource, sys
+import math, os, re, resource, sys
 from datetime import datetime
-#from Bio import SeqIO
-from collections import Counter
-import numpy as np
+from collections import Counter, defaultdict
 
 nucleotides = 'ACGT'
 DNAcomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+
+npat = re.compile(r'N+')
 
 # from RapSi
 def memory_usage():
@@ -49,10 +49,10 @@ def get_entropy(seq):
     
 def dnaseq2mers(seq, kmer, step, entropy=1.0, alphabet=list(nucleotides)):
     """Kmers generator for DNA seq"""
-    mers = [] #set()
-    for _seq in filter(lambda x: len(x)>=kmer, seq.split('N')):
-        for s in xrange(0, len(_seq)-kmer, step):
-            mer = seq[s:s+kmer]
+    mers = [] 
+    for _seq in filter(lambda x: len(x)>=kmer, npat.split(seq)):
+        for s in range(0, len(_seq)-kmer, step):
+            mer = _seq[s:s+kmer]
             # skip kmer if N inside or entropy too low        
             if get_entropy(mer) < entropy:
                 continue
@@ -71,16 +71,16 @@ def count_mers(handle, kmer, step, limit, entropy, verbose):
             sys.stderr.write(" %s %s kmers [%s MB]\r"%(i, len(mer2count), memory_usage()))
         # skip read if entropy too low
         if get_entropy(seq) < entropy:
-            #print "Low entropy %s: %s" % (get_entropy(seq), seq)
             continue
         # add mers
         for m in dnaseq2mers(seq, kmer, step, entropy):
             mer2count[m] += 1
     if verbose:
         sys.stderr.write(" %s %s kmers [%s MB]\n"%(i, len(mer2count), memory_usage()))
-    return mer2count
+    return mer2count, i
 
-## assembly
+## de Bruijn assembly
+# adapted from https://pmelsted.wordpress.com/2013/11/23/naive-python-implementation-of-a-de-bruijn-graph/
 def fw(km):
     for x in 'ACGT':
         yield km[1:]+x
@@ -89,109 +89,126 @@ def bw(km):
     for x in 'ACGT':
         yield x + km[:-1]
     
-def contig_to_string(c):
+def contig2string(c):
     return c[0] + ''.join(x[-1] for x in c[1:])
 
-def get_contig(d,km):
-    c_fw = get_contig_forward(d,km)
-    
-    c_bw = get_contig_forward(d,twin(km))
-
-    if km in fw(c_fw[-1]):
-        c = c_fw
-    else:
-        c = [twin(x) for x in c_bw[-1:0:-1]] + c_fw
-    return contig_to_string(c),c
-        
-
-def get_contig_forward(d,km):
-    c_fw = [km]
-    
+def get_contig_forward(mer2count, mer):
+    c_fw = [mer]
     while True:
-        if sum(x in d for x in fw(c_fw[-1])) != 1:
+        if sum(x in mer2count for x in fw(c_fw[-1])) != 1:
             break
-        
-        cand = [x for x in fw(c_fw[-1]) if x in d][0]
-        if cand == km or cand == twin(km):
-            break # break out of cycles or mobius contigs
+        cand = [x for x in fw(c_fw[-1]) if x in mer2count][0]
+        # break out of cycles or mobius contigs
+        if cand == mer or cand == twin(mer):
+            break
+        # break out of hairpins
         if cand == twin(c_fw[-1]):
-            break # break out of hairpins
-        
-        if sum(x in d for x in bw(cand)) != 1:
+            break 
+        if sum(x in mer2count for x in bw(cand)) != 1:
             break
-
         c_fw.append(cand)
-
     return c_fw
 
-def all_contigs(d,k):
-    done = set()
-    r = []
-    for x in d:
-        if x not in done:
-            s,c = get_contig(d,x)
-            for y in c:
-                done.add(y)
-                done.add(twin(y))
-            r.append(s)
-    
-    G = {}
-    heads = {}
-    tails = {}
-    for i,x in enumerate(r):
-        G[i] = ([],[])
-        heads[x[:k]] = (i,'+')
-        tails[twin(x[-k:])] = (i,'-')
-    
-    for i in G:
-        x = r[i]
-        for y in fw(x[-k:]):
-            if y in heads:
-                G[i][0].append(heads[y])
-            if y in tails:
-                G[i][0].append(tails[y])
-        for z in fw(twin(x[:k])):
-            if z in heads:
-                G[i][1].append(heads[z])
-            if z in tails:
-                G[i][1].append(tails[z])
+def get_contig(mer2count, mer):
+    """Return sequence of contig and list of its kmers"""
+    c_fw = get_contig_forward(mer2count, mer)
+    if mer in fw(c_fw[-1]):
+        c = c_fw
+    else:
+        c_bw = get_contig_forward(mer2count, twin(mer))
+        c = [twin(x) for x in c_bw[-1:0:-1]] + c_fw
+    return contig2string(c), c
 
-    return G,r
+def get_contigs(mer2count):
+    """Return sequences of contigs"""
+    contigs, done = [], set()
+    for mer in mer2count:
+        if mer in done:
+            continue
+        # get contig and its kmers
+        seq, mers = get_contig(mer2count, mer)
+        contigs.append(seq)
+        # update done
+        done.update(mers + map(reverse_complement, mers))
+    return contigs
 
-def print_GFA(G,cs,k):
-    print "H  VN:Z:1.0"
-    for i,x in enumerate(cs):
-        print "S\t%d\t%s\t*"%(i,x)
-        
-    for i in G:
-        for j,o in G[i][0]:
-            print "L\t%d\t+\t%d\t%s\t%dM"%(i,j,o,k-1)
-        for j,o in G[i][1]:
-            print "L\t%d\t-\t%d\t%s\t%dM"%(i,j,o,k-1)
+##
+# adapted from http://stackoverflow.com/a/11091454/632242
+def getsubs(loc, s):
+    substr = s[loc:]
+    i = -1
+    while(substr):
+        yield substr
+        substr = s[loc:i]
+        i -= 1
 
-def save_contigs(out, cs):
-    for i, x in enumerate(cs, 1):
-        out.write('>contig%d\n%s\n'%(i, x))
+def longestRepetitiveSubstring(r, minocc=2):
+    occ = defaultdict(int)
+    # tally all occurrences of all substrings
+    for i in range(len(r)):
+        for sub in getsubs(i,r):
+            occ[sub] += 1
+
+    # filter out all substrings with fewer than minocc occurrences
+    occ_minocc = [k for k,v in occ.items() if v >= minocc]
+
+    if occ_minocc:
+        maxkey =  max(occ_minocc, key=len)
+        return maxkey, occ[maxkey]
+    #else:
+    #    raise ValueError("no repetitions of any substring of '%s' with %d or more occurrences" % (r, minocc))
+    return '', 0
 ##
     
-def fastq2telomers(handle, out, kmer, step, limit, entropy, verbose):
+def get_telomers(seq, minlength=5):
+    """Return likely telomers or telomer repeats"""
+    telomers = []
+    while seq: 
+        seq, i = longestRepetitiveSubstring(seq)
+        if len(seq) > minlength:
+            telomers.append(seq)
+    return telomers
+    
+def fastq2telomers(handle, out, kmer, step, limit, minlength, minfreq, entropy, verbose):
     """Return likely telomer sequences"""
     # get common kmers
-    mer2count = count_mers(handle, kmer, step, limit, entropy, verbose)
-    for mer, c in mer2count.most_common(10):
-        print mer, c
+    if verbose:
+        sys.stderr.write("Counting kmers in reads...\n")
+    mer2count, reads = count_mers(handle, kmer, step, limit, entropy, verbose)
+    if reads < 1e5:
+        sys.stderr.write("[WARNING] Only %s reads processed! Consider processing large pool of reads...\n"%reads)
 
-    # remove not frequent kmers
-    for mer in filter(lambda x: mer2count[x]<10, mer2count):
+    meri = sum(mer2count.itervalues())
+    if verbose:
+        sys.stderr.write("%s occurences of %s %s-kmers\n"%(meri, len(mer2count), kmer))
+        for mer, c in mer2count.most_common(10):
+            sys.stderr.write(" %s %s\n" % (mer, c))
+
+    # remove rare kmers
+    mincount = round(minfreq*meri if minfreq*meri > 1 else 1)
+    if verbose:
+        sys.stderr.write("Removing rare kmers (< %s) ...\n"%minfreq)
+    for mer in filter(lambda x: mer2count[x] <= mincount, mer2count):
         del mer2count[mer]
+    if verbose:
+        sys.stderr.write(" %s kmers kept.\n"%len(mer2count))
         
     # assemble common kmers
-    G, cs = all_contigs(mer2count, kmer)
-    save_contigs(out, cs) 
-
-    # select most likely telomere - the contig having repeats
-    
-
+    if verbose:
+        sys.stderr.write("Assembly...\n")
+    contigs = get_contigs(mer2count)
+        
+    # select most likely telomere
+    if verbose:
+        sys.stderr.write("Reporting most likely telomeres...\n")
+    k = 0
+    for i, seq in enumerate(contigs, 1):
+        telomers = get_telomers(seq, minlength)
+        k += len(telomers)
+        out.write('>contig%d putative telomers: %s\n%s\n'%(i, "; ".join(telomers), seq))
+    if verbose:
+        sys.stderr.write(" %s contigs & %s putative telomers stored.\n"%(i, k))
+        
 def main(): 
     import argparse
     usage   = "%(prog)s -v"
@@ -203,7 +220,7 @@ def main():
                         help="input stream [stdin]")
     parser.add_argument("-o", "--output", default=sys.stdout, type=argparse.FileType("w"), 
                         help="input stream [stdout]")
-    parser.add_argument("-k", "--kmer", default=21, type=int, 
+    parser.add_argument("-k", "--kmer", default=41, type=int, 
                         help="word size [%(default)s]")
     parser.add_argument("-s", "--step", default=1, type=int, 
                         help="step [%(default)s]")
@@ -211,13 +228,18 @@ def main():
                         help="process only this amount of reads [all]")
     parser.add_argument("-e", "--entropy", default=1.0, type=float, 
                         help="min Shannon entropy of kmer [%(default)s]")
+    parser.add_argument("-f", "--minfreq", default=1e-05, type=float, 
+                        help="min frequency of kmer [%(default)s]")
+    parser.add_argument("-m", "--minlength", default=5, type=int, 
+                        help="min telomer length [%(default)s]")
                         
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
     # 
-    fastq2telomers(o.input, o.output, o.kmer, o.step, o.limit, o.entropy, o.verbose)
+    fastq2telomers(o.input, o.output, o.kmer, o.step, o.limit, o.minlength,
+                   o.minfreq, o.entropy, o.verbose)
     
 if __name__=='__main__': 
     t0  = datetime.now()
