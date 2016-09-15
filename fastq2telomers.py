@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-desc="""Recover telomers from short reads.
-
-- mer as int 1:54 104Mb
-- mer as str 0:56 140Mb
+desc="""Find putative telomers in short reads.
 """
 epilog="""Author: l.p.pryszcz@gmail.com
 Mizerow, 14/09/2016
@@ -59,7 +56,8 @@ def dnaseq2mers(seq, kmer, step, entropy=1.0, alphabet=list(nucleotides)):
             # store kmer and its reverse complement
             mers += [mer, reverse_complement(mer)]
     return mers
-
+##
+    
 def count_mers(handle, kmer, step, limit, entropy, verbose):
     """Return most common kmers"""
     fq2seq = (l.strip() for j, l in enumerate(handle) if j%4==1)
@@ -79,62 +77,68 @@ def count_mers(handle, kmer, step, limit, entropy, verbose):
         sys.stderr.write(" %s %s kmers [%s MB]\n"%(i, len(mer2count), memory_usage()))
     return mer2count, i
 
-## de Bruijn assembly
-# adapted from https://pmelsted.wordpress.com/2013/11/23/naive-python-implementation-of-a-de-bruijn-graph/
-def fw(km):
-    for x in 'ACGT':
-        yield km[1:]+x
+def fw(mer, alphabet='ACGT'):
+    """Generator of forward mers for given mer"""
+    for base in alphabet:
+        yield mer[1:] + base
 
-def bw(km):
-    for x in 'ACGT':
-        yield x + km[:-1]
+def bw(mer, alphabet='ACGT'):
+    """Generator of reverse mers for given mer"""
+    for base in alphabet:
+        yield base + mer[:-1]
     
-def contig2string(c):
-    return c[0] + ''.join(x[-1] for x in c[1:])
+def contig2string(mers):
+    """Return contig sequence, this is a concatenation of first mer and
+    last character of following mers
+    """
+    return mers[0] + ''.join(mer[-1] for mer in mers[1:])
 
 def get_contig_forward(mer2count, mer):
-    c_fw = [mer]
+    """Return mers of contig that given mer belongs to"""
+    mers = [mer]
     while True:
-        if sum(x in mer2count for x in fw(c_fw[-1])) != 1:
+        # if forward-degree of the last mer (sum of True/False) != 1 then break the contig
+        if sum(x in mer2count for x in fw(mers[-1])) != 1:
             break
-        cand = [x for x in fw(c_fw[-1]) if x in mer2count][0]
-        # break out of cycles or mobius contigs
-        if cand == mer or cand == twin(mer):
+        _mer = [x for x in fw(mers[-1]) if x in mer2count][0]
+        # break out of cycles or mobius contigs OR harpins OR not forward mer
+        if _mer == mer or _mer == twin(mer) or _mer == twin(mers[-1]) or \
+           sum(x in mer2count for x in bw(_mer)) != 1:
             break
-        # break out of hairpins
-        if cand == twin(c_fw[-1]):
-            break 
-        if sum(x in mer2count for x in bw(cand)) != 1:
-            break
-        c_fw.append(cand)
-    return c_fw
-
+        # store next mers
+        mers.append(_mer)
+    return mers
+    
 def get_contig(mer2count, mer):
     """Return sequence of contig and list of its kmers"""
-    c_fw = get_contig_forward(mer2count, mer)
-    if mer in fw(c_fw[-1]):
-        c = c_fw
-    else:
+    mers = get_contig_forward(mer2count, mer)
+    # get backward contigs if not forward
+    if mer not in fw(mers[-1]):
         c_bw = get_contig_forward(mer2count, twin(mer))
-        c = [twin(x) for x in c_bw[-1:0:-1]] + c_fw
-    return contig2string(c), c
-
+        mers = [twin(x) for x in c_bw[-1:0:-1]] + mers
+    return contig2string(mers), mers
+    
 def get_contigs(mer2count):
-    """Return sequences of contigs"""
-    contigs, done = [], set()
+    """Return sequences of contigs
+    Adapted from: https://github.com/pmelsted/dbg
+    """
+    contigs, coverages, done = [], [], set()
     for mer in mer2count:
+        # skip already processed
         if mer in done:
             continue
         # get contig and its kmers
         seq, mers = get_contig(mer2count, mer)
-        contigs.append(seq)
+        contigs.append(seq)        
+        # get kmer coverage
+        cov = 1.0 * sum(mer2count[mer] for mer in mers) / len(mers)
+        coverages.append(cov)
         # update done
         done.update(mers + map(reverse_complement, mers))
-    return contigs
+    return contigs, coverages
 
-##
-# adapted from http://stackoverflow.com/a/11091454/632242
 def getsubs(loc, s):
+    """Get substring"""
     substr = s[loc:]
     i = -1
     while(substr):
@@ -142,34 +146,35 @@ def getsubs(loc, s):
         substr = s[loc:i]
         i -= 1
 
-def longestRepetitiveSubstring(r, minocc=2):
+def get_longest_repetitive_substring(seq, minocc=2):
+    """Return longest repetitive substring and its number of occurrences.
+    Return empty str and 0 if no substring having at least minocc occurrences is found. 
+    Adapted from http://stackoverflow.com/a/11091454/632242
+    """
     occ = defaultdict(int)
     # tally all occurrences of all substrings
-    for i in range(len(r)):
-        for sub in getsubs(i,r):
+    for i in range(len(seq)):
+        for sub in getsubs(i, seq):
             occ[sub] += 1
 
     # filter out all substrings with fewer than minocc occurrences
-    occ_minocc = [k for k,v in occ.items() if v >= minocc]
-
+    occ_minocc = [k for k, v in occ.items() if v >= minocc]
+    # return longest 
     if occ_minocc:
         maxkey =  max(occ_minocc, key=len)
         return maxkey, occ[maxkey]
-    #else:
-    #    raise ValueError("no repetitions of any substring of '%s' with %d or more occurrences" % (r, minocc))
     return '', 0
-##
     
 def get_telomers(seq, minlength=5):
     """Return likely telomers or telomer repeats"""
     telomers = []
     while seq: 
-        seq, i = longestRepetitiveSubstring(seq)
+        seq, i = get_longest_repetitive_substring(seq)
         if len(seq) > minlength:
             telomers.append(seq)
     return telomers
     
-def fastq2telomers(handle, out, kmer, step, limit, minlength, minfreq, entropy, verbose):
+def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, verbose):
     """Return likely telomer sequences"""
     # get common kmers
     if verbose:
@@ -179,33 +184,33 @@ def fastq2telomers(handle, out, kmer, step, limit, minlength, minfreq, entropy, 
         sys.stderr.write("[WARNING] Only %s reads processed! Consider processing large pool of reads...\n"%reads)
 
     meri = sum(mer2count.itervalues())
-    if verbose:
-        sys.stderr.write("%s occurences of %s %s-kmers\n"%(meri, len(mer2count), kmer))
+    if verbose: 
+        sys.stderr.write("%s occurrences of %s %s-kmers\n"%(meri, len(mer2count), kmer))
         for mer, c in mer2count.most_common(10):
             sys.stderr.write(" %s %s\n" % (mer, c))
 
     # remove rare kmers
-    mincount = round(minfreq*meri if minfreq*meri > 1 else 1)
+    mincount = mer2count.most_common(topmers)[-1][1]
+    mincount = mincount if mincount > 1 else 2
     if verbose:
-        sys.stderr.write("Removing rare kmers (< %s) ...\n"%minfreq)
-    for mer in filter(lambda x: mer2count[x] <= mincount, mer2count):
-        del mer2count[mer]
+        sys.stderr.write("Removing rare kmers (< %s occurrences) ...\n"%mincount)
+    mer2count = {mer: c for mer, c in mer2count.iteritems() if c >= mincount}
     if verbose:
         sys.stderr.write(" %s kmers kept.\n"%len(mer2count))
         
     # assemble common kmers
     if verbose:
         sys.stderr.write("Assembly...\n")
-    contigs = get_contigs(mer2count)
+    contigs, coverages = get_contigs(mer2count)
         
     # select most likely telomere
     if verbose:
         sys.stderr.write("Reporting most likely telomeres...\n")
     k = 0
-    for i, seq in enumerate(contigs, 1):
+    for i, (cov, seq) in enumerate(sorted(zip(coverages, contigs), reverse=1), 1):
         telomers = get_telomers(seq, minlength)
         k += len(telomers)
-        out.write('>contig%d putative telomers: %s\n%s\n'%(i, "; ".join(telomers), seq))
+        out.write('>contig%d cov: %.2f putative telomers: %s\n%s\n'%(i, cov, "; ".join(telomers), seq))
     if verbose:
         sys.stderr.write(" %s contigs & %s putative telomers stored.\n"%(i, k))
         
@@ -224,14 +229,16 @@ def main():
                         help="word size [%(default)s]")
     parser.add_argument("-s", "--step", default=1, type=int, 
                         help="step [%(default)s]")
-    parser.add_argument("-l", "--limit", default=0, type=float, 
+    parser.add_argument("-l", "--limit", default=1e6, type=float, 
                         help="process only this amount of reads [all]")
     parser.add_argument("-e", "--entropy", default=1.0, type=float, 
                         help="min Shannon entropy of kmer [%(default)s]")
-    parser.add_argument("-f", "--minfreq", default=1e-05, type=float, 
-                        help="min frequency of kmer [%(default)s]")
+    #parser.add_argument("-f", "--minfreq", default=1e-05, type=float, 
+    #                    help="min frequency of kmer [%(default)s]")
     parser.add_argument("-m", "--minlength", default=5, type=int, 
                         help="min telomer length [%(default)s]")
+    parser.add_argument("-t", "--topmers", default=200, type=int, 
+                        help="no. of top occurring kmer to use [%(default)s]")
                         
     o = parser.parse_args()
     if o.verbose:
@@ -239,7 +246,7 @@ def main():
 
     # 
     fastq2telomers(o.input, o.output, o.kmer, o.step, o.limit, o.minlength,
-                   o.minfreq, o.entropy, o.verbose)
+                   o.topmers, o.entropy, o.verbose)
     
 if __name__=='__main__': 
     t0  = datetime.now()
