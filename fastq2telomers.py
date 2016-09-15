@@ -63,7 +63,8 @@ def count_mers(handle, kmer, step, limit, entropy, verbose):
     fq2seq = (l.strip() for j, l in enumerate(handle) if j%4==1)
     mer2count = Counter()
     for i, seq in enumerate(fq2seq, 1):
-        if limit and i>limit:
+        # consider adding mer2count limit instead of read limit #len(mer2count)>1e5 or 
+        if limit and len(mer2count)>limit:
             break
         if verbose and not i%1e3:
             sys.stderr.write(" %s %s kmers [%s MB]\r"%(i, len(mer2count), memory_usage()))
@@ -215,8 +216,8 @@ def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, 
     meri = sum(mer2count.itervalues())
     if verbose: 
         sys.stderr.write("%s occurrences of %s %s-kmers\n"%(meri, len(mer2count), kmer))
-        for mer, c in mer2count.most_common(10):
-            sys.stderr.write(" %s %s\n" % (mer, c))
+        #for mer, c in mer2count.most_common(10):
+        #    sys.stderr.write(" %s %s\n" % (mer, c))
 
     # remove rare kmers
     mincount = mer2count.most_common(topmers)[-1][1]
@@ -236,7 +237,7 @@ def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, 
         
     # select most likely telomere
     if verbose:
-        sys.stderr.write("Reporting most likely telomeres...\n")
+        sys.stderr.write("Reporting most likely telomeric repeats...\n")
     k = 0
     subrepeats, trs = [], []
     for seq in contigs:
@@ -275,7 +276,7 @@ def main():
     parser.add_argument("-s", "--step", default=1, type=int, 
                         help="step [%(default)s]")
     parser.add_argument("-l", "--limit", default=1e6, type=float, 
-                        help="process only this amount of reads [all]")
+                        help="process until reaching this amount of kmers [%(default)s]")
     parser.add_argument("-e", "--entropy", default=1.0, type=float, 
                         help="min Shannon entropy of kmer [%(default)s]")
     #parser.add_argument("-f", "--minfreq", default=1e-05, type=float, 
