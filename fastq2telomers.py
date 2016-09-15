@@ -166,13 +166,42 @@ def get_longest_repetitive_substring(seq, minocc=2):
     return '', 0
     
 def get_telomers(seq, minlength=5):
-    """Return likely telomers or telomer repeats"""
-    telomers = []
-    while seq: 
-        seq, i = get_longest_repetitive_substring(seq)
-        if len(seq) > minlength:
-            telomers.append(seq)
-    return telomers
+    """Return lists of the longest repeatitive substrings and likely telomeric repeat"""
+    repeats = []
+    # get longest repetitive substrings
+    _seq = seq
+    while _seq: 
+        _seq, i = get_longest_repetitive_substring(_seq)
+        if len(_seq) > minlength:
+            repeats.append(_seq)
+    # check telomers
+    if repeats:
+        repeat = repeats[-1]
+        starts = [m.start() for m in re.compile(repeat).finditer(seq)]
+        if len(starts)<2:
+            return repeats, ''
+        trs = []
+        for i in range(len(starts)-1):
+            s, e = starts[i:i+2]
+            tr = seq[s:e]
+            # check if continues
+            s1, s2 = tr, seq[e:e+len(tr)]
+            ## check if telomeric repeat is before and after - this is quite restrictive!
+            # make sure s1 is shorter than s2 (contig may be short)
+            if len(s2)<len(s1):
+                s1, s2 = s2, s1
+            e1, e2 = tr, seq[0:s]
+            if len(e2)<len(e1):
+                e1, e2 = e2, e1
+            # only valid telomeric repeat if telomeric repeat sequence is repeated
+            if s2.startswith(s1) and e2.endswith(e1):
+                trs.append(tr)
+            else:
+                return repeats, ''
+        if trs and len(set(trs))==1:
+            tr = trs[0]
+            return repeats, tr
+    return repeats, ''
     
 def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, verbose):
     """Return likely telomer sequences"""
@@ -202,17 +231,33 @@ def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, 
     if verbose:
         sys.stderr.write("Assembly...\n")
     contigs, coverages = get_contigs(mer2count)
+    if verbose:
+        sys.stderr.write(" %s bp in %s contigs [%s Mb].\n"%(sum(len(c) for c in contigs), len(contigs), memory_usage()))
         
     # select most likely telomere
     if verbose:
         sys.stderr.write("Reporting most likely telomeres...\n")
     k = 0
-    for i, (cov, seq) in enumerate(sorted(zip(coverages, contigs), reverse=1), 1):
-        telomers = get_telomers(seq, minlength)
-        k += len(telomers)
-        out.write('>contig%d cov: %.2f putative telomers: %s\n%s\n'%(i, cov, "; ".join(telomers), seq))
-    if verbose:
+    subrepeats, trs = [], []
+    for seq in contigs:
+        repeats, tr = get_telomers(seq, minlength)
+        subrepeats.append(repeats)
+        trs.append(tr)
+        if tr:
+            k +=1
+    i = 0
+    for i, (cov, seq, repeats, tr) in enumerate(sorted(zip(coverages, contigs, subrepeats, trs), reverse=1), 1):
+        if i==1:
+            maxcov = cov
+        # report only trs if any present
+        if k and not tr:
+            continue
+        repeats, telomeric_repeat = get_telomers(seq, minlength)
+        header = "contig%d cov:%.2f telomeric_repeat:%s|%s substrings:%s"%(i, cov, telomeric_repeat, reverse_complement(telomeric_repeat), ";".join(repeats), )
+        out.write('>%s\n%s\n'%(header, seq))
+    if verbose and i:
         sys.stderr.write(" %s contigs & %s putative telomers stored.\n"%(i, k))
+        sys.stderr.write("  contigs kmer coverage: %.2f - %.2f.\n"%(maxcov, cov))
         
 def main(): 
     import argparse
@@ -237,7 +282,7 @@ def main():
     #                    help="min frequency of kmer [%(default)s]")
     parser.add_argument("-m", "--minlength", default=5, type=int, 
                         help="min telomer length [%(default)s]")
-    parser.add_argument("-t", "--topmers", default=200, type=int, 
+    parser.add_argument("-t", "--topmers", default=500, type=int, 
                         help="no. of top occurring kmer to use [%(default)s]")
                         
     o = parser.parse_args()
