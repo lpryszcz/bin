@@ -64,7 +64,7 @@ def count_mers(handle, kmer, step, limit, entropy, verbose):
     mer2count = Counter()
     for i, seq in enumerate(fq2seq, 1):
         # consider adding mer2count limit instead of read limit #len(mer2count)>1e5 or 
-        if limit and len(mer2count)>limit:
+        if limit and len(mer2count) > limit:
             break
         if verbose and not i%1e3:
             sys.stderr.write(" %s %s kmers [%s MB]\r"%(i, len(mer2count), memory_usage()))
@@ -258,7 +258,7 @@ def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, 
         out.write('>%s\n%s\n'%(header, seq))
     if verbose and i:
         sys.stderr.write(" %s contigs & %s putative telomers stored.\n"%(i, k))
-        sys.stderr.write("  contigs kmer coverage: %.2f - %.2f.\n"%(maxcov, cov))
+        sys.stderr.write("  contigs kmer coverage: %.2f - %.2f.\n"%(cov, maxcov))
         
 def main(): 
     import argparse
@@ -266,7 +266,7 @@ def main():
     parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
   
     parser.add_argument("-v", dest="verbose",  default=False, action="store_true", help="verbose")    
-    parser.add_argument('--version', action='version', version='1.4a')   
+    parser.add_argument('--version', action='version', version='1.0a')   
     parser.add_argument("-i", "--input", default=sys.stdin, type=file, 
                         help="input stream [stdin]")
     parser.add_argument("-o", "--output", default=sys.stdout, type=argparse.FileType("w"), 
@@ -277,13 +277,13 @@ def main():
                         help="step [%(default)s]")
     parser.add_argument("-l", "--limit", default=1e6, type=float, 
                         help="process until reaching this amount of kmers [%(default)s]")
-    parser.add_argument("-e", "--entropy", default=1.0, type=float, 
+    parser.add_argument("-e", "--entropy", default=0.75, type=float, 
                         help="min Shannon entropy of kmer [%(default)s]")
     #parser.add_argument("-f", "--minfreq", default=1e-05, type=float, 
     #                    help="min frequency of kmer [%(default)s]")
     parser.add_argument("-m", "--minlength", default=5, type=int, 
                         help="min telomer length [%(default)s]")
-    parser.add_argument("-t", "--topmers", default=500, type=int, 
+    parser.add_argument("-t", "--topmers", default=1000, type=int, 
                         help="no. of top occurring kmer to use [%(default)s]")
                         
     o = parser.parse_args()
