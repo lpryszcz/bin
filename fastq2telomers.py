@@ -13,6 +13,7 @@ nucleotides = 'ACGT'
 DNAcomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 
 npat = re.compile(r'N+')
+cdc31 = re.compile(r'GT..GG|CC..AC')
 
 # from RapSi
 def memory_usage():
@@ -254,7 +255,11 @@ def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, 
         if k and not tr:
             continue
         repeats, telomeric_repeat = get_telomers(seq, minlength)
-        header = "contig%d cov:%.2f telomeric_repeat:%s|%s substrings:%s"%(i, cov, telomeric_repeat, reverse_complement(telomeric_repeat), ";".join(repeats), )
+        # check for Cdc31 binding site
+        cdc31binding = ""
+        if cdc31.findall(telomeric_repeat*2):
+            cdc31binding = "Cdc31_binding_site!"
+        header = "contig%d cov:%.2f telomeric_repeat:%s|%s %s substrings:%s"%(i, cov, telomeric_repeat, reverse_complement(telomeric_repeat), cdc31binding, ";".join(repeats), )
         out.write('>%s\n%s\n'%(header, seq))
     if verbose and i:
         sys.stderr.write(" %s contigs & %s putative telomers stored.\n"%(i, k))
@@ -275,7 +280,7 @@ def main():
                         help="word size [%(default)s]")
     parser.add_argument("-s", "--step", default=1, type=int, 
                         help="step [%(default)s]")
-    parser.add_argument("-l", "--limit", default=1e6, type=float, 
+    parser.add_argument("-l", "--limit", default=5e6, type=float, 
                         help="process until reaching this amount of kmers [%(default)s]")
     parser.add_argument("-e", "--entropy", default=0.75, type=float, 
                         help="min Shannon entropy of kmer [%(default)s]")
@@ -283,7 +288,7 @@ def main():
     #                    help="min frequency of kmer [%(default)s]")
     parser.add_argument("-m", "--minlength", default=5, type=int, 
                         help="min telomer length [%(default)s]")
-    parser.add_argument("-t", "--topmers", default=1000, type=int, 
+    parser.add_argument("-t", "--topmers", default=50000, type=int, 
                         help="no. of top occurring kmer to use [%(default)s]")
                         
     o = parser.parse_args()
