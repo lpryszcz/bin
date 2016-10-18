@@ -212,7 +212,7 @@ def fastq2telomers(handle, out, kmer, step, limit, minlength, topmers, entropy, 
         sys.stderr.write("Counting kmers in reads...\n")
     mer2count, reads = count_mers(handle, kmer, step, limit, entropy, verbose)
     if reads < 1e5:
-        sys.stderr.write("[WARNING] Only %s reads processed! Consider processing large pool of reads...\n"%reads)
+        sys.stderr.write("[WARNING] Only %s reads processed! Consider processing larger pool of reads...\n"%reads)
 
     meri = sum(mer2count.itervalues())
     if verbose: 
