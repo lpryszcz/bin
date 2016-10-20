@@ -6,7 +6,7 @@ Decypher has to be run with following output format:
 [field] querylocus, targetlocus, rank, status, score, significance, querystart, queryend, querylength, targetstart, targetend, targetlength, gaps, matches, similarity
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 25/04/2012
 """

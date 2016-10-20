@@ -4,7 +4,7 @@ epilog = """Takes two files containing gene and read counts info (bam2counts.py 
 Note, gene counts has to be already normalised (RPKMs)! Use bam2counts.py for that;)
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 25/04/2012
 """

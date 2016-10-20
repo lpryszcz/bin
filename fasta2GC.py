@@ -2,7 +2,7 @@
 desc="""Report GC content.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 12/11/2013
 """

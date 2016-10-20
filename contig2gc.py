@@ -2,7 +2,7 @@
 """Reports GC of every chromosome/contig.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 15/06/2012
 """

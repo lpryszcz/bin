@@ -2,7 +2,7 @@
 """Return number of reads aligned to each gene.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 25/04/2012
 """

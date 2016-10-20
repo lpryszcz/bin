@@ -3,7 +3,7 @@
 combining best matches to all target sequences from all query file.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 24/05/2012
 """

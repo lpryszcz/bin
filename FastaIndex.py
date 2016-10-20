@@ -14,7 +14,7 @@ v0.11a
 - speed-up: load sequence slice if requested
 - return reverse complement if start > stop ie. `-r contig1:100-10`
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Bratislava, 15/06/2016
 """
 

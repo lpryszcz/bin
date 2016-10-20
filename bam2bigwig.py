@@ -12,7 +12,7 @@ Require:
 TBD:
 - you can avoid genome fasta if faidx is generated from bam header
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 25/02/2015
 """
 import os, pysam, resource, sys

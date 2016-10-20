@@ -2,7 +2,7 @@
 desc="""Plot histogram
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 29/11/2012
 """

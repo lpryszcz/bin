@@ -2,7 +2,7 @@
 desc="""Select subset of fastq files.
 Support single and paired-end and mate-pair libraries. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 6/03/2015
 """
 

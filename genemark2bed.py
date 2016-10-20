@@ -5,7 +5,7 @@ USAGE:
 genemark2bedGraph.py *.gdata [> bedGraph]
 
 AUTHOR:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 17/07/2012
 """

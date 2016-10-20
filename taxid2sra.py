@@ -8,7 +8,7 @@ DEPENDENCIES:
 Biopython
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 2/10/2012
 """

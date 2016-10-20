@@ -6,7 +6,7 @@ Prerequisites:
  bowtie2 aligner (http://bowtie-bio.sourceforge.net/bowtie2/)
  zlib [to enable -z]
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Barcelona, 16/05/2012
 """
 

@@ -23,7 +23,7 @@ ver 1.0:
 - 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona/Mizerow, 9/05/2013
 """

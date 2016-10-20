@@ -3,7 +3,7 @@ desc="""Report SAM entries with mismatches >= m.
 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 26/10/2012
 """

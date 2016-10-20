@@ -4,7 +4,7 @@ desc="""Report orthologs in means of best reciprocal hits (BRH) between two prot
 TBD:
 - 2x faster if subprocess implemented
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Bratislava, 11/04/2016
 """
 

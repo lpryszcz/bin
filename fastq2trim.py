@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Trim fastq alignments.
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Bratislava, 16/09/2015
 """
 

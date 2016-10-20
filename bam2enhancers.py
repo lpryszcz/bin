@@ -14,7 +14,7 @@ CHANGELOG:
 v1.1
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Warsaw, 8/10/2015
 """

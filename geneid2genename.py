@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Combine values for geneids and report summed values for genes. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Warsaw, 30/09/2015
 """
 

@@ -6,7 +6,7 @@ Use repeats2fasta.py to generate it.
 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 20/10/2012
 """

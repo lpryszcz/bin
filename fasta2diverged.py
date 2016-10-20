@@ -3,7 +3,7 @@ desc="""Return sequences diverged by given percentage compares to input.
 LOH sizes are drawn from log-normal distribution. 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Mizerow, 4/03/2014
 """

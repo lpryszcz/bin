@@ -4,7 +4,7 @@ Buffered stdin sorting.
 Don't see a way for this to work:/
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 23/05/2012
 """

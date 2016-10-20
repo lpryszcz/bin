@@ -6,7 +6,7 @@ CHANGELOG:
 - mpileup options added
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 28/06/2012
 """

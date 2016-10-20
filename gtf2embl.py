@@ -3,7 +3,7 @@ desc="""Report embl for gtf file.
 Note: require Biopython 1.62+
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 14/06/2013
 """

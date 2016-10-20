@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Select rows from given files based on first column entry. Ordered as example set. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Warsaw, 30/09/2015
 """
 

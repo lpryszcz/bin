@@ -10,7 +10,7 @@ Command:
 ./phylome2orthologs.py -p 120 -s 9999991,9999992,9999993,9999998,CANPA
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 19/04/2012
 """

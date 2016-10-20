@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Calculate correlation over particular columns
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Warsaw, 30/09/2015
 """
 

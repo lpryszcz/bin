@@ -4,7 +4,7 @@ Parse multi-fasta file and report sequences without overlap
 with already reported. Starts from the longest.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Dublin, 29/08/2012
 """

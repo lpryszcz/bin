@@ -2,7 +2,7 @@
 """Generate Latex template based on xls file. 
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Dolny Smokovec, 19/08/2016
 """

@@ -2,7 +2,7 @@
 """Save all proteins from given phylome.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 29/05/2012
 """

@@ -2,7 +2,7 @@
 desc="""Filter fasta file according to given filter.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 2012
 """

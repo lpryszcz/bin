@@ -2,7 +2,7 @@
 desc="""Generate batch file for IGV
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Mizerow, 17/03/2014
 """

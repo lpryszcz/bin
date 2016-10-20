@@ -2,7 +2,7 @@
 desc="""Simulate R heterozygous genome(s) and report their statistics. 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Mizerow, 5/03/2015
 """

@@ -11,7 +11,7 @@ Note: As Excell 97-2003 stores row number as 16 bit integer,
 it can handle 65536 rows at max! There is not way around this:/
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 21/03/2012
 """

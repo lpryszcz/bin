@@ -6,7 +6,7 @@ v1.3
 - calculate FPKM for salmon output
 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 8/05/2015
 """
 

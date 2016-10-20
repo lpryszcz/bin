@@ -4,7 +4,7 @@ desc="""Fold sequences from BED file and report visual representation.
 CHANGELOG:
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Warsaw, 1/09/2015
 """

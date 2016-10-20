@@ -10,7 +10,7 @@ CHANGELOG:
 -- 
 """
 epilog="""
-Author: l.p.pryszcz@gmail.com
+Author: l.p.pryszcz+git@gmail.com
 Warsaw, 4/11/2015
 """
 

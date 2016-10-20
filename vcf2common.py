@@ -2,7 +2,7 @@
 desc="""Get common SNPs
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Sosnowiec, 8/11/2012
 """

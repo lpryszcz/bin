@@ -7,7 +7,7 @@ TO ADD:
 - recognise heterozygous contigs with translocations
 - add min contig length, ignore shorter contigs
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 26/08/2014
 """
 

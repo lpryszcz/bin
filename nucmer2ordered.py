@@ -2,7 +2,7 @@
 """Order contigs based on nucmer output.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 14/06/2012
 """

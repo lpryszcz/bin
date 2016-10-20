@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Annotate DESeq results. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 
 Mizerow, 2014/02/22
 """

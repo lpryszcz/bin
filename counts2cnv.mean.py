@@ -6,7 +6,7 @@ Note, gene counts has to be already normalised (RPKMs)!
 CHECK LINE80 - NOT TESTED CHANGES!
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 25/04/2012
 """

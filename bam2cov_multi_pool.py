@@ -9,7 +9,7 @@ Dependencies:
 TDB:
 - define minimum overlap
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 30/03/2015
 """
 

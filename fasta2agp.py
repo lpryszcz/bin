@@ -2,7 +2,7 @@
 desc="""Generate AGP from scaffolds FASTA.
 """
 epilog="""AUTHOR:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Mizerow, 27/02/2014
 """

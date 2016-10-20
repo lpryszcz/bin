@@ -3,7 +3,7 @@ desc="""Report CNVs from read counts in genome windows (BED).
 """
 epilog="""Author:
 Leszek Pryszcz
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Mizerow, 01/02/2014
 """

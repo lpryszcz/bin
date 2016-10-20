@@ -6,7 +6,7 @@ Reads (and their pairs if -p) not passing filtering are discarded.
 Orphaned reads may be store optionally (-u).
 """
 epilog="""Author:
-Leszek Pryszcz/l.p.pryszcz@gmail.com
+Leszek Pryszcz/l.p.pryszcz+git@gmail.com
 Modified by Salvador Capella-Gutierrez/salcagu@gmail.com
 
 Barcelona, 01/01/2014

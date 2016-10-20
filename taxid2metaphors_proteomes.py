@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Fetch proteomes of taxa from given group form metaPhOrs. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 17/07/2014
 """
 

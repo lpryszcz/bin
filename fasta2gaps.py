@@ -2,7 +2,7 @@
 desc="""Report BED of gaps for given genome
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 3/10/2012
 """

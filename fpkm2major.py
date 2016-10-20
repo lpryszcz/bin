@@ -20,7 +20,7 @@ v1.1
 v1.0
 - cufflinks supported (isoforms.fpkm_tracking)
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 6/05/2015
 """
 

@@ -5,7 +5,7 @@ show-coords -r $ref.r.delta > $ref.r.coords
 coords2ordered.py -i $ref.r.coords -f query.fasta  > query.ordered.txt
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 26/02/2013 Barcelona
 """

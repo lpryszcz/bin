@@ -10,7 +10,7 @@ Note, FASTQ libraries need to be
 To be done:
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Mizerow/Warsaw, 17/10/2014
 """

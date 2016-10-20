@@ -2,7 +2,7 @@
 desc="""Concatenate multiple fasta files into phylip alignment.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Girona/Cracow, 6/11/2012
 """

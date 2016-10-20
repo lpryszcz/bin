@@ -4,7 +4,7 @@ desc="""Report BED intervals matching regex expressions.
 NOTE: Support for --bothStrands is experimental. It should handle [] well,
 but probably won't handle {} in your regex. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Warsaw, 9/09/2015
 """
 

@@ -3,7 +3,7 @@ desc="""Report SAM entries with multiple matches.
 NOTE: SAM has to be readname sorted. 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 16/1/2013
 """

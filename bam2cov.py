@@ -13,7 +13,7 @@ CHANGELOG:
 v1.1
 - skip counting read2 for paired-end libs (like samtools view -F 128)
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 30/03/2015
 """
 

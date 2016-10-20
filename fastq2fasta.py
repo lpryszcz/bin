@@ -3,7 +3,7 @@ desc="""Convert FastQ to FASTA.
 Optionally store quals in separate file.
 """
 epilog="""
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 Barcelona, 10/05/2013
 """
  

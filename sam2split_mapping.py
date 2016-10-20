@@ -3,7 +3,7 @@ desc="""Parse BWASW sam output and convert split matches into pair-end fastq.
 NOTE: sam has to be sorted by read name (default BWASW output)
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 18/1/2013
 """

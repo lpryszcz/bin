@@ -2,7 +2,7 @@
 desc="""Report sites with differences between bam files. 
 """
 epilog="""AUTHOR:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Mizerow, 25/02/2014
 """

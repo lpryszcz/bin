@@ -2,7 +2,7 @@
 """Parses multiple files and find common rows between these.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 17/04/2012
 """

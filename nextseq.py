@@ -6,7 +6,7 @@ but not yet successfully converted (no .fastq files).
 Dependencies:
 - bcl2fastq 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Warsaw, 11/01/2016
 """
 

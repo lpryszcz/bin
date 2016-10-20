@@ -3,7 +3,7 @@
 Parse BED and print only passing count criteria.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Dublin, 4/09/2012
 """

@@ -2,7 +2,7 @@
 desc="""Retrieve and concatenate transcripts counts from flux capacitor GTF files. 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 12/02/2014 Barcelona
 """

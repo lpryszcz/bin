@@ -2,7 +2,7 @@
 desc="""Parse BWA MEM sam output and report reads matching two contigs.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 2/08/2013
 """

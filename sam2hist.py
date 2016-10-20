@@ -3,7 +3,7 @@ desc="""Report histogram for given insert size data
 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 18/10/2012
 """

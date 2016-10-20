@@ -5,7 +5,7 @@ v1.1:
 - added expression for all controls, as this cause misunderstandings sometimes
 """
 epilog="""AUTHOR:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 17/07/2012
 """

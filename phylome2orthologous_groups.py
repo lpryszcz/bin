@@ -5,7 +5,7 @@ It adds orthologs (and in-paralogs) to the group until outgroup species found.
 TBD: Add one2one testing!
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 8/07/2013
 """

@@ -3,7 +3,7 @@ desc="""Retrieve SRA files for given SRA accessions.
 Currently handles only experiments accessions (SRX......).
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 28/09/2012
 """

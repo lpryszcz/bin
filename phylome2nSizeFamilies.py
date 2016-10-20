@@ -6,7 +6,7 @@ Require:
 ete2
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 4/05/2012
 """

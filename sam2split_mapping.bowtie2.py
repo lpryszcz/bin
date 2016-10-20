@@ -2,7 +2,7 @@
 desc="""Parse bowtie2 local bam and report split reads for partially aligned reads.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 18/1/2013
 """

@@ -2,7 +2,7 @@
 desc="""Split FASTA on gaps
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 14/05/2015
 """

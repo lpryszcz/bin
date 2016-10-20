@@ -14,7 +14,7 @@ Require MUMMER3 (repeat-match):
 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 19/10/2012
 """

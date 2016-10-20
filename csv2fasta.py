@@ -2,7 +2,7 @@
 """Retrieve fasta sequences from multifasta for given ids loaded from input file.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 29/05/2012
 """

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Filter pairs with at least one read aligned. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 25/06/2014
 """
 import os, sys

@@ -3,7 +3,7 @@ desc="""Convert sam to fastq/fastq.
 NOTE: sam has to be sorted by read name if paired output requested!
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Dublin, 28/06/2012
 """

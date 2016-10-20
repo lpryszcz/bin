@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""2D plot"""
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 10/05/2013
 """

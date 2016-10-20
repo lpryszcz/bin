@@ -2,7 +2,7 @@
 desc="""Filter BED entries by coverage
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 Mizerow, 2014/02/14
 """
 

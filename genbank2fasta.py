@@ -2,7 +2,7 @@
 desc="""Fetch entires from NCBI.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona/Mizerow, 23/02/2014
 """

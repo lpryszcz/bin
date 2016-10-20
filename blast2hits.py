@@ -2,7 +2,7 @@
 """Report matches stats from blast.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 16/05/2012
 """

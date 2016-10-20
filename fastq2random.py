@@ -3,7 +3,7 @@ desc="""Report random entries from FastQ/FastA file(s).
 Support uncompressed or BGZIP compressed files. 
 Headers need to have the same name in FastQ/FastA files. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 13/10/2014
 """
 

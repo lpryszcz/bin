@@ -21,7 +21,7 @@ To be done:
 Dependencies:
 - pysam (sudo easy_install -U pysam)
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 13/03/2014
 """
 

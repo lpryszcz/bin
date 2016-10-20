@@ -3,7 +3,7 @@ desc="""Parse augustus GFF and save genes, cds and protein sequences.
 Not reporting flanking sequence so far.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 1/08/2013
 """

@@ -2,7 +2,7 @@
 """Report queries with no match from blast.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Dublin, 17/07/2012
 """

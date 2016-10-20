@@ -4,7 +4,7 @@ If coordinates are provided in header name (chrI:200-300) the script will use th
 NOTE: coordinates are 0-based, half-open (BED,python) by default. 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Girona/Cracow, 6/11/2012
 """

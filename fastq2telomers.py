@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 desc="""Find putative telomers in short reads.
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow, 14/09/2016
 """
 

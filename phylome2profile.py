@@ -6,7 +6,7 @@ problems to resolve:
 
 Code based on neptune:~/assembly_trial/virulence/profile.py
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Barcelona/Mizerow, 14/02/2012
 """
 

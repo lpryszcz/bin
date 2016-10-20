@@ -5,7 +5,7 @@ http://biopython.org/DIST/docs/tutorial/Tutorial.html#sec343
 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 13/05/2014
 """

@@ -9,7 +9,7 @@ Normalise by GC?
 
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 1/10/2012
 """

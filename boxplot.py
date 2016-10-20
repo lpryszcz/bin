@@ -2,7 +2,7 @@
 desc="""Plot boxplot
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Warsaw, 23/12/2015
 """

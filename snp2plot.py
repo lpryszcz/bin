@@ -5,7 +5,7 @@ It ignores contigs without SNPs and having size smaller than twice of the window
 It can handle vcf and bam2snps.py output files.
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 21/03/2012
 """

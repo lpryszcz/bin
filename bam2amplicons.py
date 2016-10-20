@@ -5,7 +5,7 @@ CHANGELOG:
 v1.1
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Bratislava, 17/09/2015
 """

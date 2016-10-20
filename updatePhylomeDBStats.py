@@ -4,7 +4,7 @@ species and genomes. In addition, checks for web-serwer stats from last week i.e
 the most common query etc.
 NOTE: Need to be run from cgenomics.
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Barcelona/Mizerow, 25/06/2014
 """
 

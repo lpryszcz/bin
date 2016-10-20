@@ -2,7 +2,7 @@
 desc="""Parse BED and print stats.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Dublin, 4/09/2012
 """

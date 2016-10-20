@@ -6,7 +6,7 @@ USAGE:
 cat infile | gb2fasta.py > outfile
 
 Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 """
 
 import sys

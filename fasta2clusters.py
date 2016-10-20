@@ -4,7 +4,7 @@ desc="""Report distance matrix between proteins.
 Dependencies:
 - Biopython, numpy & scipy
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Bratislava, 28/04/2016
 """
 

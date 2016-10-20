@@ -4,7 +4,7 @@ desc="""Report FASTA statistics. Support gzipped files.
 Statistics are stored as .fai formatted file (http://www.htslib.org/doc/faidx.html),
 with 4 extended columns, storing counts for A, C, G & T for each sequence. 
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Mizerow/Bratislava, 26/08/2014
 """
 

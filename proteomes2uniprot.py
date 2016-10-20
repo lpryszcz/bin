@@ -3,7 +3,7 @@ desc="""Crosslink given proteomes and uniprot.
 Using md5 hashing to detect the same proteins.
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 6/11/2013
 """

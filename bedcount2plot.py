@@ -7,7 +7,7 @@ for f in *.bam; do if [ ! -s $f.gff.bed ]; then echo `date` $f; bedtools coverag
 Note: outname has to finish with one of the following: png, pdf, ps, eps and svg
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Barcelona, 14/03/2013
 """

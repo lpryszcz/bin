@@ -13,7 +13,7 @@ TBD:
 - multithreading support
 """
 epilog="""Author:
-l.p.pryszcz@gmail.com
+l.p.pryszcz+git@gmail.com
 
 Warsaw, 21/07/2015
 """
