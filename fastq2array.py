@@ -26,13 +26,20 @@ def logger(message, log=sys.stdout):
 
 def fasta2windows(fasta, windowSize, verbose):
     """Generate windows over chromosomes"""
+    # make sure no spaces in FastA
+    fn = fasta.name
+    grepout = commands.getoutput('grep ">" %s | grep -m1 " "'%fn)
+    if grepout:
+        logger("Removing spaces from FastA...")
+        os.system('mv %s %s.bck && cut -f1 -d" " %s.bck > %s'%(fn, fn, fn, fn))
+    # 
     if verbose:
         logger("Parsing FastA file...")
     # init fasta index
     faidx = FastaIndex(fasta)
-    # filter windows
-    ## ADD fitler by mean chromosome / contig size
-    windowSize = filter(lambda x: 1000*x<0.01*faidx.genomeSize and 1000*x>0.00001*faidx.genomeSize, windowSize)
+    # filter windows so they are smaller than largest chr and withing reasonalbe range toward genome size
+    maxchrlen = max(faidx.id2stats[c][0] for c in faidx)
+    windowSize = filter(lambda x: 1000*x<maxchrlen and 1000*x<0.01*faidx.genomeSize and 1000*x>0.00001*faidx.genomeSize, windowSize)
     if verbose:
         logger(" selected %s windows [kb]: %s"%(len(windowSize), str(windowSize)))
     windowSize = [w*1000 for w in windowSize]
@@ -40,11 +47,16 @@ def fasta2windows(fasta, windowSize, verbose):
     windows, chr2window = [[] for w in windowSize], [{} for w in windowSize]
     genomeSize = 0
     base2chr = {}
+    skipped = []
     for i, c in enumerate(faidx, 1): #.sort(minLength=minLength)
         if i%1e5 == 1:
             sys.stderr.write(' %s   \r'%i)
         # get windows
         size = faidx.id2stats[c][0]
+        # skip short contigs    
+        if size < min(windowSize):
+            skipped.append(size)
+            continue
         for i in range(len(windowSize)):
             # get starting window
             chr2window[i][c] = len(windows[i])
@@ -57,28 +69,11 @@ def fasta2windows(fasta, windowSize, verbose):
         # update genomeSize
         genomeSize += size
     if verbose:
-        logger(' %s bases in %s contigs divided in %s-%s windows.'%(faidx.genomeSize, len(faidx), len(windows[0]), len(windows[-1])))
+        logger(' %s bases in %s contigs divided in %s-%s windows. '%(faidx.genomeSize, len(faidx), len(windows[0]), len(windows[-1])))
+        if skipped:
+            logger('  %s bases in %s contigs <%sbp skipped.'%(sum(skipped), len(skipped), min(windowSize)))
     return windowSize, windows, chr2window, base2chr, faidx.genomeSize
-    
-def _get_bwamem_proc(fn1, fn2, ref, cores, verbose, log=sys.stderr):
-    """Return bwamem subprocess.
-    bufsize: 0 no buffer; 1 buffer one line; -1 set system default.
-    """
-    # create genome index
-    idxfn = ref + ".pac"
-    if not os.path.isfile(idxfn):
-        cmd = "bwa index %s" % (ref,)
-        if verbose:
-            log.write(" Creating index...\n  %s\n" % cmd)
-        bwtmessage = commands.getoutput(cmd)
-    # skip mate rescue
-    bwaArgs = ['bwa', 'mem', '-S', '-t', str(cores), ref, fn1, fn2 ]
-    if verbose:
-        log.write( "  %s\n" % " ".join(bwaArgs) )
-    #select ids
-    bwaProc = subprocess.Popen(bwaArgs, stdout=subprocess.PIPE, stderr=log)
-    return bwaProc
-    
+        
 def _get_snap_proc(fn1, fn2, ref, cores, verbose, log=sys.stderr, largemem=0):
     """Return snap-aligner subprocess.
     bufsize: 0 no buffer; 1 buffer one line; -1 set system default.
@@ -92,7 +87,8 @@ def _get_snap_proc(fn1, fn2, ref, cores, verbose, log=sys.stderr, largemem=0):
     if not os.path.isdir(idxfn):
         if verbose:
             log.write(" Creating index...\n  %s\n" % idxcmd)
-        bwtmessage = commands.getoutput(idxcmd)
+        idxmessage = commands.getoutput(idxcmd)
+        log.write(idxmessage)    
     # skip mate rescue
     args = ['snap-aligner', 'paired', idxfn, fn1, fn2, '--b', '-t', str(cores), '-o', '-sam', '-']
     if verbose:
@@ -151,8 +147,6 @@ def sam2array(a, windowSize, chr2window, outfn, fq1, fq2, ref, cores, mapq, upto
     j = 0
     for i, data in enumerate(parse_sam(proc.stdout), 1):
         q1, flag1, ref1, start1, mapq1, len1, q2, flag2, ref2, start2, mapq2, len2 = data
-        #if out:
-        #    out.write("\t".join(map(str, data))+"\n")
         if upto and i>upto:
             break
         if verbose and not i%1e4:
@@ -160,17 +154,19 @@ def sam2array(a, windowSize, chr2window, outfn, fq1, fq2, ref, cores, mapq, upto
         # skip low quality alignments
         if mapq:
             if mapq1 < mapq or mapq2 < mapq:
-                continue  
+                continue
         j += 1
+        if ref1 not in chr2window[0] or ref2 not in chr2window[0]:
+            continue
         # get windows
-        for i in range(len(windowSize)):
-            w1 = get_window(ref1, start1, len1, flag1, windowSize[i], chr2window[i])
-            w2 = get_window(ref2, start2, len2, flag2, windowSize[i], chr2window[i])
+        for ii in range(len(windowSize)):
+            w1 = get_window(ref1, start1, len1, flag1, windowSize[ii], chr2window[ii])
+            w2 = get_window(ref2, start2, len2, flag2, windowSize[ii], chr2window[ii])
             # matrix is symmetrix, so make sure to add only to one part
             if w2 < w1:
                 w1, w2 = w2, w1
             # update contact array
-            a[i][w1][w2] += 1
+            a[ii][w1][w2] += 1
     if verbose:
         info = " %s-%s:"%(fq1, fq2)
         if i: # %s in different windows [%.2f%s]. k, k*100.0/i, '%'
@@ -182,16 +178,6 @@ def sam2array(a, windowSize, chr2window, outfn, fq1, fq2, ref, cores, mapq, upto
     proc.terminate()
     return a
 
-def normalize_rows(a):
-    """Normalise rows of give array."""
-    rows, cols = a.shape
-    maxv = a.sum(axis=0).max()
-    for i in xrange(rows):
-        # only if any signal
-        if a[i].max():
-            a[i] *= maxv/a[i].sum()
-    return a
-    
 def plot(outfn, a, genomeSize, base2chr, _windowSize, dpi=300):
     """Save contact plot"""
     
@@ -225,14 +211,14 @@ def plot(outfn, a, genomeSize, base2chr, _windowSize, dpi=300):
     fig.savefig(outfn+".svg", dpi=dpi, papertype="a4")
 
 def fastq2array(fasta, fastq, outfn, windowSize, mapq=10, cores=1,
-                upto=float('inf'), dpi=300, verbose=1):
+                upto=float('inf'), dpi=300, dtype='uint16', verbose=1):
     """Convert SAM to SSPACE TAB file."""
     # get windows
     windowSize, windows, chr2window, base2chr, genomeSize = fasta2windows(fasta, windowSize, verbose)
     if verbose:
         logger("Mapping reads...")
     # init contact matrices
-    arrays = [np.zeros((len(w), len(w)), dtype='float16') for w in windows]
+    arrays = [np.zeros((len(w), len(w)), dtype=dtype) for w in windows]
         
     # and populate with reads
     for fq1, fq2 in zip(fastq[0::2], fastq[1::2]):
@@ -249,16 +235,12 @@ def fastq2array(fasta, fastq, outfn, windowSize, mapq=10, cores=1,
         # save windows
         with gzip.open(_outfn+".windows.tab.gz", "w") as out:
             out.write("\n".join("\t".join(map(str, w)) for w in _windows)+"\n")    
-            
-        # make symmetric & basic normalisation 
-        a = a + a.T - np.diag(a.diagonal())
-        #a = normalize_rows(a)
-        
+
         #save normalised
         with open(_outfn+".npz", "w") as out:
             np.savez_compressed(out, a)
 
-        if len(_windows)<15e3:
+        if len(_windows)<1e4:
             plot(_outfn, a, genomeSize, base2chr, _windowSize, dpi)
         elif verbose:
             sys.stderr.write("[WARNING] Very large matrix (%s x %s). Skipped plotting!\n"%(len(_windows), len(_windows)))
@@ -286,6 +268,8 @@ def main():
                         help="number of processes to use [%(default)s]")
     parser.add_argument("-d", "--dpi", default=300, type=int,
                         help="output images dpi [%(default)s]")
+    parser.add_argument("--dtype", default='float32', 
+                        help="numpy array data type (try uint16 if MemoryError for 100+k windows) [%(default)s]")
 
     o = parser.parse_args()
     if o.verbose:
@@ -311,7 +295,7 @@ def main():
         
     # process
     fastq2array(o.fasta, o.fastq, o.output, o.windowSize, o.mapq, o.threads,
-                o.upto, o.dpi, o.verbose)
+                o.upto, o.dpi, o.dtype, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()
