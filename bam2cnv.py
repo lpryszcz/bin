@@ -1,20 +1,16 @@
 #!/usr/bin/env python
-desc="""Report scaffolds by joining contigs based on contact matrix from BAM file. 
-
-TBD:
-- allow for fitting contig into gap within large contig?
-- distance estimation?
+desc="""Report CNVs (duplications & deletions) between reference and sample BAMs. 
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com
 Bratislava, 4/11/2016
 """
 
-import os, resource, subprocess, sys
-import scipy.cluster.hierarchy as sch
+import os, pysam, resource, subprocess, sys
 import numpy as np
 from datetime import datetime
 from collections import Counter
 from FastaIndex import FastaIndex
+from multiprocessing import Pool
 
 def logger(message, log=sys.stdout):
     """Log messages"""
@@ -55,74 +51,53 @@ def fasta2windows(fasta, windowSize, verbose=1):
             logger('  %s bases in %s contigs skipped.'%(sum(skipped), len(skipped)))
     return windowSize, windows, chr2window
 
-def _get_samtools_proc(bam, mapq=0, regions=[], skipFlag=3844):
-    """Return samtools subprocess"""
-    # skip unmapped, secondary, QC fails and supplementary algs
-    args = map(str, ['samtools', 'view', "-q", mapq, "-F", skipFlag, bam])
-    # add regions
-    if regions:
-        args += regions
-    # start subprocess
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
-    return proc
-
-def get_window(chrom, start, length, windowSize, chr2window):
-    """Return window alignment belongs to. """
-    end = start + length
-    # get middle position
-    pos = int(start+round((end-start)/2))
-    # get window
-    window = pos / windowSize + chr2window[chrom]
-    return window
-    
-def bam2array(windows, windowSize, chr2window, bam, mapq, regions=[], verbose=1):
+def bam2array(args): 
+    bamfn, sizes, windowSize, chr2window, flag = args
+    # init empty array
+    _arrays = [np.zeros(s, dtype='uint32') for s in sizes]
+    # open bam
+    sam = pysam.Samfile(bamfn)
+    for i, r in enumerate(sam, 1):
+        if not i%1e5:
+            sys.stderr.write(" %s %s [%.2f%s]      \r"%(bamfn, i, 100.*i/(sam.mapped+sam.unmapped),'%s'))
+        # skip unmapped, secondary, duplicates and suplementary alignments or 
+        if r.flag & flag or r.reference_name not in chr2window[0]:
+            continue
+        # get windows
+        for ii in range(len(windowSize)):
+            # get window
+            w = (r.pos + r.alen/2) / windowSize[ii] + chr2window[ii][r.reference_name]
+            # and update coverage
+            _arrays[ii][w] += 1
+    return i, _arrays
+              
+def get_arrays(sizes, windowSize, chr2window, bam, mapq, threads, verbose=1, flag=3844):
     """Return contact matrix based on BAM"""
-    i = 1
+    algs = 0
     arrays = []
     if verbose:
-        logger("Parsing %s BAM files..."%len(bam))
-    for _bam in bam:
-        # init empty array
-        _arrays = [np.zeros(len(w), dtype='uint32') for w in windows]
-        # init samtools
-        if verbose:
-            logger(" %s"%_bam)
-        proc = _get_samtools_proc(_bam, mapq, regions)
-        # process reads from given library
-        for i, line in enumerate(proc.stdout, i):
-            if verbose and not i%1e5:
-                sys.stderr.write(" %s \r"%i)
-            # unload data
-            ref1, start1, mapq, cigar, ref2, start2, insertSize, seq = line.split('\t')[2:10]
-            start1, start2, seqlen = int(start1), int(start2), len(seq)
-            # update ref if alignment in the same chrom
-            #if ref2 == "=": ref2 = ref1
-            # skip if contig not present in array
-            if ref1 not in chr2window[0]: # or ref2 not in chr2window[0]:
-                continue
-            # get windows
-            for ii in range(len(windowSize)):
-                w = get_window(ref1, start1, seqlen, windowSize[ii], chr2window[ii])
-                # update contact array
-                _arrays[ii][w] += 1
+        logger("Parsing %s BAM files using %s threads..."%(len(bam), threads))
+    iterator = [(bamfn, sizes, windowSize, chr2window, flag) for bamfn in bam]
+    p = Pool(threads)
+    for i, _arrays in p.imap(bam2array, iterator):
         # add arrays
         arrays.append(_arrays)
-        # stop subprocess
-        proc.terminate()
+        algs += i
     if verbose:
-        logger(" %s alignments parsed"%i)
+        logger("  %s alignments parsed"%algs)
     return arrays
 
-def bam2sv_ref(bam, fasta, out, windowSize, mapq=10, regions=[], verbose=1, ploidy=2, mindiff=0.75):
+def bam2sv_ref(bam, fasta, out, windowSize, mapq=10, threads=4, verbose=1, ploidy=2, mindiff=0.75):
     """Report likely duplications & deletions from coverage"""
     # generate windows
     windowSize, windows, chr2window = fasta2windows(fasta, windowSize, verbose)
-
-    if os.path.isfile("sv.npz"):
-        npy=np.load('sv.npz')
+    
+    if os.path.isfile("%s.npz"%out):
+        npy = np.load('%s.npz'%out)
         arrays = npy[npy.files[0]]
-    else:    
-        arrays = bam2array(windows, windowSize, chr2window, bam, mapq, regions=regions, verbose=verbose)
+    else:
+        sizes = [len(w) for w in windows]
+        arrays = get_arrays(sizes, windowSize, chr2window, bam, mapq, threads, verbose)
         # save
         np.savez_compressed(out, arrays)
     
@@ -132,13 +107,13 @@ def bam2sv_ref(bam, fasta, out, windowSize, mapq=10, regions=[], verbose=1, ploi
     for ii, _windowSize in enumerate(windowSize):
         # get normalised ref coverage
         ref = ploidy*arrays[0][ii]/arrays[0][ii].mean()
-        for jj in enumerate(bam[1:], 1):
+        for jj, bamfn in enumerate(bam[1:], 1):
             s = 2*arrays[jj][ii]/arrays[jj][ii].mean()
             # putative dup
             dups = filter(lambda x: len(x)>=5, consecutive(np.argwhere(s-ref > mindiff).T[0], stepsize=3))
             # putative del
             dels = filter(lambda x: len(x)>=5, consecutive(np.argwhere(ref-s > mindiff).T[0], stepsize=3))
-            # get only consecutive 3 and cluster
+            print bamfn, len(dups), len(dels)
 
 def consecutive(data, stepsize=1):
     return np.split(data, np.where(np.diff(data) > stepsize)[0]+1)
@@ -159,19 +134,21 @@ def main():
                         help="output name [%(default)s]")
     parser.add_argument("-q", "--mapq", default=10, type=int, 
                         help="min mapping quality for variants [%(default)s]")
-    parser.add_argument("-w", "--windowSize", nargs="+", default=[200], type=int,
+    parser.add_argument("-w", "--windowSize", nargs="+", default=[100], type=int,
                         help="window size [%(default)s]")
-    parser.add_argument("-r", "--regions", nargs="+", default=[], 
+    parser.add_argument("-t", "--threads", default=4, type=int,
+                        help="no. of processors to use [%(default)s]")
+    '''parser.add_argument("-r", "--regions", nargs="+", default=[], 
                         help="work only in these genomic regions [all]")
     parser.add_argument("-x", "--bed", default='', 
-                        help="BED file with intervals to exclude")
+                        help="BED file with intervals to exclude")'''
 
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
         
     # process
-    bam2sv_ref(o.bam, o.fasta, o.out, o.windowSize, o.mapq, o.regions, o.verbose)
+    bam2sv_ref(o.bam, o.fasta, o.out, o.windowSize, o.mapq, o.threads, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()
