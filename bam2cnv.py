@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 desc="""Report CNVs (duplications & deletions) between reference and sample BAMs. 
+
+TBD:
+- consider using changing vectors like in CNVnator
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com
 Bratislava, 4/11/2016
