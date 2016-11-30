@@ -37,7 +37,7 @@ def fastq2rec(handle):
     read = []
     for line in handle:
         #skip empty lines
-        line = line.strip()
+        line = line[:-1] #.strip()
         if not line:
             continue
         #store read info
