@@ -52,7 +52,7 @@ def fastq2fasta(handle, output, minLen, qualityTh, offset, bases, nproc=4, verbo
     p = Pool(nproc, initializer=init_args, initargs=(minLen, qualityTh, offset))
     #parse fastq
     i = totsize = 0
-    for i, (seqlen, fasta) in enumerate(p.imap_unordered(worker, fastq2rec(handle), chunksize=100), 1): #100 is the fastest but takes lots of RAM!
+    for i, (seqlen, fasta) in enumerate(p.imap_unordered(worker, fastq2rec(handle), chunksize=100), 1): 
         if not i%1e5:
             sys.stderr.write(' %s \r'%i)
         if not seqlen:
