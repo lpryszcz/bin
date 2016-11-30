@@ -32,6 +32,20 @@ def worker(read):
 
     return len(seq), '>%s\n%s\n' % (id[1:], seq)
 
+def process(reads, minLen, qualityTh, offset):
+    """Process reads on single core"""
+    for id, seq, spacer, quals in reads:
+        for i, (s, q) in enumerate(zip(seq, quals)):
+            if s == "N" or qualityTh and ord(q)-offset < qualityTh:
+                break
+        #skip if too short
+        if i < minLen:
+            yield 0, ''
+        else:
+            #trim seq
+            seq = seq[:i+1]
+            yield len(seq), '>%s\n%s\n' % (id[1:], seq)
+    
 def fastq2rec(handle):
     """Yield fastq records as tuple"""
     read = []
@@ -49,10 +63,14 @@ def fastq2rec(handle):
 
 def fastq2fasta(handle, output, minLen, qualityTh, offset, bases, nproc=4, verbose=1):
     """ """
-    p = Pool(nproc, initializer=init_args, initargs=(minLen, qualityTh, offset))
+    if nproc>1:
+        p = Pool(nproc, initializer=init_args, initargs=(minLen, qualityTh, offset))
+        parser = enumerate(p.imap_unordered(worker, fastq2rec(handle), chunksize=100), 1)
+    else:
+        parser = enumerate(process(fastq2rec(handle), minLen, qualityTh, offset), 1)
     #parse fastq
     i = totsize = 0
-    for i, (seqlen, fasta) in enumerate(p.imap_unordered(worker, fastq2rec(handle), chunksize=100), 1): 
+    for i, (seqlen, fasta) in parser:
         if not i%1e5:
             sys.stderr.write(' %s \r'%i)
         if not seqlen:
@@ -62,7 +80,7 @@ def fastq2fasta(handle, output, minLen, qualityTh, offset, bases, nproc=4, verbo
         totsize += seqlen
         # process up to bases
         if totsize > bases:
-            p.terminate()
+            if nproc>1: p.terminate()
             break
     sys.stderr.write('Reported %s bases from %s reads.\n'%(totsize, i))
     
