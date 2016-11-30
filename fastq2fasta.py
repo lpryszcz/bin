@@ -20,28 +20,16 @@ def worker(read):
     """ """
     global minLen, qualityTh, offset
     id, seq, spacer, quals = read
-    #cut @ Ns
-    if 'N' in seq:
-        iN = seq.index('N')
-        if iN < minLen:
-            return 0, ''
-        seq = seq[:iN]
-  	
-    #cut @ low quality
-    if qualityTh:
-        qualsL = []
-        for i in range(len(seq)):
-            q = quals[i]
-            if ord(q)-offset < qualityTh:
-                break
-            qualsL.append(q)
-        #skip if too short	
-        if i < minLen:
-            return 0, ''
-        #trim seq
-        seq = seq[:i+1]
 
-    #store fasta "\n".join(seq[i:i+100] for i in range(0,len(seq),100))
+    for i, (s, q) in enumerate(zip(seq, quals)): 
+        if s == "N" or qualityTh and ord(q)-offset < qualityTh:
+            break
+    #skip if too short	
+    if i < minLen:
+        return 0, ''
+    #trim seq
+    seq = seq[:i+1]
+
     return len(seq), '>%s\n%s\n' % (id[1:], seq)
 
 def fastq2rec(handle):
@@ -64,7 +52,7 @@ def fastq2fasta(handle, output, minLen, qualityTh, offset, bases, nproc=4, verbo
     p = Pool(nproc, initializer=init_args, initargs=(minLen, qualityTh, offset))
     #parse fastq
     i = totsize = 0
-    for i, (seqlen, fasta) in enumerate(p.imap_unordered(worker, fastq2rec(handle), chunksize=1), 1): #100 is the fastest but takes lots of RAM!
+    for i, (seqlen, fasta) in enumerate(p.imap_unordered(worker, fastq2rec(handle), chunksize=100), 1): #100 is the fastest but takes lots of RAM!
         if not i%1e5:
             sys.stderr.write(' %s \r'%i)
         if not seqlen:
