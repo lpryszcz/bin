@@ -31,8 +31,8 @@ def _get_response(url, fname=""):
     return info
 
 def get_experiments(assay_title="RNA-seq", www="https://www.encodeproject.org", end="&frame=object&format=json", verbose=1,
-                    query="/search/?type=Experiment&assay_title=%s&limit=all&award.rfa=ENCODE3&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens"):
-    """Return experiments for given taxa"""
+                    query="/search/?type=Experiment&assay_title=%s&limit=all&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens"):
+    """Return experiments for given taxa""" #&award.rfa=ENCODE3
     url = "".join([www, query%assay_title, end])
     info = _get_response(url)
     experiments = [info['@graph'][i]['accession'] for i in range(len(info['@graph']))]
@@ -40,43 +40,79 @@ def get_experiments(assay_title="RNA-seq", www="https://www.encodeproject.org", 
         logger(" %s %s experiments found."%(assay_title, len(experiments)))
     return sorted(experiments)
 
-def update_donors(donors, experiment, www="https://www.encodeproject.org/experiments/%s/?format=json"):
-    """Return donors for given experiment"""
-    info = _get_response(www%experiment, experiment)
-    for f in info['files']:
-        if f["status"] != "released" or f["file_type"] != "bam" or f["output_type"] != "alignments":
-            continue
-        acc, href = f["accession"], f["href"]
+def _get_donor_info(info):
+    """Return dictionary of accession and donor info"""
+    acc2donor = {}
+    for f in info['files']:    
+        acc = f["accession"]
         if not "replicate" in f:
-            #logger("[ERROR] Cannot process %s"%experiment) #print experiment, f
-            continue #sys.exit(1)
+            continue 
         # /human-donors/ENCDO845WKR/ -> ENCDO845WKR
         donor = f["replicate"]["library"]["biosample"]["donor"].split('/')[-2]
         name = f["replicate"]["library"]["biosample"]["biosample_term_name"]
+        acc2donor[acc] = (donor, name)
+    return acc2donor
+    
+def update_donors(donors, experiment, www="https://www.encodeproject.org/experiments/%s/?format=json"):
+    """Return donors for given experiment"""
+    # get json
+    info = _get_response(www%experiment, experiment)
+    # get donor info before as some exp lack donor info for not-fastq files
+    acc2donor = _get_donor_info(info)
+    # get requested files
+    for f in info['files']:
+        if f["status"] != "released" or f["file_type"] != "bam" or f["output_type"] != "alignments" \
+           or f["assembly"] not in ["GRCh38", "hg19"]:
+            continue
+        acc, href = f["accession"], f["href"]
+        # get parent / derived_from    
+        pacc = None
+        if "derived_from" in f:
+            ids = set(f["derived_from"][i]["accession"] for i in range(len(f["derived_from"]))
+                      if "accession" in f["derived_from"][i])
+            if ids:
+                pacc = ids.pop() #f["derived_from"][0]["accession"]
+        # get donor info
+        if acc in acc2donor:
+            donor, name = acc2donor[acc]
+        elif pacc and pacc in acc2donor:
+            donor, name = acc2donor[pacc]
+        else:
+            continue
         # update donors
         if donor not in donors:
             donors[donor] = {}
         donors[donor][acc] = (name, href)
     return donors
 
-def encode_fetch(assays, verbose=1):
+def encode_fetch(out, assays, verbose=1):
     """Save experiments having RNase-seq and RNA-seq from the same donors"""
     if verbose:
         logger("Parsing experiments...")    
     donor2experiments = {}
     for assay_title in assays:
         donor2experiments[assay_title] = {}
-        for experiment in get_experiments(assay_title):
+        if not os.path.isdir(assay_title):
+            os.makedirs(assay_title)
+        for i, experiment in enumerate(get_experiments(assay_title), 1):
+            sys.stderr.write("  %s %s donors\r"%(i, len(donor2experiments[assay_title])))
             donor2experiments[assay_title] = update_donors(donor2experiments[assay_title], experiment)
+        logger("  %s donors for %s runs"%(len(donor2experiments[assay_title]), sum(len(x) for x in donor2experiments[assay_title].itervalues())))
 
-    # print summary
-    info = "Donors:" 
-    for a in assays:
-        info += "\n %s for %s"%(len(donor2experiments[a]), a)
-    # common
+    # print common
     intersection = set(donor2experiments[assays[0]]).intersection(donor2experiments[assays[1]])
-    info += "\n%s for both"%len(intersection)
-    logger(info, 1)
+    logger("Donors intersection: %s"%len(intersection), 1)
+
+    www = "https://www.encodeproject.org"
+    for donor in intersection:
+        for a in assays:
+            for acc, (name, href) in donor2experiments[a][donor].iteritems():
+                name = name.replace(' ', '_').replace("'", '_')
+                fname = "%s.%s.%s.bam"%(donor, name, acc)
+                outfn = os.path.join(a, fname)
+                if not os.path.isfile(outfn):
+                    cmd = "wget -O %s %s%s"%(outfn, www, href)
+                    out.write(cmd+"\n")
         
 def logger(info="", raw=0):
     sys.stderr.write(info+'\n')
@@ -91,12 +127,14 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose")
     parser.add_argument("-a", "--assays", nargs="+", default=["RNA-seq", "DNase-seq"],
                         help="assay titles [%(default)s]")
+    parser.add_argument("-o", "--output",    default=sys.stdout, type=argparse.FileType('w'), 
+                        help="output stream   [stdout]")    
     
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
-    encode_fetch(o.assays, o.verbose)
+    encode_fetch(o.output, o.assays, o.verbose)
 
 if __name__=='__main__': 
     t0 = datetime.now()
