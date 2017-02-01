@@ -10,8 +10,8 @@ print record
 
 # define database
 db="protein"
-# look for `opsin 1` from human
-query = '"tp63" AND "homo sapiens"[organism]'
+# look for `opsin 1` from human p53_human
+query = '"opsin 1" AND "homo sapiens"[organism]'
 handle = Entrez.esearch(db=db, retmax=10, term=query)
 record = Entrez.read(handle)
 print record
@@ -29,7 +29,7 @@ print fasta
 # perform blastP search remotely
 from Bio.Blast import NCBIWWW, NCBIXML
 
-myEntrezQuery = "Homo sapiens[Organism] OR Mus musculus[Organism] OR Gallus gallus[Organism] OR Danio rerio[Organism] OR Drosophila melanogaster[Organism]"
+myEntrezQuery = "Homo sapiens[Organism] OR Mus musculus[Organism] OR Gallus gallus[Organism] OR Danio rerio[Organism] OR Drosophila melanogaster[Organism] OR Ciona intestinalis[Organism]"
 result_handle = NCBIWWW.qblast("blastp", "swissprot", fasta, expect=1e-25, hitlist_size=100, entrez_query=myEntrezQuery)
 blast_record = NCBIXML.read(result_handle)
 # dt=datetime.now()-t0
@@ -41,9 +41,8 @@ for alignment in blast_record.alignments:
   for hsp in alignment.hsps:
     print alignment.title, hsp.expect
   
-blast_hsp = blast_qresult[0][0]
+blast_hsp = blast_record.alignments[0].hsps[0]
 print blast_hsp
-print(blast_hsp.aln)
 
 # fetch sequences
 from Bio import SeqIO

@@ -12,39 +12,6 @@ import gzip, os, sys
 from FastaIndex import FastaIndex
 from datetime import datetime
     
-def fasta_stats(handle):
-    """Report fasta statistics."""
-    # load id2stats
-    faidx = FastaIndex(handle)
-    id2stats = faidx.id2stats
-    # report stats
-    contigs = len(id2stats)
-    lengths = [stats[0] for stats in id2stats.itervalues()]
-    size = sum(lengths)
-    lengths1000 = [l for l in lengths if l>=1000]
-    contigs1000 = len(lengths1000)
-    basecounts = map(sum, zip(*[stats[-4:] for stats in id2stats.itervalues()]))
-    # catch errors ie. empty files
-    if len(basecounts) != 4:
-        return "%s\t[ERROR] Couldn't read file content\n"%handle.name
-    (A, C, G, T) = basecounts
-    GC = 100.0*(G+C)/(A+T+G+C)
-    nonACGT = size - A - C - G - T
-    # N50 & N90
-    n50 = n90 = lengthSum = 0
-    lengths.sort( reverse=True )
-    for l in lengths:
-        lengthSum += l
-        if not n50 and lengthSum >= 0.5*size:
-            n50 = l
-        if lengthSum >= 0.9*size:
-            n90 = l 
-            break
-            
-    _line = '%s\t%s\t%s\t%.3f\t%s\t%s\t%s\t%s\t%s\t%s\n'
-    line = _line % (handle.name, contigs, size, GC, contigs1000, sum(lengths1000), n50, n90, nonACGT, lengths[0])
-    return line
-    
 def main():
     import argparse
     usage	 = "%(prog)s -i " #usage=usage, 
@@ -70,10 +37,8 @@ def main():
         if not os.path.isfile(fname):
             sys.stderr.write("[WARNING] No such file: %s\n"%fname)
             continue
-        f = open(fname)
-        if fname.endswith('.gz'):
-            f = gzip.open(fname)
-        o.out.write(fasta_stats(f))#, header))
+        faidx = FastaIndex(fname)
+        o.out.write(faidx.stats())
 	
 if __name__=='__main__': 
     t0 = datetime.now()

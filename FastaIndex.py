@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-desc="""FastA index (.fai) handler compatible with samtools faidx (http://www.htslib.org/doc/faidx.html)
+desc="""FastA index (.fai) handler compatible with samtools faidx (http://www.htslib.org/doc/faidx.html).
+.fai is extended with 4 columns storing counts for A, C, G & T for each sequence.
 
 CHANGELOG:
 v0.11c
@@ -42,6 +43,7 @@ class FastaIndex(object):
         self.verbose = verbose
         self.log = log.write
         self.genomeSize = 0
+        self.whitespaces_in_headers = False
         # guess handle
         if type(handle) is str and os.path.isfile(handle): 
             handle = open(handle)
@@ -72,6 +74,9 @@ class FastaIndex(object):
         self.base2rc= {"A": "T", "T": "A", "C": "G", "G": "C",
                        "a": "t", "t": "a", "c": "g", "g": "c",
                        "N": "N", "n": "n"}
+        # basecounts
+        self.basecounts = map(sum, zip(*[stats[-4:] for stats in self.id2stats.itervalues()]))
+        self.Ns = self.genomeSize - sum(self.basecounts)
 
     def __process_seqentry(self, out, header, seq, offset, pi):
         """Write stats to file and report any issues"""
@@ -103,6 +108,9 @@ class FastaIndex(object):
             for i, l in enumerate(iter(self.handle.readline, ''), 1): 
                 if l.startswith(">"):
                     self.__process_seqentry(out, header, seq, offset, pi)
+                    # mark that there is whitespace in headers
+                    if len(l[:-1].split())>1:
+                        self.whitespaces_in_headers = True
                     header = l
                     offset = self.handle.tell() 
                     seq = []
@@ -120,12 +128,15 @@ class FastaIndex(object):
         for l in open(self.faidx):
             ldata = l[:-1].split('\t')
             if len(ldata)<9:
+                self.whitespaces_in_headers = False
                 return 
             rid = ldata[0]
             stats = map(int, ldata[1:])
             self.id2stats[rid] = stats
             # update genomeSize
             self.genomeSize += stats[0]
+            if len(rid.split())>1:
+                self.whitespaces_in_headers = True
         return True
 
     def __len__(self):
@@ -290,6 +301,64 @@ class FastaIndex(object):
                     break
         return sorted_contigs[:contigi]
 
+    def get_N_and_L(self, genomeFrac=0.5, return_L=False, genomeSize=None):
+        """Return N50 (and L50 if return_L) of given FastA.
+
+        - genomeFrac - calculate N (and L) for this fraction of genome [0.5 for N50 & L50]
+        - return NL  - return N50 (contig size) and L50 (number of contigs) [False]
+        - genomeSize - if provided, it will use this size of the genome
+                       instead of size of give assembly
+        """
+        if not genomeSize:
+            genomeSize = self.genomeSize
+        # parse contigs by descending size
+        totsize = 0
+        for i, x in enumerate(sorted(self.id2stats.itervalues(), reverse=True), 1):
+            size = x[0]
+            totsize += size
+            if totsize >= genomeFrac*genomeSize:
+                break
+        # return N & L
+        if return_L:
+            return size, i
+        # return just N
+        return size
+        
+    def N90(self):
+        """Return N90"""
+        return self.get_N_and_L(0.9)
+
+    def L90(self):
+        """Return N90"""
+        return self.get_N_and_L(0.9, return_L=True)[1]
+
+    def N50(self):
+        """Return N90"""
+        return self.get_N_and_L()
+
+    def L50(self):
+        """Return N90"""
+        return self.get_N_and_L(return_L=True)[1]
+
+    def GC(self):
+        """Return GC and number of Ns"""
+        # catch errors ie. empty files
+        #if len(basecounts) != 4:
+        #    return "%s\t[ERROR] Couldn't read file content\n"%handle.name
+        (A, C, G, T) = self.basecounts
+        GC = 100.0*(G + C) / sum(self.basecounts)
+        return GC
+
+    def stats(self):
+        """Return FastA statistics aka fasta_stats"""
+        longest = max(stats[0] for stats in self.id2stats.itervalues())
+        lengths1000 = [x[0] for x in self.id2stats.itervalues() if x[0]>=1000]
+        contigs1000 = len(lengths1000)
+        _line = '%s\t%s\t%s\t%.3f\t%s\t%s\t%s\t%s\t%s\t%s\n'
+        line = _line % (self.fasta, len(self), self.genomeSize, self.GC(), contigs1000, sum(lengths1000),
+                        self.N50(), self.N90(), self.Ns, longest)
+        return line
+
 def main():
     import argparse
     usage	 = "%(prog)s -i " #usage=usage, 
@@ -305,6 +374,12 @@ def main():
                         help="output stream	 [stdout]")
     parser.add_argument("-r", "--regions", nargs='*', default=[], 
                         help="contig or contig region to output (returns reverse complement if end larger than start)")
+    parser.add_argument("-N", default=0, type=int, 
+                        help="calculate NXX and exit ie N50")
+    parser.add_argument("-L", default=0, type=int, 
+                        help="calculate LXX and exit ie L50")
+    parser.add_argument("-S", "--stats", default=False, action="store_true",
+                        help="return FastA stats aka fasta_stats")
 
     o = parser.parse_args()
     if o.verbose:
@@ -313,6 +388,15 @@ def main():
     # init faidx
     faidx = FastaIndex(o.fasta, o.verbose)
 
+    # report N & L
+    if o.N:
+        o.out.write("%s\n"%faidx.get_N_and_L(o.N/100.))
+    if o.L:
+        o.out.write("%s\n"%faidx.get_N_and_L(o.L/100., return_L=True)[1])
+    # fasta_stats
+    if o.stats:
+        o.out.write(faidx.stats())
+        
     # report regions
     for region in o.regions:
         o.out.write(faidx.get_fasta(region))

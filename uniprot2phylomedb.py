@@ -1,1 +1,0 @@
-../git/update_phylomedb/uniprot2phylomedb.py
