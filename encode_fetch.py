@@ -15,10 +15,12 @@ import requests, json
 # Force return from the server in JSON format
 HEADERS = {'accept': 'application/json'}
 
-def _get_response(url, fname=""):
+def _get_response(url, fname="", jsondir=".json"):
     """Return server response"""
+    if not os.path.isdir(jsondir):
+        os.makedirs(jsondir)
     # load from file
-    outfn = "%s.json.gz"%fname
+    outfn = os.path.join(jsondir, "%s.json.gz"%fname)
     if fname and os.path.isfile(outfn):
         return json.load(gzip.open(outfn))
     # fetch 
@@ -111,7 +113,7 @@ def encode_fetch(out, assays, verbose=1):
                 fname = "%s.%s.%s.bam"%(donor, name, acc)
                 outfn = os.path.join(a, fname)
                 if not os.path.isfile(outfn):
-                    cmd = "wget -O %s %s%s"%(outfn, www, href)
+                    cmd = "wget -O %s -nc %s%s"%(outfn, www, href)
                     out.write(cmd+"\n")
         
 def logger(info="", raw=0):
