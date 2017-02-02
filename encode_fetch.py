@@ -112,9 +112,9 @@ def encode_fetch(out, assays, verbose=1):
                 name = name.replace(' ', '_').replace("'", '_')
                 fname = "%s.%s.%s.bam"%(donor, name, acc)
                 outfn = os.path.join(a, fname)
-                if not os.path.isfile(outfn):
-                    cmd = "wget -O %s -nc %s%s"%(outfn, www, href)
-                    out.write(cmd+"\n")
+                #if not os.path.isfile(outfn): # now wget will just skip it
+                cmd = "wget -O %s -nc %s%s"%(outfn, www, href)
+                out.write(cmd+"\n")
         
 def logger(info="", raw=0):
     sys.stderr.write(info+'\n')
