@@ -64,7 +64,7 @@ def update_donors(donors, experiment, www="https://www.encodeproject.org/experim
     # get requested files
     for f in info['files']:
         if f["status"] != "released" or f["file_type"] != "bam" or f["output_type"] != "alignments" \
-           or f["assembly"] not in ["GRCh38", "hg19"]:
+           or f["assembly"] not in ["hg19",]: #"GRCh38"
             continue
         acc, href = f["accession"], f["href"]
         # get parent / derived_from    
@@ -106,15 +106,25 @@ def encode_fetch(out, assays, verbose=1):
     logger("Donors intersection: %s"%len(intersection), 1)
 
     www = "https://www.encodeproject.org"
+    cmd2 = "~/src/REDiscover/REDiscover -o REDiscover/%s.%s.txt -r %s -d %s -s -t 8 -v > REDiscover/%s.%s.txt.log 2>&1 &\n"
     for donor in intersection:
+        fnames = []
         for a in assays:
+            fnames.append({})
             for acc, (name, href) in donor2experiments[a][donor].iteritems():
                 name = name.replace(' ', '_').replace("'", '_')
                 fname = "%s.%s.%s.bam"%(donor, name, acc)
                 outfn = os.path.join(a, fname)
-                #if not os.path.isfile(outfn): # now wget will just skip it
-                cmd = "wget -O %s -nc %s%s"%(outfn, www, href)
-                out.write(cmd+"\n")
+                cmd = "wget -O %s -nc %s%s\n"%(outfn, www, href)
+                out.write(cmd)
+                # store
+                if name not in fnames:
+                    fnames[-1][name] = []
+                fnames[-1][name].append(outfn)
+        # store REDiscover command
+        for name in fnames[0]:
+            out.write(cmd2%(" ".join(fnames[0][name]), donor, name, 
+                            " ".join(v for vals in fnames[1].values() for v in vals), donor, name))
         
 def logger(info="", raw=0):
     sys.stderr.write(info+'\n')
