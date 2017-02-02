@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-#!/usr/bin/env python
 desc="""
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com
@@ -122,8 +120,9 @@ def encode_fetch(out, assays, verbose=1):
                     fnames[-1][name] = []
                 fnames[-1][name].append(outfn)
         # store REDiscover command
+        ## store also stranded or not info here!!
         for name in fnames[0]:
-            out.write(cmd2%(" ".join(fnames[0][name]), donor, name, 
+            out.write(cmd2%(donor, name, " ".join(fnames[0][name]), 
                             " ".join(v for vals in fnames[1].values() for v in vals), donor, name))
         
 def logger(info="", raw=0):
