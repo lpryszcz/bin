@@ -45,12 +45,15 @@ def _get_donor_info(info):
     acc2donor = {}
     for f in info['files']:    
         acc = f["accession"]
-        if not "replicate" in f:
+        if "replicate" not in f or "library" not in f["replicate"] \
+           or "biosample" not in f["replicate"]["library"] \
+           or "donor" not in f["replicate"]["library"]["biosample"]:
             continue 
         # /human-donors/ENCDO845WKR/ -> ENCDO845WKR
         donor = f["replicate"]["library"]["biosample"]["donor"].split('/')[-2]
         name = f["replicate"]["library"]["biosample"]["biosample_term_name"]
-        acc2donor[acc] = (donor, name)
+        stranded = f["replicate"]["library"]["strand_specificity"]
+        acc2donor[acc] = (donor, name, stranded)
     return acc2donor
     
 def update_donors(donors, experiment, www="https://www.encodeproject.org/experiments/%s/?format=json"):
@@ -74,18 +77,18 @@ def update_donors(donors, experiment, www="https://www.encodeproject.org/experim
                 pacc = ids.pop() #f["derived_from"][0]["accession"]
         # get donor info
         if acc in acc2donor:
-            donor, name = acc2donor[acc]
+            donor, name, stranded = acc2donor[acc]
         elif pacc and pacc in acc2donor:
-            donor, name = acc2donor[pacc]
+            donor, name, stranded = acc2donor[pacc]
         else:
             continue
         # update donors
         if donor not in donors:
             donors[donor] = {}
-        donors[donor][acc] = (name, href)
+        donors[donor][acc] = (name, href, stranded)
     return donors
 
-def encode_fetch(out, assays, verbose=1):
+def encode_fetch(out, assays, verbose=1, onlystranded=1):
     """Save experiments having RNase-seq and RNA-seq from the same donors"""
     if verbose:
         logger("Parsing experiments...")    
@@ -109,7 +112,10 @@ def encode_fetch(out, assays, verbose=1):
         fnames = []
         for a in assays:
             fnames.append({})
-            for acc, (name, href) in donor2experiments[a][donor].iteritems():
+            for acc, (name, href, stranded) in donor2experiments[a][donor].iteritems():
+                # skip not stranded
+                if onlystranded and a=="RNA-seq" and not stranded:
+                    continue
                 name = name.replace(' ', '_').replace("'", '_')
                 fname = "%s.%s.%s.bam"%(donor, name, acc)
                 outfn = os.path.join(a, fname)
@@ -118,6 +124,7 @@ def encode_fetch(out, assays, verbose=1):
                 # store
                 if name not in fnames:
                     fnames[-1][name] = []
+                    #fnames[-1][name][False] = []
                 fnames[-1][name].append(outfn)
         # store REDiscover command
         ## store also stranded or not info here!!
