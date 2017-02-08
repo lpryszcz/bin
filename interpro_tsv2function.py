@@ -1,10 +1,16 @@
 #!/usr/bin/env python
-"""Parse InterProScan tsv output and report predicted function for each gene.
+"""Parse InterProScan tsv output and report predicted function for each gene/protein.
+If fasta file is given, it will also report annotated fasta file (.with_functions.fasta).
 
-cat tsv | python tsv2function.py
+cat tsv | python tsv2function.py [fasta]
 """
 
 import sys
+from Bio import SeqIO
+
+fastafn = ""
+if len(sys.argv)>1:
+  fastafn = sys.argv[1]
 
 protid2function = {}
 for l in sys.stdin:
@@ -36,5 +42,14 @@ for protid, functions in sorted(protid2function.items()):
 	
 sys.stderr.write("#%s unique proteins annotated with %s functions\n" % (len(protid2function),sum(len(x) for x in protid2function.itervalues())))
 
-
+if fastafn:
+  outfn = "".join(fastafn.split('.')[:-1])+".with_functions.fasta"
+  out = open(outfn, "w")
+  for r in SeqIO.parse(fastafn, "fasta"):
+    if r.id in protid2function:
+      r.description = "; ".join(protid2function[r.id])
+    else:
+      r.description = ""
+    out.write(r.format("fasta"))
+  print "Saved annotated FastA as: %s"%outfn
 
