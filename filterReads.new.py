@@ -475,13 +475,11 @@ def main():
 
     ## Gerald2fastq
     if o.paired:
-        process_paired(inputs, o.qseq, o.outdir, o.prefix, o.unpaired, \
-            o.minlen, o.maxlen, o.limit, o.minqual, o.noSeparate, o.combined, o.qual64offset, \
-            o.replace, o.stripHeaders, o.fasta, o.verbose)
+        process_paired(inputs, o.qseq, o.outdir, o.prefix, o.unpaired,  o.minlen, o.maxlen, o.limit, o.minqual,
+                       o.noSeparate, o.combined, o.qual64offset,  o.replace, o.stripHeaders, o.fasta, o.verbose)
     else:
-        process_single(inputs, o.qseq, o.outdir, o.prefix, o.minlen, \
-            o.minqual, o.maxlen, o.limit, o.qual64offset, o.replace, o.stripHeaders, o.fasta, \
-            o.verbose)
+        process_single(inputs, o.qseq, o.outdir, o.prefix, o.minlen,  o.maxlen, o.limit, o.minqual, 
+                       o.qual64offset, o.replace, o.stripHeaders, o.fasta, o.verbose)
 
 if __name__=='__main__':
     t0=datetime.now()
