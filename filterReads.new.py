@@ -348,13 +348,12 @@ def process_single(inputs, qseq, outdir, outprefix, minlen, maxlen, limit, minqu
     ## Define output fnames
     fnend = outformat = 'fasta' if fasta else 'fastq'
     prefix = ("%sq%s_l%s") % (outprefix, minqual, minlen)
-    outfn     = os.path.join(outdir, '%s.%s'        % (prefix, fnend))
+    outfn = os.path.join(outdir, '%s.%s' % (prefix, fnend))
 
     #check if outfiles exists
     if not replace:
         if os.path.isfile(outfn):
-            logFile.write("File exists: %s. Remove them or run with --replace "
-                + "parameter. Exiting!\n"%outfn)
+            logFile.write("File exists: %s . Remove them or run with --replace parameter. Exiting!\n"%outfn)
             logFile.flush()
             exit(-3)
     #process input files
@@ -478,7 +477,7 @@ def main():
         process_paired(inputs, o.qseq, o.outdir, o.prefix, o.unpaired,  o.minlen, o.maxlen, o.limit, o.minqual,
                        o.noSeparate, o.combined, o.qual64offset,  o.replace, o.stripHeaders, o.fasta, o.verbose)
     else:
-        process_single(inputs, o.qseq, o.outdir, o.prefix, o.minlen,  o.maxlen, o.limit, o.minqual, 
+        process_single(inputs, o.qseq, o.outdir, o.prefix, o.minlen, o.maxlen, o.limit, o.minqual, 
                        o.qual64offset, o.replace, o.stripHeaders, o.fasta, o.verbose)
 
 if __name__=='__main__':
