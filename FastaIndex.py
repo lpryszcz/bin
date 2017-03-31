@@ -1,21 +1,8 @@
 #!/usr/bin/env python
 desc="""FastA index (.fai) handler compatible with samtools faidx (http://www.htslib.org/doc/faidx.html).
 .fai is extended with 4 columns storing counts for A, C, G & T for each sequence.
-
-CHANGELOG:
-v0.11c
-- auto-regenerate .fai if corrupted
-- symlink .fai if fasta itself is symlink
-- warn about empty/corrupted files
-- solved 1-off problem for sequences ending with completely full last line
-v0.11b
-- warn about empty headers, sequences & duplicated sequence IDs
-- retrieve sequences single-line FASTA correctly
-v0.11a
-- speed-up: load sequence slice if requested
-- return reverse complement if start > stop ie. `-r contig1:100-10`
 """
-epilog="""Author: l.p.pryszcz@gmail.com
+epilog="""Author: l.p.pryszcz+git@gmail.com
 Bratislava, 15/06/2016
 """
 
@@ -373,7 +360,7 @@ def main():
     parser.add_argument("-o", "--out",	 default=sys.stdout, type=argparse.FileType('w'), 
                         help="output stream	 [stdout]")
     parser.add_argument("-r", "--regions", nargs='*', default=[], 
-                        help="contig or contig region to output (returns reverse complement if end larger than start)")
+                        help="contig(s) or contig region(s) to output (returns reverse complement if end larger than start)")
     parser.add_argument("-N", default=0, type=int, 
                         help="calculate NXX and exit ie N50")
     parser.add_argument("-L", default=0, type=int, 
@@ -382,6 +369,10 @@ def main():
                         help="return FastA stats aka fasta_stats")
 
     o = parser.parse_args()
+    # print help if no parameters
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
 
