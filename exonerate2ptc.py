@@ -1,9 +1,12 @@
 #!/usr/bin/env python
-desc="""Detect premature termination codons and frame-shifts from exonerate alignments.
+desc="""Detect premature termination codons (PTC) and frameshifts from exonerate alignments.
 
-Run exonerate with this parameteres
- exonerate --model protein2genome -n 1 --softmaskquery no --softmasktarget yes --minintron 20 --maxintron 20000 --query Ir.pep.fa --target ../../ref/$s.fa > Ir.pep.fa.$s.exout1
+Report BED-formatted output file, where:
+- name field consists of gene name and affected amino position
+- score is C-terminal fraction of protein affected by PTC or frameshift
 
+Make sure, you run exonerate as follows: 
+ exonerate -m protein2genome -n 1 --showvulgar yes --showtargetgff yes -q proteins.fa -t genome.fa > out
 """
 epilog="""Author: l.p.pryszcz+github@gmail.com
 Carmona/Malaga/Brussels/Warsaw, 29/03/2017
@@ -27,7 +30,7 @@ def parse_exonerate(handle):
         if not l: break
         l = l[:-1]#; print l
         # skip header and spacer lines
-        if l.startswith(('Command line:', 'Hostname:', '--')) or not l:
+        if l.startswith(('Command line:', 'Hostname:', '--', '#')) or not l:
             continue
         # alg start - skip header
         if l.startswith('C4 Alignment:'):
@@ -36,7 +39,7 @@ def parse_exonerate(handle):
         # read vulgar and report
         elif l.startswith('vulgar: '):
             ldata = l.split(': ')[-1].split()
-            q, qs, qe, qstrand, t, ts, te, tstrand, score = ldata[:9]#; print ldata
+            q, qs, qe, qstrand, t, ts, te, tstrand, score = ldata[:9]
             vulgar = ldata[9:]
             ts, te, qs, qe = map(int, (ts, te, qs, qe))
             # remove {}
@@ -56,6 +59,9 @@ def parse_exonerate(handle):
             # reset
             ii = 0
             alg = ['', '', '', '']
+        # GFF
+        elif not l.startswith(' '):
+            continue
         # read alignment
         else:
             if ii%4 in (0, 3):
@@ -121,7 +127,7 @@ def exonerate2ptc(handle, out, pepfn, minoverlap, verbose):
             frameshift.append(q)
             s, e = m.span()
             qpos = get_position(alg[0], qs, qe, "+", s, e, 3)
-            name = "%s %sdel%s" % (gene_name, qpos+1, e-s) #alg[0][s:e], 
+            name = "%s %sindel%s" % (gene_name, qpos+1, e-s) #alg[0][s:e], 
             # get chrom position
             tpos = get_position(alg[-1], ts, te, strand, s, e, 1)
             bed = "%s\t%s\t%s\t%s\t%.3f\t%s\n"%(t, tpos, tpos+e-s, name, 1-1.*qpos/pep2len[q], strand)
