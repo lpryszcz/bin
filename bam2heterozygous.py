@@ -12,7 +12,7 @@ l.p.pryszcz@gmail.com
 Warsaw/Bratislava/Fribourg, 21/07/2015
 """
 
-import os, sys, pysam, resource
+import os, sys, pysam, resource, gzip
 from datetime import datetime
 from multiprocessing import Pool
 import numpy as np
@@ -212,7 +212,7 @@ def main():
     
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.15b')
-    parser.add_argument("-o", "--output", required=True,  help="output file")
+    parser.add_argument("-o", "--output", required=True,  help="output file (.gz extension will be added)")
     parser.add_argument("-d", "--dna", nargs="*", default = [],  help="input DNA-Seq BAM file(s)")
     parser.add_argument("-f", "--fasta", default = None,  help="reference FASTA file")
     parser.add_argument("-s", "--stranded", "-fr-secondstrand", default=False, action="store_true", 
@@ -225,7 +225,7 @@ def main():
                         help="min frequency for genomic base [%(default)s]")
     parser.add_argument("-m", "--mapq", default=15, type=int, help="mapping quality [%(default)s]")
     parser.add_argument("--bcq", default=20, type=int, help="basecall quality [%(default)s]")
-    parser.add_argument("-t", "--threads", default=1, type=int, help="number of cores to use [%(default)s]")
+    parser.add_argument("-t", "--threads", default=4, type=int, help="number of cores to use [%(default)s]")
     
     # print help if no parameters
     if len(sys.argv)==1:
@@ -245,14 +245,18 @@ def main():
             sys.stderr.write("No such file: %s\n"%fn)
             sys.exit(1)
 
-    # check if outfile exists and not empty
     if o.output=="-":
         output = sys.stdout
-    elif os.path.exists(o.output) and open(o.output).readline():
-        sys.stderr.write("The output file %s exists!\n"%o.output)
-        sys.exit(1)
     else:
-        output = open(o.output, "w")
+        # add .gz
+        if not o.output.endswith('.gz'):
+            o.output += '.gz'
+            sys.stderr.write(' Added extension to output: %s\n'%o.output)
+        # check if outfile exists # and not empty
+        if os.path.exists(o.output): # and gzip.open(o.output).readline():
+            sys.stderr.write("The output file %s exists!\n"%o.output)
+            sys.exit(1)
+        output = gzip.open(o.output, "w")
 
     runinfo = " ".join(sys.argv)
     header = "## %s\n# chr\tpos\tcov\tbases\tfreqs\n"%runinfo
@@ -272,7 +276,6 @@ def main():
     regions = get_regions(o.dna)
     if o.threads<2: # this is useful for debugging
         for ref, start, end in regions:
-            #print ref, start, end
             #if start>10000: break
             parser = bam2heterozygous(o.dna, o.fasta, o.stranded, o.minDepth, o.minDNAfreq, \
                                       o.mapq, o.bcq, o.verbose, ref, start, end)
