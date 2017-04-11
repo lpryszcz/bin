@@ -149,39 +149,40 @@ def get_allele_freqs(counts, minFreq=0.03, minCount=3):
             freqs.append(freq)
     return bases, freqs        
         
-def bam2heterozygous(dna, fasta, stranded, minDepth, minDNAfreq, mapq, baseq, verbose, ref, start, end):
+def bam2heterozygous(dna, fasta, stranded, minDepth, minDNAfreq, minCount,
+                     mapq, baseq, verbose, ref, start, end):
     """Return RNA editing positions"""
     if verbose:
         region = "%s:%s-%s"%(ref, start, end)
         sys.stderr.write(" %s    \r"%region)
     parser = get_calls(dna, fasta, stranded, ref, start, end, mapq, baseq, minDepth)
     for contig, pos, refbases, strand_info in parser:
-        baseRef, refFreq = get_allele_freqs(refbases, minDNAfreq)
+        baseRef, refFreq = get_allele_freqs(refbases, minDNAfreq, minCount)
         if not baseRef: continue
         
         for sbases, strand in strand_info:
             if sum(sbases)<minDepth: continue
             
-            bases, freqs = get_allele_freqs(sbases, minDNAfreq)
+            bases, freqs = get_allele_freqs(sbases, minDNAfreq, minCount)
             if not bases or bases==baseRef: continue
 
             fb = sorted(((f,b) for b, f in zip(bases, freqs)), reverse=1)
             
             alts = "/".join(b for f, b in fb)
             freqs = "/".join("%.3f"%f for f, b in fb)
-            #print ref, pos, baseRef, sbases
-            yield contig, pos, sum(sbases), alts, freqs
+            if pos in (8077, 32093, 36572): print contig, pos, sum(sbases), baseRef[0], alts, freqs, baseRef, sbases
+            yield contig, pos, sum(sbases), baseRef[0], alts, freqs
 
 def init_args(*args):
-    global dna, fasta, stranded, minDepth, minDNAfreq, mapq, bcq, verbose
-    dna, fasta, stranded, minDepth, minDNAfreq, mapq, bcq, verbose = args
+    global dna, fasta, stranded, minDepth, minDNAfreq, minCount, mapq, bcq, verbose
+    dna, fasta, stranded, minDepth, minDNAfreq, minCount, mapq, bcq, verbose = args
     
 def worker(args):
-    global dna, fasta, stranded, minDepth, minDNAfreq, mapq, bcq, verbose
+    global dna, fasta, stranded, minDepth, minDNAfreq, minCount, mapq, bcq, verbose
     ref, start, end = args
     totdata = []
-    for data in bam2heterozygous(dna, fasta, stranded, minDepth, minDNAfreq,
-                               mapq, bcq, verbose, ref, start, end):
+    for data in bam2heterozygous(dna, fasta, stranded, minDepth, minDNAfreq, minCount, 
+                                 mapq, bcq, verbose, ref, start, end):
         totdata.append(data)
     return totdata
             
@@ -213,19 +214,21 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.15b')
     parser.add_argument("-o", "--output", required=True,  help="output file (.gz extension will be added)")
-    parser.add_argument("-d", "--dna", nargs="*", default = [],  help="input DNA-Seq BAM file(s)")
+    parser.add_argument("-d", "--dna", nargs="*", default = [], help="input DNA-Seq BAM file(s)")
     parser.add_argument("-f", "--fasta", default = None,  help="reference FASTA file")
+    parser.add_argument("--minDepth", default=5,  type=int,
+                        help="minimal depth of coverage [%(default)s]")
+    parser.add_argument("--minDNAfreq", default=0.05, type=float,
+                        help="min base frequency [%(default)s]")
+    parser.add_argument("--minCount", default=3, type=int,
+                        help="min base count [%(default)s]")
+    parser.add_argument("-m", "--mapq", default=15, type=int, help="mapping quality [%(default)s]")
+    parser.add_argument("--bcq", default=20, type=int, help="basecall quality [%(default)s]")
+    parser.add_argument("-t", "--threads", default=4, type=int, help="number of cores to use [%(default)s]")
     parser.add_argument("-s", "--stranded", "-fr-secondstrand", default=False, action="store_true", 
                         help="stranded RNAseq libraries ie. Illumina or Standard Solid")
     parser.add_argument("-fr-firststrand", default=False, action="store_true", 
                         help="stranded RNAseq libraries ie. dUTP, NSR, NNSR")
-    parser.add_argument("--minDepth", default=5,  type=int,
-                        help="minimal depth of coverage [%(default)s]")
-    parser.add_argument("--minDNAfreq",  default=0.05, type=float,
-                        help="min frequency for genomic base [%(default)s]")
-    parser.add_argument("-m", "--mapq", default=15, type=int, help="mapping quality [%(default)s]")
-    parser.add_argument("--bcq", default=20, type=int, help="basecall quality [%(default)s]")
-    parser.add_argument("-t", "--threads", default=4, type=int, help="number of cores to use [%(default)s]")
     
     # print help if no parameters
     if len(sys.argv)==1:
@@ -259,7 +262,7 @@ def main():
         output = gzip.open(o.output, "w")
 
     runinfo = " ".join(sys.argv)
-    header = "## %s\n# chr\tpos\tcov\tbases\tfreqs\n"%runinfo
+    header = "## %s\n#chrom\tpos\tcov\tbase in FastA\tbases in BAM\tfreqs in BAM\n"%runinfo
     output.write(header)
     output.flush()
     
@@ -272,17 +275,17 @@ def main():
             os.system(cmd)    
 
     logger("Genotyping...")
-    info = "%s\t%s\t%s\t%s\t%s\n"
+    info = "%s\t%s\t%s\t%s\t%s\t%s\n"
     regions = get_regions(o.dna)
     if o.threads<2: # this is useful for debugging
         for ref, start, end in regions:
-            #if start>10000: break
-            parser = bam2heterozygous(o.dna, o.fasta, o.stranded, o.minDepth, o.minDNAfreq, \
+            if start>10000: break
+            parser = bam2heterozygous(o.dna, o.fasta, o.stranded, o.minDepth, o.minDNAfreq, o.minCount, \
                                       o.mapq, o.bcq, o.verbose, ref, start, end)
             for data in parser:
                 output.write(info%data)
     else:
-        initargs = (o.dna, o.fasta, o.stranded, o.minDepth, o.minDNAfreq, o.mapq, o.bcq, o.verbose)
+        initargs = (o.dna, o.fasta, o.stranded, o.minDepth, o.minDNAfreq, o.minCount, o.mapq, o.bcq, o.verbose)
         p = Pool(o.threads, initializer=init_args, initargs=initargs)
         parser = p.imap_unordered(worker, regions)
         for data in parser:
