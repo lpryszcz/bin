@@ -285,7 +285,6 @@ def main():
         for data in parser:
             output.write("".join(info%d for d in data))
 
-    output.write("#Finished!\n")
     logger("Done!")
     
 if __name__=='__main__': 
