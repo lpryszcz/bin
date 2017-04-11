@@ -170,7 +170,7 @@ def bam2heterozygous(dna, fasta, stranded, minDepth, minDNAfreq, minCount,
             
             alts = "/".join(b for f, b in fb)
             freqs = "/".join("%.3f"%f for f, b in fb)
-            if pos in (8077, 32093, 36572): print contig, pos, sum(sbases), baseRef[0], alts, freqs, baseRef, sbases
+            #if pos in (8077, 32093, 36572): print contig, pos, sum(sbases), baseRef[0], alts, freqs, baseRef, sbases
             yield contig, pos, sum(sbases), baseRef[0], alts, freqs
 
 def init_args(*args):
@@ -279,7 +279,7 @@ def main():
     regions = get_regions(o.dna)
     if o.threads<2: # this is useful for debugging
         for ref, start, end in regions:
-            if start>10000: break
+            #if start>10000: break
             parser = bam2heterozygous(o.dna, o.fasta, o.stranded, o.minDepth, o.minDNAfreq, o.minCount, \
                                       o.mapq, o.bcq, o.verbose, ref, start, end)
             for data in parser:
