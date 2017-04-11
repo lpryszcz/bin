@@ -19,21 +19,15 @@ def main():
     epilog = ""
     parser = OptionParser( usage=usage,version="%prog 1.0",description=desc,epilog=epilog ) 
 
-    parser.add_option("-i", dest="infile",  default="",
-                      help="blast output")
-    parser.add_option("-j", dest="query",  default="",
-                      help="query fasta")
-    parser.add_option("-k", dest="target",  default="",
-                      help="target fasta")
-    parser.add_option("-e", dest="evalue", default=1e-05, type=float,
-                      help="E-value cut-off [%default]" )
-    parser.add_option("-q", dest="qcov",   default=0, type=float,
-                      help="query coverage  [%default]")
-    parser.add_option("-t", dest="tcov",   default=0, type=float,
-                      help="target coverage [%default]")
+    parser.add_option("-i", dest="infile", help="blast output")
+    parser.add_option("-j", dest="query", help="query fasta")
+    parser.add_option("-k", dest="target", help="target fasta")
+    parser.add_option("-e", dest="evalue", default=1e-05, type=float, help="E-value cut-off [%default]" )
+    parser.add_option("-q", dest="qcov", default=0, type=float, help="query coverage  [%default]")
+    parser.add_option("-t", dest="tcov", default=0, type=float, help="target coverage [%default]")
     #parser.add_option("-s", dest="tsplit", default=3, type=int,
     #                  help="split target name by '|' and print s postition [%default]")        
-    parser.add_option("-v", dest="verbose",  default=False, action="store_true" )    
+    parser.add_option("-v", dest="verbose", default=False, action="store_true" )    
   
     ( o, fnames ) = parser.parse_args()
     if o.verbose:

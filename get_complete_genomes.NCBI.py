@@ -94,7 +94,7 @@ def get_cds( outDir = 'cds' ):
 def get_genomes( taxid,db ):
   """Fetch complete genomes in GenBank format
   """
-  q='txid%s[organism] AND complete genome[title] NOT plasmid[title]' % taxid #'txid%s[organism] AND complete genome[title]' % taxid 
+  q='txid%s[organism] AND biomol_mrna[PROP]' % taxid #'txid%s[organism] AND complete genome[title]' % taxid 
   handle = Entrez.esearch( db=db,term=q,retmax=1000000 )
   record = Entrez.read( handle )
   GIs=record['IdList']
