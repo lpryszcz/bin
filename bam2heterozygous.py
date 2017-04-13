@@ -1,15 +1,10 @@
 #!/usr/bin/env python
-desc="""Identify RNA editing sites from RNAseq and DNAseq alignements (.bam).
-Alternatively, reference genome can be used instead of DNAseq,
-but at the cost of higher false positive. 
-
-TBD:
-- editing from heterozygous sites?
+desc="""Report heterozygous sites from bam alignments. 
 """
 epilog="""Author:
 l.p.pryszcz@gmail.com
 
-Warsaw/Bratislava/Fribourg, 21/07/2015
+Warsaw, 11/04/2017
 """
 
 import os, sys, pysam, resource, gzip
@@ -36,8 +31,9 @@ def is_qcfail(a, mapq=15):
 def _match(refi, readi, bases): return refi+bases, readi+bases, True
 def _insertion(refi, readi, bases): return refi, readi+bases, []
 def _deletion(refi, readi, bases): return refi+bases, readi, []
+def _skip(refi, readi, bases): return refi, readi, []
 code2function = {0: _match, 7: _match, 8: _match, 1: _insertion, 6: _insertion,
-                 2: _deletion, 3: _deletion, 4: _insertion, 5: _insertion}
+                 2: _deletion, 3: _deletion, 4: _insertion, 5: _skip}
 
 def get_blocks(a, start, end, baseq, i, basesize):
     """Return tuple of aligned position of query and reference"""
