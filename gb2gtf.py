@@ -27,7 +27,7 @@ def gb2gtf( source='gb2gtf',allowedTypes=set(['gene','CDS','tRNA','tmRNA','rRNA'
   """
   handle = sys.stdin
   for gb in SeqIO.parse( handle,'gb' ):
-    acc     = gb.name #gb.id #gb.name #gb.description # # 
+    acc     = gb.id #   name #gb.id #gb.name #gb.description # # 
     skipped = 0
     skippedTypes = set()
     for f in gb.features:
