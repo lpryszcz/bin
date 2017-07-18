@@ -102,7 +102,7 @@ def transcript2gene(handle, out, gtf, tsv, header=0, link="", verbose=0):
         a = np.array(values)
         summed = "\t".join(map(str, a.sum(axis=0)))
         if gtf:
-            out.write("%s\t%s\t%s\n"%(_link(link, geneid), genename, summed))
+            out.write("%s\t%s|%s\t%s\n"%(_link(link, geneid), geneid, genename, summed))
         elif tsv:
             out.write("%s\t%s\n"%(_link(link, geneid), summed))
 
