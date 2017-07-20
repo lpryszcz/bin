@@ -138,7 +138,9 @@ class FastaIndex(object):
     def __getitem__(self, key, start=None, stop=None, name=None, seqonly=False):
         """x.__getitem__(y) <==> x[y]"""
         if key not in self.id2stats:
-            raise KeyError
+            #raise KeyError
+            sys.stderr.write("[Warning] No such entry: %s\n"%key)
+            return ""
         # get offset info
         size, offset, linebases, linebytes = self.id2stats[key][:4]
         # compute bytes to fetch
