@@ -25,7 +25,7 @@ try:
     from xlwt import * #import xlwt #http://scienceoss.com/write-excel-files-with-python-using-xlwt/
 except:
     #sys.stderr.write("xlwt not installed!\nHave a look at how to install it on: http://scienceoss.com/write-excel-files-with-python-using-xlwt/\n")
-    sys.stderr.write("Install xlwt first: sudo apt-get install python-xlwt\n")
+    sys.stderr.write("Install xlwt first: sudo apt-get install python-xlwt OR conda install xlwt\n")
     sys.exit(1)
 ##Excell formatting
 f = Font()
