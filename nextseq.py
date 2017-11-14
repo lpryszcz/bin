@@ -39,7 +39,7 @@ def _isProcessed(outdir, sampleSheetFpath):
         sys.stderr.write("[WARNING] Incomplete conversion detected: %s. Remove it!\n"%outdir) #Cleaning up & reruning...
         #os.system("rm -r %s"%outdir)
         #return
-    elif os.stat(sampleSheetFpath).st_mtime > os.stat(outdir).st_mtime:
+    elif os.path.isfile(sampleSheetFpath) and os.stat(sampleSheetFpath).st_mtime > os.stat(outdir).st_mtime:
         # remove outdir
         sys.stderr.write("[WARNING] Newer sampleSheet than outdir: %s. Remove it!\n"%outdir) #Cleaning up & reruning...
         #os.system("rm -r %s"%outdir)
