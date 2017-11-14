@@ -24,7 +24,7 @@ def _isCompleted(fpath):
     else:
         sys.stderr.write("[WARNING][isCompleted] %s says %s\n"%(fpath, e.text))
 
-def _isProcessed(outdir):
+def _isProcessed(outdir, sampleSheetFpath):
     """Return True if current run is successfully processed.
     If there are some files missing, remove output directory
     and rerun conversion.
@@ -37,6 +37,11 @@ def _isProcessed(outdir):
     elif not os.path.isfile(reportFn):
         # remove outdir
         sys.stderr.write("[WARNING] Incomplete conversion detected: %s. Remove it!\n"%outdir) #Cleaning up & reruning...
+        #os.system("rm -r %s"%outdir)
+        #return
+    elif os.stat(sampleSheetFpath).st_mtime > os.stat(outdir).st_mtime:
+        # remove outdir
+        sys.stderr.write("[WARNING] Newer sampleSheet than outdir: %s. Remove it!\n"%outdir) #Cleaning up & reruning...
         #os.system("rm -r %s"%outdir)
         #return
     return True
@@ -63,7 +68,7 @@ def get_new_runs(fqdir, raw):
         outdir = os.path.join(fqdir, runID)
         sampleSheetFpath = os.path.join(rundir, "SampleSheet.csv")
         # report only if run completed and given runID is not already processed AND SampleSheet.csv present
-        if _isCompleted(fpath) and not _isProcessed(outdir) and os.path.isfile(sampleSheetFpath):
+        if _isCompleted(fpath) and not _isProcessed(outdir, sampleSheetFpath) and os.path.isfile(sampleSheetFpath):
             fpath2 = os.path.join(rundir, "RunParameters.xml")
             expID = get_experiment_id(fpath2)
             yield rundir, outdir, runID, expID
