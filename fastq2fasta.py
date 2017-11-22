@@ -8,7 +8,7 @@ l.p.pryszcz+git@gmail.com
 Barcelona, 10/05/2013
 """
  
-import argparse, gzip, os, sys
+import argparse, gzip, os, sys, subprocess
 from datetime import datetime
 from multiprocessing import Pool
 
@@ -89,12 +89,10 @@ def main():
     usage   = "%(prog)s [options] -v " 
     parser  = argparse.ArgumentParser(usage=usage, description=desc, epilog=epilog)
 
-    parser.add_argument("-v", action="store_true", dest="verbose", default=False)
-    parser.add_argument('--version', action='version', version='1.0')   
-    parser.add_argument("-i", "--input",  default=sys.stdin, 
-                        help="input file [stdin]")
-    parser.add_argument("-o", "--output", default=sys.stdout, 
-                        help="output file [stdout]")
+    parser.add_argument("-v", action="store_true", dest="verbose")
+    parser.add_argument('--version', action='version', version='1.1a')   
+    parser.add_argument("-i", "--input", nargs="+", default=[sys.stdin], type=file, help="input file [stdin]")
+    parser.add_argument("-o", "--output", default=sys.stdout, help="output file [stdout]")
     parser.add_argument("-l", "--minLen", default=0, type=int,
                         help="skip reads shorter than [%(default)s]" )
     parser.add_argument("-q", "--qualityTh", default=0, type=int,
@@ -108,7 +106,13 @@ def main():
 
     o = parser.parse_args()
 
-    fastq2fasta(o.input, o.output, o.minLen, o.qualityTh, o.offset, o.bases, o.threads, o.verbose)
+    for handle in o.input:
+        # open gzip file as subprocess
+        if handle.name.endswith('.gz'):
+            zcat = subprocess.Popen(['zcat', handle.name], bufsize=-1, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            handle = zcat.stdout
+        # convert
+        fastq2fasta(handle, o.output, o.minLen, o.qualityTh, o.offset, o.bases, o.threads, o.verbose)
 
 if __name__=='__main__': 
     t0=datetime.now()
