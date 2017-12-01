@@ -188,6 +188,9 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
             continue
         # normalise 0-1 freq
         c = np.array(data)#; print c.shape; print c; return
+        if len(c.shape)<4:
+            log.write("[WARNING] Wrong shape for %s: %s\n"%(mod, c.shape))
+            continue
         csum = c.sum(axis=3, dtype='float')
         csum[csum<1] = 1
         cn = 1.*c/csum[:,:,:,np.newaxis]
@@ -197,7 +200,7 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
         cov = int(round(c.sum(axis=3)[:,window].mean()))
         # average over all positions
         cmm = cm.mean(axis=0)
-        log.write("%s\t%s\t%s\t%s\t%s\n"%(mod, mod2name[mod], len(pos), cov, "\t".join("%.3f"%x for x in cmm[2])))
+        log.write("%s\t%s\t%s\t%s\t%s\n"%(mod, mod2name[mod], len(pos), cov, "\t".join("%.3f"%x for x in cmm[window])))
         # plot base freq
         outfn = os.path.join(outdir, "mods.%s.png"%mod2name[mod]) #(mod if mod!="/" else "backslash", ))
         title = "%s [%s] in %s position(s) (%sx)"%(mod2name[mod], mod, len(pos), cov)
