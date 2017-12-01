@@ -17,6 +17,9 @@ from collections import Counter
 
 from modifications2rna import fasta_parser, table2modifications
 import numpy as np
+
+import matplotlib
+matplotlib.use('Agg') # Force matplotlib to not use any Xwindows backend
 import matplotlib.pyplot as plt
 
 import urllib, urllib2
