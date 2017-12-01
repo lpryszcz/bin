@@ -11,13 +11,12 @@ import sys
 reload(sys)  
 sys.setdefaultencoding('utf8')
 
-from Bio import SeqIO
-from Bio.Seq import Seq
 from datetime import datetime
 from collections import Counter
 
-def load_modifications(table):
+def table2modifications(table, log=sys.stderr):
     """Load modifications table"""
+    if log: log.write("Loading modifications from %s...\n"%table)
     mod2base = {"U": "T", "_": "n", 'A': 'A', 'C': 'C', 'G': 'G'}
     mod2name = {}
     for l in open(table):
@@ -29,19 +28,24 @@ def load_modifications(table):
         mod2name[mod] = ldata[0]
         #if mod not in mod2base:    
         mod2base[mod] = base
+    if log: log.write(" %s modifications loaded!\n"%len(mod2name))
     return mod2base, mod2name
 
-def parse(fn):
-    """Simple fasta parser"""
+def fasta_parser(fn):
+    """Simple unicode aware FastA parser.
+    Return header and seqs as a list
+    """
     data = []
     for l in open(fn):
         l = l[:-1]
         if l.startswith(">"):
-            if data: yield data
+            if data:
+                yield data
             data = [l[1:], []]
         else:
             data[-1] += [b.encode('utf-8') for b in l.upper().decode('utf-8')]
-    if data: yield data
+    if data:
+        yield data
     
 def get_id(desc, mod2base): 
     desc = desc.strip().replace(' | ', '.').replace(' ', '_')
@@ -50,9 +54,7 @@ def get_id(desc, mod2base):
     
 def modifications2rna(table, fnames, species):
     """Convert RNA with modifications into canonical FastA"""
-    print "Loading modifications from %s..."%table
-    mod2base, mod2name = load_modifications(table)
-    print " %s modifications loaded!"%len(mod2name)
+    mod2base, mod2name = table2modifications(table)
 
     print("Processing sequences...")
     II, MODS = 0, []
@@ -65,7 +67,7 @@ def modifications2rna(table, fnames, species):
         outfn1, outfn2 = fn+".rna.fa", fn+".dna.fa"
         print " %s --> %s & %s"%(fn, outfn1, outfn2)
         with open(outfn1, "w") as out1, open(outfn2, "w") as out2:
-            for name, seq in parse(fn):
+            for name, seq in fasta_parser(fn):
                 # skip if not given species
                 if species and species not in name:
                     continue
@@ -126,3 +128,4 @@ if __name__=='__main__':
     main()
     dt  = datetime.now()-t0
     sys.stderr.write( "#Time elapsed: %s\n" % dt )
+    
