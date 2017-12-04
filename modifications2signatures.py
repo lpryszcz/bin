@@ -103,7 +103,7 @@ def array2plot(outfn, mod, title, cm, pos, window, width=0.75, alphabet='ACGT+-'
     """Genotype positions"""
     fig = plt.figure(figsize=(7, 4+3*len(pos)))
     fig.suptitle(title, fontsize=20)
-    ind = np.arange(-window-width/2, window)
+    ind = np.arange(-window-width/2, window); print ind
     for j in range(cm.shape[0]):
         ax = fig.add_subplot(len(pos), 1, j+1)
         ax.set_title(pos[j])
