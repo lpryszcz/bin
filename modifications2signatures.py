@@ -57,9 +57,13 @@ def _remove_indels(alts):
     .$....,,,,....,.,,..,,.,.,,,,,,,....,.,...,.,.,....,,,........,.A.,...,,......^0.^+.^$.^0.^8.^F.^].^],
     ........,.-25ATCTGGTGGTTGGGATGTTGCCGCT..
     """
-    indels = {"+": 0, "-": 0}
+    ends = alts.count('$')
     # But first strip start/end read info.
-    alts = "".join(read_start_pat.split(alts)).replace('$', '')
+    starts = read_start_pat.split(alts)
+    alts = "".join(starts).replace('$', '')
+    ends += len(starts)-1
+    # count indels
+    indels = {"+": 0, "-": alts.count('*')}
     # remove indels info
     m = indel_pat.search(alts)
     while m:
@@ -70,7 +74,7 @@ def _remove_indels(alts):
         alts = alts[:m.start()] + alts[pos:]
         # get next match
         m = indel_pat.search(alts, m.start())
-    return alts, indels["+"], indels["-"]
+    return alts, indels["+"], indels["-"], ends
 
 def genotype_region(bams, dna, region, minDepth, mpileup_opts, alphabet='ACGT'):
     """Start mpileup"""    
@@ -78,9 +82,10 @@ def genotype_region(bams, dna, region, minDepth, mpileup_opts, alphabet='ACGT'):
     args = ['samtools', 'mpileup', '-r', region] + mpileup_opts.split() + bams
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) #, bufsize=65536)
     # process lines
-    data = []
+    data, ends = [], []
     for line in proc.stdout:
         data.append([])
+        ends.append([])
         lineTuple = line.strip().split('\t')
         # get coordinate
         contig, pos, baseRef = lineTuple[:3]
@@ -89,14 +94,15 @@ def genotype_region(bams, dna, region, minDepth, mpileup_opts, alphabet='ACGT'):
         # process bam files
         for alg in samplesData[1::3]:
             # remove indels & get base counts
-            alts, ins, dels = _remove_indels(alg)
+            alts, ins, dels, _ends = _remove_indels(alg)
             counts = [alts.upper().count(b) for b in alphabet] + [ins, dels]
             data[-1].append(counts)
+            ends[-1].append(_ends)
             '''if sum(counts)>=minDepth:
                 data[-1].append(counts)
             else:
                 data[-1].append([0]*len(counts))'''
-    return data
+    return data, ends
 
 def array2plot(outfn, mod, title, cm, pos, window, width=0.75, alphabet='ACGT+-',
                colors=['green', 'blue', 'orange', 'red', 'grey', 'black']):
@@ -161,7 +167,7 @@ def pos2logo(outdir, mod, c, pos, window=2, alphabet='ACGT', ext="svg"):
             im = response.read()
             f.write(im)
 
-def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_opts, verbose, log=sys.stderr, window=2):
+def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_opts, verbose, log=sys.stdout, window=2):
     """Generate RT signatures for modifications"""
     mod2base, mod2name = table2modifications(table)
     
@@ -169,11 +175,11 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
         os.makedirs(outdir)
         
     # load modifications
-    mods, unmods = load_modifications(rna, log=log)
+    mods, unmods = load_modifications(rna)
     # write header
-    log.write("#code\tmodification\toccurencies\tavg cov\tA\tC\tG\tT\tins\tdel\n")
+    log.write("#code\tmodification\toccurencies\tavg cov\tA\tC\tG\tT\tins\tdel\tterminations\n")
     for mod, pos in mods.iteritems():
-        data = []
+        data, ends = [], []
         for p in pos:
             ref = p.split(':')[0]
             i = int(p.split(':')[1])
@@ -181,15 +187,16 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
             if s<1:
                 continue
             region = "%s:%s-%s"%(ref, s, e)
-            _data = genotype_region(bams, dna, region, minDepth, mpileup_opts)
+            _data, _ends = genotype_region(bams, dna, region, minDepth, mpileup_opts)
             if len(_data)==2*window+1:
                 data.append(_data)
+                ends.append(_ends)
         if not data:
             continue
         # normalise 0-1 freq
-        c = np.array(data)#; print c.shape; print c; return
+        c, e = np.array(data), np.array(ends)#; print c.shape, e.shape
         if len(c.shape)<4:
-            log.write("[WARNING] Wrong shape for %s: %s\n"%(mod, c.shape))
+            sys.stderr.write("[WARNING] Wrong shape for %s: %s\n"%(mod, c.shape))
             continue
         csum = c.sum(axis=3, dtype='float')
         csum[csum<1] = 1
@@ -199,17 +206,18 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
         # mean cov at modified base
         cov = int(round(c.sum(axis=3)[:,window].mean()))
         # average over all positions
-        cmm = cm.mean(axis=0)
-        log.write("%s\t%s\t%s\t%s\t%s\n"%(mod, mod2name[mod], len(pos), cov, "\t".join("%.3f"%x for x in cmm[window])))
+        cmm = cm.mean(axis=0)#; print csum.shape, e.mean(axis=2).shape, csum.mean(axis=2).shape
+        emm = np.mean(e.mean(axis=2)/csum.mean(axis=2), axis=0)#; print emm; return
+        log.write("%s\t%s\t%s\t%s\t%s\t%.3f\n"%(mod, mod2name[mod], len(pos), cov, "\t".join("%.3f"%x for x in cmm[window]), emm[window]))
         # plot base freq
-        outfn = os.path.join(outdir, "mods.%s.png"%mod2name[mod]) #(mod if mod!="/" else "backslash", ))
+        outfn = os.path.join(outdir, "mods.%s.png"%mod2name[mod]) 
         title = "%s [%s] in %s position(s) (%sx)"%(mod2name[mod], mod, len(pos), cov)
         array2plot(outfn, mod2name[mod], title, cm, pos, window)
         # store logo
         try:
             pos2logo(outdir, mod2name[mod], c, pos, window)
         except Exception, e:
-            log.write("[ERROR][pos2logo] %s\n"%str(e))
+            sys.stderr.write("[ERROR][pos2logo] %s\n"%str(e))
                 
 def main():
     import argparse
