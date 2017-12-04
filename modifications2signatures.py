@@ -137,6 +137,8 @@ def array2plot(outfn, mod, title, cm, pos, window, width=0.75, alphabet='ACGT+-'
             bottom += cmm[:,i]
         fig.savefig(".".join(outfn.split('.')[:-1])+".collapsed."+outfn.split('.')[-1],
                     dpi=100, orientation='landscape', transparent=False)
+    # clear
+    fig.clear(); del fig
             
 def pos2logo(outdir, mod, c, pos, window=2, alphabet='ACGT', ext="svg"):
     """Store logo for each position"""
@@ -177,8 +179,8 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
     # load modifications
     mods, unmods = load_modifications(rna)
     # write header
-    log.write("#code\tmodification\toccurencies\tavg cov\tA\tC\tG\tT\tins\tdel\tterminations\n")
-    for mod, pos in mods.iteritems():
+    log.write("#code\tmodification\toccurencies\tavg cov\tcov std/avg\tA\tC\tG\tT\tins\tdel\n")
+    for mod, pos in mods.iteritems(): #list(mods.iteritems())[-10:]:
         data, ends = [], []
         for p in pos:
             ref = p.split(':')[0]
@@ -203,12 +205,12 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
         cn = 1.*c/csum[:,:,:,np.newaxis]
         # average over all replicas
         cm = cn.mean(axis=2)
-        # mean cov at modified base
-        cov = int(round(c.sum(axis=3)[:,window].mean()))
+        # mean cov & cov var (stdev / mean)
+        cov = csum.mean(axis=2).mean(axis=0) 
+        covvar = cov.std() / cov.mean()
         # average over all positions
-        cmm = cm.mean(axis=0)#; print csum.shape, e.mean(axis=2).shape, csum.mean(axis=2).shape
-        emm = np.mean(e.mean(axis=2)/csum.mean(axis=2), axis=0)#; print emm; return
-        log.write("%s\t%s\t%s\t%s\t%s\t%.3f\n"%(mod, mod2name[mod], len(pos), cov, "\t".join("%.3f"%x for x in cmm[window]), emm[window]))
+        cmm = cm.mean(axis=0)
+        log.write("%s\t%s\t%s\t%.2f\t%.3f\t%s\n"%(mod, mod2name[mod], len(pos), cov[window], covvar, "\t".join("%.3f"%x for x in cmm[window])))
         # plot base freq
         outfn = os.path.join(outdir, "mods.%s.png"%mod2name[mod]) 
         title = "%s [%s] in %s position(s) (%sx)"%(mod2name[mod], mod, len(pos), cov)
