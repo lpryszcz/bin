@@ -148,7 +148,7 @@ def bam2ploidy(bam, minDepth=10, minAltFreq=0.05, mapq=3, bcq=20, threads=4, chr
     # exit if processed
     outfn = "%s.ploidy.tsv"%bam
     if os.path.isfile(outfn) and open(outfn).readline():
-        sys.stderr.write(" Outfile exists or not empty: %s\n"%o.out)
+        sys.stderr.write(" Outfile exists or not empty: %s\n"%outfn)
         return
     # make sure indexed
     logger(" %s"%bam)
