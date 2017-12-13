@@ -176,7 +176,7 @@ def bam2ploidy(bam, minDepth=10, minAltFreq=0.05, mapq=3, bcq=20, threads=4, chr
         sys.stderr.write(" %s / %s %s:%s-%s         \r"%(i, len(regions), ref, start, end))
         if ref!=pref:
             if covs: # store covmedia, mean, std and most common freq
-                ref2stats[pref] = get_stats(covs, maxfreq)#; print pref, ref2stats[pref]
+                ref2stats[pref] = get_stats(covs, maxfreq); print pref, ref2stats[pref]
             # reset
             pref, covs = ref, []
             freqbins, maxfreq = get_maxfreq()
