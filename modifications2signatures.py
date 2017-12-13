@@ -213,7 +213,7 @@ def modifications2signatures(outdir, bams, dna, rna, table, minDepth, mpileup_op
         log.write("%s\t%s\t%s\t%.2f\t%.3f\t%s\n"%(mod, mod2name[mod], len(pos), cov[window], covvar, "\t".join("%.3f"%x for x in cmm[window])))
         # plot base freq
         outfn = os.path.join(outdir, "mods.%s.png"%mod2name[mod]) 
-        title = "%s [%s] in %s position(s) (%sx)"%(mod2name[mod], mod, len(pos), cov)
+        title = "%s [%s] in %s position(s) (%sx)"%(mod2name[mod], mod, len(pos), cov[window])
         array2plot(outfn, mod2name[mod], title, cm, pos, window)
         # store logo
         try:
