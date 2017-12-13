@@ -80,7 +80,7 @@ def is_qcfail(a, mapq=15):
 
 def get_maxfreq():
     """Return freqbins and maxfreq"""
-    freqbins = np.arange(.0, 1.01, 0.01)
+    freqbins = np.arange(.0, 1.01, 0.02)
     maxfreq = np.zeros(len(freqbins), dtype='uint32')            
     return freqbins, maxfreq
         
@@ -206,7 +206,7 @@ def get_stats(covs, freqs, q=5):
     cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]
     if cov.sum()<100: return 0, 0, 0, []
     # most common freq
-    mostcommon = filter(lambda x: freqs[x]>=0.1*freqs.max(), reversed(freqs.argsort()))    
+    mostcommon = [x*2 for x in reversed(freqs.argsort()) if freqs[x]>=0.66*freqs.max()]
     return np.median(cov), cov.mean(), cov.std(), mostcommon
         
 def logger(info, add_timestamp=1, add_memory=1, out=sys.stderr):
@@ -234,7 +234,7 @@ def main():
     parser.add_argument("-t", "--threads", default=4, type=int, help="number of cores to use [%(default)s]")
     parser.add_argument("-c", "--chrs", nargs="*", default=[], help="analyse selected chromosomes [all]")
     parser.add_argument("--minDepth", default=10, type=int,  help="minimal depth of coverage for genotyping [%(default)s]")
-    parser.add_argument("--minAltFreq", default=0.02, type=float, help="min frequency for DNA base [%(default)s]")
+    parser.add_argument("--minAltFreq", default=0.1, type=float, help="min frequency for DNA base [%(default)s]")
     parser.add_argument("--minfrac", default=0.05, type=float, help="min length of chr/contig as fraction of the longest chr [%(default)s]")
 
     
