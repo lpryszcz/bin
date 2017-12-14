@@ -96,7 +96,7 @@ def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20):
     strandsNo = 1
     basesize = strandsNo*len(alphabet)
     n =  basesize * (end-start+1)
-    calls = np.zeros(n, dtype="float64") # for compatibility with list
+    calls = np.zeros(n, dtype="int64") # for compatibility with list
     # freqhist
     freqbins, freqhist = get_freqhist()
     # stop if ref not in sam file
@@ -120,10 +120,11 @@ def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20):
     calls = calls.reshape((end-start+1, len(alphabet)))
     # get coverage
     cov = np.array(calls.sum(axis=1), dtype='uint16')
-    # get freq 
-    freq = 1.*calls[cov>=minDepth] / cov[cov>=minDepth, None]
-    for i in np.digitize(freq, freqbins, right=1): 
-        freqhist[i] += 1
+    # get freq
+    freqs = 100*calls[cov>=minDepth] / cov[cov>=minDepth, None]
+    for i, c in zip(*np.unique(freqs, return_counts=1)):
+        if i>=len(freqhist): continue
+        freqhist[i] = c
     return cov, freqhist
 
 def worker(args):
@@ -171,7 +172,7 @@ def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=
     # exit if processed
     outfn = "%s.ploidy.tsv"%bam
     if os.path.isfile(outfn) and open(outfn).readline():
-        sys.stderr.write(" Outfile exists or not empty: %s\n"%outfn)
+        if verbose: sys.stderr.write(" Outfile exists or not empty: %s\n"%outfn)
         return outfn
     # make sure indexed
     logger(" %s"%bam)
@@ -232,27 +233,27 @@ def logger(info, add_timestamp=1, add_memory=1, out=sys.stderr):
         memory = " [memory: %7.1f Mb]"%(childrenmem + selfmem, ) #; %7.1f Mb self
     out.write("%s%s%s\n"%(timestamp, info, memory))
 
-def plot(fnames, chrs, chr2data, minAltFreq=5, ext="png", verbose=1):
+def plot(outbase, fnames, chrs, chr2data, minAltFreq=10, ext="png"):
     """Save freq histograms"""
     freqbins, freqs = get_freqhist()
-    logger("Saving figures...")
-    for r, data in zip(chrs, chr2data):
-        outfn = "bam2ploidy.%s.%s"%(r, ext)
-        if verbose:
-            logger(" %s"%outfn)
-        fig = plt.figure(figsize=(10, 5*len(fnames)))
-        fig.suptitle(r)
-        for i, (fn, (freqs, ploidy, modes)) in enumerate(zip(fnames, data), 1):
+    outfn = "%s.%s"%(outbase, ext)
+    logger("Saving figure %s..."%outfn)
+    fig, axes = plt.subplots(figsize=(9*len(chrs)+1, 4*len(fnames)+1), nrows=len(fnames), ncols=len(chrs), sharex=True)
+    fig.suptitle("Histograms of SNP frequencies")
+    for j, (r, data) in enumerate(zip(chrs, chr2data)):
+        for i, (fn, (freqs, ploidy, modes)) in enumerate(zip(fnames, data)):
             if not sum(freqs):
                 freqs = np.zeros(freqbins.shape)
-            ax = fig.add_subplot(len(fnames), 1, i)
+            ax = axes[i][j]
             ax.bar(freqbins[minAltFreq:-minAltFreq], freqs[minAltFreq:-minAltFreq], width=0.01)
             ax.set_xlim(0, 1)
-            ax.set_title("%s ploidy:%s modes:%s"%(fn, ploidy, modes))
-        ax.set_xlabel("Allele frequency [%]")
-        fig.savefig(outfn, dpi=100)
+            ax.set_title("%s\nploidy:%s modes:%s"%(r, ploidy, modes))
+            ax.set_ylabel("%s counts"%fn)
+        ax.set_xlabel("Allele frequency [%]")#+"\n%s"%r)
+    fig.savefig(outfn, dpi=100)
+    del fig, ax
     
-def report(fnames, minAltFreq=10, order=7, out=sys.stdout):
+def report(outbase, fnames, minAltFreq=10, verbose=0, order=9):
     """Report final table with ploidy and freq modes"""
     olines = [["# chr", "len"] + ["%s\tmodes"%fn for fn in fnames]]
     chrs, lens = [], []
@@ -269,14 +270,17 @@ def report(fnames, minAltFreq=10, order=7, out=sys.stdout):
             if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
                 modes = []
             else:
-                modes = signal.argrelmax(freqs, order=order)[0]
+                modes = signal.argrelmax(freqs, order=order)[0] #freqs[:100:2]+freqs[1::2], order=order)[0]*2
             # report
             ploidy, modes = "%.2f"%float(ld[3]), ",".join(map(str, modes))
             olines[i] += [ploidy, modes]
             chr2data[i-1].append((freqs, ploidy, modes))
     # report & plot
-    out.write("\n".join("\t".join(ol) for ol in olines)+"\n")
-    plot(fnames, chrs, chr2data)
+    outfn = outbase+".tsv"
+    logger("Reporting ploidy to %s"%outfn)
+    with open(outfn, "w") as out:
+        out.write("\n".join("\t".join(ol) for ol in olines)+"\n")
+    plot(outbase, fnames, chrs, chr2data, minAltFreq)
             
 def main():
     import argparse
@@ -287,6 +291,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.20a')
     parser.add_argument("-i", "--bams", nargs="+", help="input BAM file(s)")
+    parser.add_argument("-o", "--outbase", default="bam2ploidy", help="output basename [%(default)s]")
     parser.add_argument("-q", "--mapq", default=10, type=int, help="mapping quality [%(default)s]")
     parser.add_argument("-Q", "--bcq", default=20, type=int, help="basecall quality [%(default)s]")
     parser.add_argument("-t", "--threads", default=4, type=int, help="number of cores to use [%(default)s]")
@@ -310,14 +315,18 @@ def main():
             sys.stderr.write("No such file: %s\n"%fn)
             sys.exit(1)
 
+    # create outdirs
+    if os.path.dirname(o.outbase) and not os.path.isdir(os.path.dirname(o.outbase)):
+        os.makedirs(os.path.dirname(o.outbase))
+
     logger("Processing %s BAM file(s)..."%len(o.bams))
     fnames = []        
     for bam in o.bams:
         outfn = bam2ploidy(bam, o.minDepth, o.minAltFreq, o.mapq, o.bcq, o.threads, o.chrs, o.minfrac, o.verbose)
         fnames.append(outfn)
 
+    report(o.outbase, fnames, o.minAltFreq, o.verbose)
     logger("Finished!")
-    report(fnames, o.minAltFreq)
     
 if __name__=='__main__': 
     t0 = datetime.now()
