@@ -246,10 +246,10 @@ def plot(outbase, fnames, chrs, chr2data, minAltFreq=10, ext="png"):
                 freqs = np.zeros(freqbins.shape)
             ax = axes[i][j]
             ax.bar(freqbins[minAltFreq:-minAltFreq], freqs[minAltFreq:-minAltFreq], width=0.01)
-            ax.set_xlim(0, 1)
             ax.set_title("%s\nploidy:%s modes:%s"%(r, ploidy, modes))
             ax.set_ylabel("%s counts"%fn)
-        ax.set_xlabel("Allele frequency [%]")#+"\n%s"%r)
+        ax.set_xlim(0, 1)
+        ax.set_xlabel("Allele frequency")
     fig.savefig(outfn, dpi=100)
     del fig, ax
     
