@@ -15,8 +15,12 @@ import os, sys, pysam, resource
 from datetime import datetime
 from multiprocessing import Pool
 import numpy as np
-from scipy import stats
+from scipy import stats, signal
 from itertools import izip
+
+import matplotlib
+matplotlib.use('Agg') # Force matplotlib to not use any Xwindows backend
+import matplotlib.pyplot as plt
 
 alphabet = "ACGT" # i=insertion d=deletion
 base2index = {b: i for i, b in enumerate(alphabet)}
@@ -78,13 +82,13 @@ def is_qcfail(a, mapq=15):
     if a.mapq<mapq or a.flag&3840: # or is_heavily_clippped(a): 
         return True
 
-def get_maxfreq():
-    """Return freqbins and maxfreq"""
-    freqbins = np.arange(.0, 1.01, 0.02)
-    maxfreq = np.zeros(len(freqbins), dtype='uint32')            
-    return freqbins, maxfreq
+def get_freqhist():
+    """Return freqbins and freqhist"""
+    freqbins = np.arange(.0, 1.01, 0.01)
+    freqhist = np.zeros(len(freqbins), dtype='uint32')            
+    return freqbins, freqhist
         
-def bam2cov_freq(bam, region, minDepth, minAltFreq, mapq=15, baseq=20):
+def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20):
     """Return 2 arrays of per position coverage and max base frequency histogram"""
     ref, start, end = region
     sam = pysam.AlignmentFile(bam)
@@ -93,8 +97,8 @@ def bam2cov_freq(bam, region, minDepth, minAltFreq, mapq=15, baseq=20):
     basesize = strandsNo*len(alphabet)
     n =  basesize * (end-start+1)
     calls = np.zeros(n, dtype="float64") # for compatibility with list
-    # maxfreq
-    freqbins, maxfreq = get_maxfreq()
+    # freqhist
+    freqbins, freqhist = get_freqhist()
     # stop if ref not in sam file
     if ref not in sam.references:
         if ref.startswith('chr') and ref[3:] in sam.references:
@@ -102,7 +106,7 @@ def bam2cov_freq(bam, region, minDepth, minAltFreq, mapq=15, baseq=20):
         elif 'chr%s'%ref in sam.references:
             ref = 'chr%s'%ref
         else:
-            return np.array([], dtype='uint16'), maxfreq
+            return np.array([], dtype='uint16'), freqhist
     # process alignments
     pa = None  
     for a in sam.fetch(ref, start, end):
@@ -116,17 +120,17 @@ def bam2cov_freq(bam, region, minDepth, minAltFreq, mapq=15, baseq=20):
     calls = calls.reshape((end-start+1, len(alphabet)))
     # get coverage
     cov = np.array(calls.sum(axis=1), dtype='uint16')
-    # get freq
-    freq = 1.*calls.max(axis=1)[cov>=minDepth] / cov[cov>=minDepth]
-    for i in np.digitize(freq[freq<1-minAltFreq], freqbins, right=1):
-        maxfreq[i] += 1
-    return cov, maxfreq
+    # get freq 
+    freq = 1.*calls[cov>=minDepth] / cov[cov>=minDepth, None]
+    for i in np.digitize(freq, freqbins, right=1): 
+        freqhist[i] += 1
+    return cov, freqhist
 
 def worker(args):
     # ignore all warnings
     np.seterr(all='ignore')
-    bam, region, minDepth, minAltFreq, mapq, bcq = args
-    return bam2cov_freq(bam, region, minDepth, minAltFreq, mapq, bcq)
+    bam, region, minDepth, mapq, bcq = args
+    return bam2cov_freq(bam, region, minDepth, mapq, bcq)
 
 def bam2regions(bam, chrs=[], maxfrac=0.05, step=100000, verbose=0):
     """Return chromosome windows"""
@@ -145,23 +149,41 @@ def bam2regions(bam, chrs=[], maxfrac=0.05, step=100000, verbose=0):
             regions.append((ref, s, s+step-1))
     return regions, refs, lens
     
-def bam2ploidy(bam, minDepth=10, minAltFreq=0.05, mapq=3, bcq=20, threads=4, chrs=[], minfrac=0.05, verbose=1):
+def get_stats(covs, freqs, chrlen, minAltFreq=10, q=5):
+    """Return coverage median, mean and stdev"""
+    cov = np.concatenate(covs, axis=0)
+    if cov.sum()<100: return 0, 0, 0, [], []
+    # get rid of left / right 5 percentile
+    mincov, maxcov = stats.scoreatpercentile(cov, q), stats.scoreatpercentile(cov, 100-q)
+    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]
+    if cov.sum()<100: return 0, 0, 0, [], []
+    # most common freq
+    ## if less than 0.001*chrlen snps then skip (1K per 1M
+    if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
+        modes = []
+    else:
+        # detect local modes https://stackoverflow.com/a/43054870/632242
+        modes = signal.argrelmax(freqs, order=7)[0]
+    return np.median(cov), cov.mean(), cov.std(), modes, freqs
+        
+def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=[], minfrac=0.05, verbose=1):
     """Get alternative base coverage and frequency for every bam file"""
     # exit if processed
     outfn = "%s.ploidy.tsv"%bam
     if os.path.isfile(outfn) and open(outfn).readline():
         sys.stderr.write(" Outfile exists or not empty: %s\n"%outfn)
-        return
+        return outfn
     # make sure indexed
     logger(" %s"%bam)
     if not os.path.isfile(bam+".bai"):
-        logger(" Indexing %s..."%fn)
-        cmd = "samtools index %s"%fn
-        if o.verbose:
+        logger("  Indexing...")
+        cmd = "samtools index %s"%bam
+        if verbose:
             sys.stderr.write(" %s\n"%cmd)
         os.system(cmd)
     # get regions
     regions, refs, lens = bam2regions(bam, chrs, minfrac)
+    chr2len = {r: l for r, l in zip(refs, lens)}    
     # this is useful for debugging 
     i = 0
     if threads<2:
@@ -169,46 +191,36 @@ def bam2ploidy(bam, minDepth=10, minAltFreq=0.05, mapq=3, bcq=20, threads=4, chr
         p = itertools
     else:
         p = Pool(threads)
-    parser = p.imap(worker, ((bam, r, minDepth, minAltFreq, mapq, bcq) for r in regions))
+    parser = p.imap(worker, ((bam, r, minDepth, mapq, bcq) for r in regions))
     # process regions
     ref2stats = {}
     pref, covs = "", []
-    freqbins, maxfreq = get_maxfreq()
-    for i, ((ref, start, end), (_cov, _maxfreq)) in enumerate(izip(regions, parser), 1):
+    freqbins, freqhist = get_freqhist()
+    for i, ((ref, start, end), (_cov, _freqhist)) in enumerate(izip(regions, parser), 1):
         sys.stderr.write(" %s / %s %s:%s-%s         \r"%(i, len(regions), ref, start, end))
         if ref!=pref:
-            if covs: # store covmedia, mean, std and most common freq
-                ref2stats[pref] = get_stats(covs, maxfreq); print pref, ref2stats[pref], maxfreq
+            if covs:
+                ref2stats[pref] = get_stats(covs, freqhist, chr2len[pref], minAltFreq)
             # reset
             pref, covs = ref, []
-            freqbins, maxfreq = get_maxfreq()
-        maxfreq += _maxfreq
+            freqbins, freqhist = get_freqhist()
+        freqhist += _freqhist
         covs.append(_cov)
     # process last output
     if covs:
-        ref2stats[pref] = get_stats(covs, maxfreq)
+        ref2stats[pref] = get_stats(covs, freqhist, chr2len[pref], minAltFreq)
     # get min cov ==> ploidy 1
     covstats = np.array([ref2stats[ref][1] for ref in refs])
     mincov = min(covstats[covstats>covstats.mean()*0.1])
     ploidy = covstats / mincov
     # report
+    oline = "%s\t%s\t%.2f\t%.2f\t%s\t%s\n"
     with open(outfn, "w") as out:
-        out.write("#ref\tlen\tcov\tploidy\tmost_common_freq\n")
+        out.write("#ref\tlen\tcov\tploidy\tfreq_modes\tfreq_histogram\n")
         for r, l, c, p in izip(refs, lens, covstats, ploidy):
-            out.write("%s\t%s\t%.2f\t%.2f\t%s\n"%(r, l, c, p, ",".join(map(str, ref2stats[r][-1]))))
+            out.write(oline%(r, l, c, p, ",".join(map(str, ref2stats[r][-2])), ",".join(map(str, ref2stats[r][-1]))))
+    return outfn
 
-def get_stats(covs, freqs, q=5):
-    """Return coverage median, mean and stdev"""
-    cov = np.concatenate(covs, axis=0)
-    if cov.sum()<100: return 0, 0, 0, []
-    # get rid of left / right 5 percentile
-    mincov, maxcov = stats.scoreatpercentile(cov, q), stats.scoreatpercentile(cov, 100-q)
-    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]
-    if cov.sum()<100: return 0, 0, 0, []
-    # most common freq
-    mostcommon = [x*2 for x in reversed(freqs.argsort()) if freqs[x]>=0.66*freqs.max()]
-    return np.median(cov), cov.mean(), cov.std(), mostcommon
-        
 def logger(info, add_timestamp=1, add_memory=1, out=sys.stderr):
     """Report nicely formatted stream to stderr"""
     memory = timestamp = ""
@@ -220,6 +232,52 @@ def logger(info, add_timestamp=1, add_memory=1, out=sys.stderr):
         memory = " [memory: %7.1f Mb]"%(childrenmem + selfmem, ) #; %7.1f Mb self
     out.write("%s%s%s\n"%(timestamp, info, memory))
 
+def plot(fnames, chrs, chr2data, minAltFreq=5, ext="png", verbose=1):
+    """Save freq histograms"""
+    freqbins, freqs = get_freqhist()
+    logger("Saving figures...")
+    for r, data in zip(chrs, chr2data):
+        outfn = "bam2ploidy.%s.%s"%(r, ext)
+        if verbose:
+            logger(" %s"%outfn)
+        fig = plt.figure(figsize=(10, 5*len(fnames)))
+        fig.suptitle(r)
+        for i, (fn, (freqs, ploidy, modes)) in enumerate(zip(fnames, data), 1):
+            if not sum(freqs):
+                freqs = np.zeros(freqbins.shape)
+            ax = fig.add_subplot(len(fnames), 1, i)
+            ax.bar(freqbins[minAltFreq:-minAltFreq], freqs[minAltFreq:-minAltFreq], width=0.01)
+            ax.set_xlim(0, 1)
+            ax.set_title("%s ploidy:%s modes:%s"%(fn, ploidy, modes))
+        ax.set_xlabel("Allele frequency [%]")
+        fig.savefig(outfn, dpi=100)
+    
+def report(fnames, minAltFreq=10, order=7, out=sys.stdout):
+    """Report final table with ploidy and freq modes"""
+    olines = [["# chr", "len"] + ["%s\tmodes"%fn for fn in fnames]]
+    chrs, lens = [], []
+    for fn in fnames:
+        ldata = [l[:-1].split('\t') for l in open(fn) if not l.startswith('#')]
+        if len(olines)<2:
+            olines += [ld[:2] for ld in ldata]
+            chrs = [ld[0] for ld in ldata]
+            lens = map(int, [ld[1] for ld in ldata])
+            chr2data = [[] for i in range(len(chrs))]
+        for i, (chrlen, ld) in enumerate(zip(lens, ldata), 1):
+            # recalculate modes
+            freqs = np.array(map(int, ld[5].split(','))) if ld[5] else np.array([])
+            if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
+                modes = []
+            else:
+                modes = signal.argrelmax(freqs, order=order)[0]
+            # report
+            ploidy, modes = "%.2f"%float(ld[3]), ",".join(map(str, modes))
+            olines[i] += [ploidy, modes]
+            chr2data[i-1].append((freqs, ploidy, modes))
+    # report & plot
+    out.write("\n".join("\t".join(ol) for ol in olines)+"\n")
+    plot(fnames, chrs, chr2data)
+            
 def main():
     import argparse
     usage  = "%(prog)s [options]" 
@@ -229,12 +287,12 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.20a')
     parser.add_argument("-i", "--bams", nargs="+", help="input BAM file(s)")
-    parser.add_argument("-q", "--mapq", default=3, type=int, help="mapping quality [%(default)s]")
+    parser.add_argument("-q", "--mapq", default=10, type=int, help="mapping quality [%(default)s]")
     parser.add_argument("-Q", "--bcq", default=20, type=int, help="basecall quality [%(default)s]")
     parser.add_argument("-t", "--threads", default=4, type=int, help="number of cores to use [%(default)s]")
     parser.add_argument("-c", "--chrs", nargs="*", default=[], help="analyse selected chromosomes [all]")
     parser.add_argument("--minDepth", default=10, type=int,  help="minimal depth of coverage for genotyping [%(default)s]")
-    parser.add_argument("--minAltFreq", default=0.1, type=float, help="min frequency for DNA base [%(default)s]")
+    parser.add_argument("--minAltFreq", default=10, type=int, help="min frequency for DNA base in % [%(default)s]")
     parser.add_argument("--minfrac", default=0.05, type=float, help="min length of chr/contig as fraction of the longest chr [%(default)s]")
 
     
@@ -253,10 +311,13 @@ def main():
             sys.exit(1)
 
     logger("Processing %s BAM file(s)..."%len(o.bams))
+    fnames = []        
     for bam in o.bams:
-        bam2ploidy(bam, o.minDepth, o.minAltFreq, o.mapq, o.bcq, o.threads, o.chrs, o.minfrac, o.verbose)
+        outfn = bam2ploidy(bam, o.minDepth, o.minAltFreq, o.mapq, o.bcq, o.threads, o.chrs, o.minfrac, o.verbose)
+        fnames.append(outfn)
 
     logger("Finished!")
+    report(fnames, o.minAltFreq)
     
 if __name__=='__main__': 
     t0 = datetime.now()
