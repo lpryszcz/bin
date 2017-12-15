@@ -72,14 +72,9 @@ def get_blocks(a, start, end, baseq, basesize):
                 block[ii*basesize+base2index[b]] += 1
             yield prefi, block
 
-def is_duplicate(a, pa):
-    """Return True if read is duplicate"""
-    if pa and a.pos==pa.pos and a.flag==pa.flag and a.cigarstring==pa.cigarstring and a.isize==pa.isize and a.seq==pa.seq:
-        return True
-
 def is_qcfail(a, mapq=15):
     """Return True if alignment record fails quality checks"""
-    if a.mapq<mapq or a.flag&3840: # or is_heavily_clippped(a): 
+    if a.mapq<mapq or a.flag&3840: 
         return True
 
 def get_freqhist():
@@ -110,7 +105,7 @@ def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20):
     # process alignments
     pa = None  
     for a in sam.fetch(ref, start, end):
-        if is_qcfail(a, mapq) or is_duplicate(a, pa):
+        if is_qcfail(a, mapq): 
             continue
         pa = a
         for refi, block in get_blocks(a, start, end, baseq, basesize):
@@ -237,12 +232,11 @@ def plot(outbase, fnames, chrs, chr2data, minAltFreq=10, ext="png"):
                 freqs = np.zeros(freqbins.shape)
             ax = axes[i][j]
             ax.bar(freqbins[minAltFreq:-minAltFreq], freqs[minAltFreq:-minAltFreq], width=0.01)
-            ax.set_title("%s\nploidy:%s modes:%s"%(r, ploidy, modes))
-            ax.set_ylabel("%s counts"%os.path.basename(fn)[:-4])
+            ax.set_title("%s %s\nploidy:%s modes:%s"%(os.path.basename(fn)[:-15], r, ploidy, modes))
+            if not j: ax.set_ylabel("counts")
         ax.set_xlim(0, 1)
         ax.set_xlabel("Allele frequency")
     fig.savefig(outfn, dpi=100)
-    del fig, ax
     
 def report(outbase, fnames, minAltFreq=10, verbose=0, order=5):
     """Report final table with ploidy and freq modes"""
@@ -260,7 +254,7 @@ def report(outbase, fnames, minAltFreq=10, verbose=0, order=5):
         mincov = min(covstats[covstats>covstats.mean()*0.1])
         ploidy = covstats / mincov
         # process all 
-        for i, (chrlen, ld) in enumerate(zip(lens, ldata), 1):
+        for i, (chrlen, ld, p) in enumerate(zip(lens, ldata, ploidy), 1):
             # recalculate modes
             freqs = np.array(map(int, ld[-1].split(','))) if ld[-1] else np.array([])
             if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
@@ -268,7 +262,7 @@ def report(outbase, fnames, minAltFreq=10, verbose=0, order=5):
             else:
                 modes = signal.argrelmax(freqs[:100:2]+freqs[1::2], order=order)[0]*2 #freqs[:100:2]+freqs[1::2]
             # report
-            ploidy, modes = "%.2f"%float(ld[3]), ",".join(map(str, modes))
+            ploidy, modes = "%.2f"%float(p), ",".join(map(str, modes))
             olines[i] += [ploidy, modes]
             chr2data[i-1].append((freqs, ploidy, modes))
     # report & plot
