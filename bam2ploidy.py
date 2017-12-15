@@ -253,7 +253,7 @@ def plot(outbase, fnames, chrs, chr2data, minAltFreq=10, ext="png"):
     fig.savefig(outfn, dpi=100)
     del fig, ax
     
-def report(outbase, fnames, minAltFreq=10, verbose=0, order=9):
+def report(outbase, fnames, minAltFreq=10, verbose=0, order=5):
     """Report final table with ploidy and freq modes"""
     olines = [["# chr", "len"] + ["%s\tmodes"%fn for fn in fnames]]
     chrs, lens = [], []
@@ -270,7 +270,7 @@ def report(outbase, fnames, minAltFreq=10, verbose=0, order=9):
             if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
                 modes = []
             else:
-                modes = signal.argrelmax(freqs, order=order)[0] #freqs[:100:2]+freqs[1::2], order=order)[0]*2
+                modes = signal.argrelmax(freqs[:100:2]+freqs[1::2], order=order)[0]*2 #freqs[:100:2]+freqs[1::2]
             # report
             ploidy, modes = "%.2f"%float(ld[3]), ",".join(map(str, modes))
             olines[i] += [ploidy, modes]
