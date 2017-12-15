@@ -153,19 +153,12 @@ def bam2regions(bam, chrs=[], maxfrac=0.05, step=100000, verbose=0):
 def get_stats(covs, freqs, chrlen, minAltFreq=10, q=5):
     """Return coverage median, mean and stdev"""
     cov = np.concatenate(covs, axis=0)
-    if cov.sum()<100: return 0, 0, 0, [], []
+    if cov.sum()<100: return 0, 0, 0, []
     # get rid of left / right 5 percentile
     mincov, maxcov = stats.scoreatpercentile(cov, q), stats.scoreatpercentile(cov, 100-q)
     cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]
-    if cov.sum()<100: return 0, 0, 0, [], []
-    # most common freq
-    ## if less than 0.001*chrlen snps then skip (1K per 1M
-    if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
-        modes = []
-    else:
-        # detect local modes https://stackoverflow.com/a/43054870/632242
-        modes = signal.argrelmax(freqs, order=7)[0]
-    return np.median(cov), cov.mean(), cov.std(), modes, freqs
+    if cov.sum()<100: return 0, 0, 0, []
+    return np.median(cov), cov.mean(), cov.std(), freqs
         
 def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=[], minfrac=0.05, verbose=1):
     """Get alternative base coverage and frequency for every bam file"""
@@ -210,16 +203,12 @@ def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=
     # process last output
     if covs:
         ref2stats[pref] = get_stats(covs, freqhist, chr2len[pref], minAltFreq)
-    # get min cov ==> ploidy 1
-    covstats = np.array([ref2stats[ref][1] for ref in refs])
-    mincov = min(covstats[covstats>covstats.mean()*0.1])
-    ploidy = covstats / mincov
     # report
-    oline = "%s\t%s\t%.2f\t%.2f\t%s\t%s\n"
+    oline = "%s\t%s\t%.2f\t%.2f\t%s\n"
     with open(outfn, "w") as out:
-        out.write("#ref\tlen\tcov\tploidy\tfreq_modes\tfreq_histogram\n")
-        for r, l, c, p in izip(refs, lens, covstats, ploidy):
-            out.write(oline%(r, l, c, p, ",".join(map(str, ref2stats[r][-2])), ",".join(map(str, ref2stats[r][-1]))))
+        out.write("#ref\tlen\tcov\tstdev\tfreq_histogram\n")
+        for r, l in izip(refs, lens):
+            out.write(oline%(r, l, ref2stats[r][1], ref2stats[r][2], ",".join(map(str, ref2stats[r][-1])))) 
     return outfn
 
 def logger(info, add_timestamp=1, add_memory=1, out=sys.stderr):
@@ -264,9 +253,14 @@ def report(outbase, fnames, minAltFreq=10, verbose=0, order=5):
             chrs = [ld[0] for ld in ldata]
             lens = map(int, [ld[1] for ld in ldata])
             chr2data = [[] for i in range(len(chrs))]
+        # get min cov ==> ploidy 1
+        covstats = np.array(map(float, [ld[2] for ld in ldata]))
+        mincov = min(covstats[covstats>covstats.mean()*0.1])
+        ploidy = covstats / mincov
+        # process all 
         for i, (chrlen, ld) in enumerate(zip(lens, ldata), 1):
             # recalculate modes
-            freqs = np.array(map(int, ld[5].split(','))) if ld[5] else np.array([])
+            freqs = np.array(map(int, ld[-1].split(','))) if ld[-1] else np.array([])
             if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
                 modes = []
             else:
