@@ -146,17 +146,19 @@ def bam2regions(bam, chrs=[], maxfrac=0.05, step=100000, verbose=0):
             continue
         refs.append(ref)
         lens.append(length)    
-        for s in xrange(1, length+1, step):
+        for s in xrange(1, length-step, step):
             regions.append((ref, s, s+step-1))
+        # last window is shorter
+        regions.append((ref, s+step, length))
     return regions, refs, lens
     
-def get_stats(covs, freqs, chrlen, minAltFreq=10, q=5):
+def get_stats(covs, freqs, chrlen, minAltFreq=10, q=2):
     """Return coverage median, mean and stdev"""
     cov = np.concatenate(covs, axis=0)
     if cov.sum()<100: return 0, 0, 0, []
     # get rid of left / right 5 percentile
     mincov, maxcov = stats.scoreatpercentile(cov, q), stats.scoreatpercentile(cov, 100-q)
-    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]
+    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]; print mincov, maxcov, np.median(cov), cov.mean(), cov.std()
     if cov.sum()<100: return 0, 0, 0, []
     return np.median(cov), cov.mean(), cov.std(), freqs
         
@@ -176,7 +178,7 @@ def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=
             sys.stderr.write(" %s\n"%cmd)
         os.system(cmd)
     # get regions
-    regions, refs, lens = bam2regions(bam, chrs, minfrac)
+    regions, refs, lens = bam2regions(bam, chrs, minfrac)#; print regions[:1000]
     chr2len = {r: l for r, l in zip(refs, lens)}    
     # this is useful for debugging 
     i = 0
@@ -236,7 +238,7 @@ def plot(outbase, fnames, chrs, chr2data, minAltFreq=10, ext="png"):
             ax = axes[i][j]
             ax.bar(freqbins[minAltFreq:-minAltFreq], freqs[minAltFreq:-minAltFreq], width=0.01)
             ax.set_title("%s\nploidy:%s modes:%s"%(r, ploidy, modes))
-            ax.set_ylabel("%s counts"%fn)
+            ax.set_ylabel("%s counts"%os.basename(fn)[:-4])
         ax.set_xlim(0, 1)
         ax.set_xlabel("Allele frequency")
     fig.savefig(outfn, dpi=100)
