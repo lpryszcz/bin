@@ -238,7 +238,7 @@ def plot(outbase, fnames, chrs, chr2data, minAltFreq=10, ext="png"):
             ax = axes[i][j]
             ax.bar(freqbins[minAltFreq:-minAltFreq], freqs[minAltFreq:-minAltFreq], width=0.01)
             ax.set_title("%s\nploidy:%s modes:%s"%(r, ploidy, modes))
-            ax.set_ylabel("%s counts"%os.basename(fn)[:-4])
+            ax.set_ylabel("%s counts"%os.path.basename(fn)[:-4])
         ax.set_xlim(0, 1)
         ax.set_xlabel("Allele frequency")
     fig.savefig(outfn, dpi=100)
