@@ -158,7 +158,7 @@ def get_stats(covs, freqs, chrlen, minAltFreq=10, q=2):
     if cov.sum()<100: return 0, 0, 0, []
     # get rid of left / right 5 percentile
     mincov, maxcov = stats.scoreatpercentile(cov, q), stats.scoreatpercentile(cov, 100-q)
-    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]; print mincov, maxcov, np.median(cov), cov.mean(), cov.std()
+    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]#; print mincov, maxcov, np.median(cov), cov.mean(), cov.std()
     if cov.sum()<100: return 0, 0, 0, []
     return np.median(cov), cov.mean(), cov.std(), freqs
         
