@@ -46,8 +46,8 @@ def _skip(refi, readi, bases): return refi, readi, False
 code2function = {0: _match, 7: _match, 8: _match, 1: _insertion, 6: _insertion,
                  2: _deletion, 3: _deletion, 4: _insertion, 5: _skip}
 
-def get_blocks(a, start, end, baseq, basesize):
-    """Return tuple of aligned position of query and reference. INDEL aware."""
+def store_blocks(a, start, end, baseq, basesize, calls):
+    """Return tuple of aligned position of query and reference."""
     readi, refi = 0, a.pos
     for ci, (code, bases) in enumerate(a.cigar):
         prefi, preadi = refi, readi
@@ -65,12 +65,9 @@ def get_blocks(a, start, end, baseq, basesize):
                 bases -= refi-end
             if bases<1:
                 break
-            block = [0]*basesize*bases 
             for ii, (b, q) in enumerate(zip(a.seq[preadi:preadi+bases], a.query_qualities[preadi:preadi+bases])):
-                if q<baseq or b not in base2index:
-                    continue
-                block[ii*basesize+base2index[b]] += 1
-            yield prefi, block
+                if q>=baseq and b in base2index:
+                    calls[(prefi-start)*basesize+ii*basesize+base2index[b]] += 1
 
 def is_qcfail(a, mapq=15):
     """Return True if alignment record fails quality checks"""
@@ -83,7 +80,7 @@ def get_freqhist():
     freqhist = np.zeros(len(freqbins), dtype='uint32')            
     return freqbins, freqhist
         
-def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20):
+def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20, minreads=3):
     """Return 2 arrays of per position coverage and max base frequency histogram"""
     ref, start, end = region
     sam = pysam.AlignmentFile(bam)
@@ -108,11 +105,14 @@ def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20):
         if is_qcfail(a, mapq): 
             continue
         pa = a
-        for refi, block in get_blocks(a, start, end, baseq, basesize):
+        store_blocks(a, start, end, baseq, basesize, calls)
+        """for refi, block in get_blocks(a, start, end, baseq, basesize):
             s, e = basesize*(refi-start), basesize*(refi-start)+len(block)
-            calls[s:e] += block
+            calls[s:e] += block"""
     # reshape
     calls = calls.reshape((end-start+1, len(alphabet)))
+    # skip calls by less than 3 reads
+    calls[calls<minreads] = 0
     # get coverage
     cov = np.array(calls.sum(axis=1), dtype='uint16')
     # get freq
@@ -125,8 +125,8 @@ def bam2cov_freq(bam, region, minDepth, mapq=15, baseq=20):
 def worker(args):
     # ignore all warnings
     np.seterr(all='ignore')
-    bam, region, minDepth, mapq, bcq = args
-    return bam2cov_freq(bam, region, minDepth, mapq, bcq)
+    bam, region, minDepth, mapq, bcq, minreads = args
+    return bam2cov_freq(bam, region, minDepth, mapq, bcq, minreads)
 
 def bam2regions(bam, chrs=[], maxfrac=0.05, step=100000, verbose=0):
     """Return chromosome windows"""
@@ -153,11 +153,11 @@ def get_stats(covs, freqs, chrlen, minAltFreq=10, q=2):
     if cov.sum()<100: return 0, 0, 0, []
     # get rid of left / right 5 percentile
     mincov, maxcov = stats.scoreatpercentile(cov, q), stats.scoreatpercentile(cov, 100-q)
-    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]#; print mincov, maxcov, np.median(cov), cov.mean(), cov.std()
+    cov = cov[np.all(np.array([cov<maxcov, cov>mincov]), axis=0)]
     if cov.sum()<100: return 0, 0, 0, []
     return np.median(cov), cov.mean(), cov.std(), freqs
         
-def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=[], minfrac=0.05, verbose=1):
+def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=[], minfrac=0.05, minreads=3, verbose=1):
     """Get alternative base coverage and frequency for every bam file"""
     # exit if processed
     outfn = "%s.ploidy.tsv"%bam
@@ -182,7 +182,7 @@ def bam2ploidy(bam, minDepth=10, minAltFreq=10, mapq=3, bcq=20, threads=4, chrs=
         p = itertools
     else:
         p = Pool(threads)
-    parser = p.imap(worker, ((bam, r, minDepth, mapq, bcq) for r in regions))
+    parser = p.imap(worker, ((bam, r, minDepth, mapq, bcq, minreads) for r in regions))
     # process regions
     ref2stats = {}
     pref, covs = "", []
@@ -260,7 +260,7 @@ def report(outbase, fnames, minAltFreq=10, verbose=0, order=5):
             if freqs[minAltFreq:-minAltFreq].sum()<chrlen*.001:
                 modes = []
             else:
-                modes = signal.argrelmax(freqs[:100:2]+freqs[1::2], order=order)[0]*2 #freqs[:100:2]+freqs[1::2]
+                modes = signal.argrelmax(freqs, order=order)[0] #freqs[:100:2]+freqs[1::2]
             # report
             ploidy, modes = "%.2f"%float(p), ",".join(map(str, modes))
             olines[i] += [ploidy, modes]
@@ -289,6 +289,7 @@ def main():
     parser.add_argument("--minDepth", default=10, type=int,  help="minimal depth of coverage for genotyping [%(default)s]")
     parser.add_argument("--minAltFreq", default=10, type=int, help="min frequency for DNA base in % [%(default)s]")
     parser.add_argument("--minfrac", default=0.05, type=float, help="min length of chr/contig as fraction of the longest chr [%(default)s]")
+    parser.add_argument("--minreads", default=3, type=int, help="min number of reads to call alt allele [%(default)s]")
 
     
     # print help if no parameters
@@ -312,7 +313,7 @@ def main():
     logger("Processing %s BAM file(s)..."%len(o.bams))
     fnames = []        
     for bam in o.bams:
-        outfn = bam2ploidy(bam, o.minDepth, o.minAltFreq, o.mapq, o.bcq, o.threads, o.chrs, o.minfrac, o.verbose)
+        outfn = bam2ploidy(bam, o.minDepth, o.minAltFreq, o.mapq, o.bcq, o.threads, o.chrs, o.minfrac, o.minreads, o.verbose)
         fnames.append(outfn)
 
     report(o.outbase, fnames, o.minAltFreq, o.verbose)
