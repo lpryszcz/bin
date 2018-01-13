@@ -31,7 +31,7 @@ def barcode2fqname(size, fnames):
         else:
             barcodes[barcode] += 1
         out1.write("@%s.%s/1\n%s\n+\n%s\n"%(barcode, barcodes[barcode], fq1[1][size:], fq1[3][size:]))
-        out1.write("@%s.%s/2\n%s\n+\n%s\n"%(barcode, barcodes[barcode], fq2[1], fq2[3]))
+        out2.write("@%s.%s/2\n%s\n+\n%s\n"%(barcode, barcodes[barcode], fq2[1], fq2[3]))
     sys.stdout.write("%s barcodes in %s sequences\n"%(len(barcodes), i))
 
 if __name__=="__main__": 
