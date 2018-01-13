@@ -18,11 +18,19 @@ def fastq_iterator(handle):
 
 def barcode2fqname(size, fnames):
     """Process barcoded FastQ and insert barcode into name field"""
+    if len(fnames)!=2:
+        sys.stderr.write("Provide 2 FastQ files!\n")
+        return
     barcodes = {}
     i = 0
+    ofnames = map(os.path.basename, fnames)
+    for fn in ofnames:
+        if os.path.isfile(fn):
+            sys.stderr.write("File exist: %s\n"%fn)
+            return
     handle1, handle2 = [subprocess.Popen(['zcat', fn], stdout=subprocess.PIPE).stdout for fn in fnames]
     #handle1, handle2 = [gzip.open(fn) for fn in fnames]
-    out1, out2 = [gzip.open(fn, "w") for fn in map(os.path.basename, fnames)]
+    out1, out2 = [gzip.open(fn, "w") for fn in ofnames]
     for i, (fq1, fq2) in enumerate(zip(fastq_iterator(handle1), fastq_iterator(handle2))):
         if not i%1e3: sys.stderr.write(' %s %s\r'%(i, len(barcodes)))
         barcode = fq1[1][:size]
