@@ -287,7 +287,7 @@ def main():
     parser.add_argument("-t", "--threads", default=4, type=int, help="number of cores to use [%(default)s]")
     parser.add_argument("-c", "--chrs", nargs="*", default=[], help="analyse selected chromosomes [all]")
     parser.add_argument("--minDepth", default=10, type=int,  help="minimal depth of coverage for genotyping [%(default)s]")
-    parser.add_argument("--minAltFreq", default=10, type=int, help="min frequency for DNA base in % [%(default)s]")
+    parser.add_argument("--minAltFreq", default=10, type=int, help="min frequency for DNA base in sample [%(default)s]")
     parser.add_argument("--minfrac", default=0.05, type=float, help="min length of chr/contig as fraction of the longest chr [%(default)s]")
     parser.add_argument("--minreads", default=3, type=int, help="min number of reads to call alt allele [%(default)s]")
 
