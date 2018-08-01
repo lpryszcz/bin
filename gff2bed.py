@@ -20,11 +20,11 @@ for line in sys.stdin:
   if f not in f2g:
     f2g[f] = {}
     
-  if f=='gene':
-    #ID=GENENAME;...
-    g = comment.split('ID=')[1].split(";")[0]
-    s,e = int(s),int(e)
-    #BED is 0-based, half-open
-    s -= 1
-    print "%s\t%s\t%s\t%s\t%s\t%s" % ( contig,s,e,g,score,strand )
+  #if f=='gene':
+  #ID=GENENAME;...
+  g = comment.split('ID=')[1].split(";")[0]+"|"+f
+  s,e = int(s),int(e)
+  #BED is 0-based, half-open
+  s -= 1
+  print "%s\t%s\t%s\t%s\t%s\t%s" % ( contig,s,e,g,score,strand )
   
