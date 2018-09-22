@@ -55,7 +55,7 @@ D=a
 fig = pylab.figure(figsize=(8,8))
 ax1 = fig.add_axes([0.09,0.1,0.2,0.6])
 Y = sch.linkage(D, method='centroid')
-Z1 = sch.dendrogram(Y, orientation='right')
+Z1 = sch.dendrogram(Y, orientation='left')
 ax1.set_xticks([])
 #ax1.set_yticks([])
 
