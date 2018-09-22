@@ -97,6 +97,8 @@ def parse_mpileup(fnames, fastaFn, minDepth, minFreq, indels, mpileup_opts,\
     totCov={}; totLen={}; pContig=pPos=0
     #open subprocess
     args = ['samtools', 'mpileup'] + mpileup_opts.split() + fnames #; print args
+    if no_reference:
+        args += ["-f", fastaFn]
     if verbose:
         sys.stderr.write("Running samtools mpileup...\n %s\n" % " ".join(args))
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, bufsize=65536)
@@ -159,7 +161,7 @@ def main():
                         help="report indels")
     parser.add_argument("--bothStrands",    default=False, action="store_true", 
                         help="only SNP confirmed by both strand algs")
-    parser.add_argument("--no_reference",   default=False, action="store_false", 
+    parser.add_argument("--no_reference",   default=False, action="store_true", 
                         help="first bam IS NOT reference")
   
     o = parser.parse_args()
