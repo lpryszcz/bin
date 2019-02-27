@@ -16,6 +16,47 @@ import numpy as np
 aminos = 'ACDEFGHIKLMNPQRSTVWY'
 nucleotides = 'ACGT'
 
+JC69 = """ A C G T
+A 1 1 1 1
+C 1 1 1 1
+G 1 1 1 1
+T 1 1 1 1"""
+
+# http://www.uky.edu/Classes/BIO/520/BIO520WWW/blosum62.htm
+blossum62 = """ C	S	T	P	A	G	N	D	E	Q	H	R	K	M	I	L	V	F	Y	W
+C	9	-1	-1	-3	0	-3	-3	-3	-4	-3	-3	-3	-3	-1	-1	-1	-1	-2	-2	-2
+S	-1	4	1	-1	1	0	1	0	0	0	-1	-1	0	-1	-2	-2	-2	-2	-2	-3
+T	-1	1	4	1	-1	1	0	1	0	0	0	-1	0	-1	-2	-2	-2	-2	-2	-3
+P	-3	-1	1	7	-1	-2	-1	-1	-1	-1	-2	-2	-1	-2	-3	-3	-2	-4	-3	-4
+A	0	1	-1	-1	4	0	-1	-2	-1	-1	-2	-1	-1	-1	-1	-1	-2	-2	-2	-3
+G	-3	0	1	-2	0	6	-2	-1	-2	-2	-2	-2	-2	-3	-4	-4	0	-3	-3	-2
+N	-3	1	0	-2	-2	0	6	1	0	0	-1	0	0	-2	-3	-3	-3	-3	-2	-4
+D	-3	0	1	-1	-2	-1	1	6	2	0	-1	-2	-1	-3	-3	-4	-3	-3	-3	-4
+E	-4	0	0	-1	-1	-2	0	2	5	2	0	0	1	-2	-3	-3	-3	-3	-2	-3
+Q	-3	0	0	-1	-1	-2	0	0	2	5	0	1	1	0	-3	-2	-2	-3	-1	-2
+H	-3	-1	0	-2	-2	-2	1	1	0	0	8	0	-1	-2	-3	-3	-2	-1	2	-2
+R	-3	-1	-1	-2	-1	-2	0	-2	0	1	0	5	2	-1	-3	-2	-3	-3	-2	-3
+K	-3	0	0	-1	-1	-2	0	-1	1	1	-1	2	5	-1	-3	-2	-3	-3	-2	-3
+M	-1	-1	-1	-2	-1	-3	-2	-3	-2	0	-2	-1	-1	5	1	2	-2	0	-1	-1
+I	-1	-2	-2	-3	-1	-4	-3	-3	-3	-3	-3	-3	-3	1	4	2	1	0	-1	-3
+L	-1	-2	-2	-3	-1	-4	-3	-4	-3	-2	-3	-2	-2	2	2	4	3	0	-1	-2
+V	-1	-2	-2	-2	0	-3	-3	-3	-2	-2	-3	-3	-2	1	3	1	4	-1	-1	-3
+F	-2	-2	-2	-4	-2	-3	-3	-3	-3	-3	-1	-3	-3	0	0	0	-1	6	3	1
+Y	-2	-2	-2	-3	-2	-3	-2	-3	-2	-1	2	-2	-2	-1	-1	-1	-1	3	7	2
+W	-2	-3	-3	-4	-3	-2	-4	-4	-3	-2	-2	-3	-3	-1	-3	-2	-3	1	2	11"""
+
+def load_sim_matrix(matrix=blossum62):
+    """Return dict of weighted seq for substitution for each base"""
+    lines = [l.strip().split() for l in matrix.split('\n') if l.strip()]
+    base2subs = {}
+    bases = lines[0]
+    for i, l in enumerate(lines[1:]):
+        b, scores = l[0], np.array(map(int, l[1:]))
+        scores += -min(scores)+1
+        scores[i] = 0
+        base2subs[b] = "".join(_b*s for _b, s in zip(bases, scores))
+    return base2subs
+
 def get_heterozygous(positions, divergence):
     """Return fraction of chromosome being heterozygous"""
     #count hetero SNPs within 100bp
@@ -33,7 +74,7 @@ def get_heterozygous(positions, divergence):
         hetero[-1].append(pp)
     return sum(e-s for s, e in hetero)
 
-def seq2diverged(seq, divergence, loh, lohSizes, aminos, verbose):
+def seq2diverged(seq, divergence, loh, lohSizes, base2subs, verbose):
     """Return diverged sequence"""
     seqlist = list(seq)
     #number of position to change
@@ -43,16 +84,16 @@ def seq2diverged(seq, divergence, loh, lohSizes, aminos, verbose):
     if loh:
         lohs = []
         while get_heterozygous(positions, divergence)/len(seq) > 1-loh:
-            #get LOH random start
+            # get LOH random start
             s = random.randint(0, len(seq)-1)
-            #and random LOH length from negative binomial distribution
+            # and random LOH length from negative binomial distribution
             lsize = 0
-            #LOH has to be at least 2x larger than average distance between SNPs
+            # LOH has to be at least 2x larger than average distance between SNPs
             while lsize <= 2.0 / divergence:
                 lsize = int(round(random.sample(lohSizes, 1)[0]))
             e = s + lsize
             lohs.append(lsize)
-            #filter snp posiitons
+            # filter snp posiitons
             positions = filter(lambda p: p<s or p>e, positions)
         if verbose:
             hetero = 100.0 * get_heterozygous(positions, divergence)/len(seq)
@@ -60,10 +101,8 @@ def seq2diverged(seq, divergence, loh, lohSizes, aminos, verbose):
                              (hetero, '%', len(lohs), min(lohs), max(lohs)))
     #change positions
     for i in positions:
-        nb = seqlist[i]
-        while nb == seqlist[i]:
-            nb = random.choice(aminos)
-        seqlist[i] = nb
+        if seqlist[i].upper() in base2subs:
+            seqlist[i] = random.choice(base2subs[seqlist[i].upper()])
     return "".join(seqlist)
 
 def main():
@@ -92,19 +131,22 @@ def main():
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write("Options: %s\n"%str(o))
-    
-    #get LOH sizes distibution
-    lohSizes = np.random.lognormal(0, 1.2, 1e5) * 1e3
+    # load sim matrix
+    if o.dna:
+        base2subs = load_sim_matrix(matrix=JC69)
+    else:
+        base2subs = load_sim_matrix(matrix=blossum62)
+    # get LOH sizes distibution
+    lohSizes = []    
+    if o.loh:
+        lohSizes = np.random.lognormal(0, 1.2, 1e5) * 1e3
+    # parse sequences
     if o.verbose:
-        sys.stderr.write("Processing chromosomes...\n")
+        sys.stderr.write("Processing FastA...\n")
     for i, r in enumerate(SeqIO.parse(o.input, 'fasta'), 1):
         if o.verbose:
             sys.stderr.write('%s %s %sbp %s\n'%(i, r.id, len(r), " "*20))
-        if o.dna:
-            alphabet = nucleotides
-        else:
-            alphabet = aminos
-        seq = seq2diverged(r.seq, o.divergence, o.loh, lohSizes, alphabet, o.verbose)
+        seq = seq2diverged(r.seq, o.divergence, o.loh, lohSizes, base2subs, o.verbose)
         r.seq = Seq.Seq(seq)
         o.output.write(r.format('fasta'))
 

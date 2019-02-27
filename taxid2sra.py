@@ -10,7 +10,7 @@ Biopython
 epilog="""Author:
 l.p.pryszcz+git@gmail.com
 
-Barcelona, 2/10/2012
+Barcelona/Warsaw, 2/10/2012
 """
 changelog="""
 1.1:
@@ -195,13 +195,12 @@ def xml2data( child,taxid2srs,verbose ):
     taxid2srs[taxid][srs].append( childdata )
     return taxid2srs
     
-def taxid2runs( outfn,taxid,verbose,db="sra",retmode="xml",retmax=10**6 ):
+def taxid2runs(outfn, taxid, verbose, term, db="sra", retmode="xml", retmax=10**6):
     """Return info from SRA for given taxid. """
     taxid2srs = {}
     #search NCBI
-    term   = "txid%s[organism] AND dna_data[filter] AND sra_public[filter] AND type_genome[filter]" % taxid
     if verbose:
-        sys.stderr.write( "Query: %s\n" % term )
+        sys.stderr.write("Query: %s\n" % term)
     result = Entrez.read( Entrez.esearch( db=db,term=term,retmax=retmax ) )
     ids    = result['IdList']
     if   not ids:
@@ -347,7 +346,9 @@ def main():
                         help="min Mbases in run  [%(default)s Mbases -> 10x for 60Mb genome]" )
     parser.add_argument("-p", "--paired",      default=False, action="store_true",
                         help="fetch only paired runs" )
-    
+    parser.add_argument("-t", "--term", default="txid%s[organism] AND dna_data[filter] AND sra_public[filter] AND type_genome[filter]"
+                        help="NCBI term [%(default)s]" )
+    term =  % taxid
     o = parser.parse_args()
     if o.verbose: 
         sys.stderr.write( "Options: %s\n" % str(o) )
@@ -356,11 +357,11 @@ def main():
 
     #get all runs for taxid
     outfn = "sra.tsv"
-    taxid2srs = taxid2runs( outfn,o.taxid,o.verbose )
+    taxid2srs = taxid2runs(outfn, o.taxid, o.term%taxid, o.verbose)
 
     if o.download:
         #fetch best srr
-        get_runs( taxid2srs,o.ftp,o.orient,o.maxisize,o.paired,o.minbases,o.verbose )
+        get_runs(taxid2srs, o.ftp, o.orient, o.maxisize, o.paired, o.minbases, o.verbose)
   
 if __name__=='__main__': 
     t0  = datetime.now()

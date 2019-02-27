@@ -51,7 +51,7 @@ def parse_sf(handles, conditions, transcripts, genes=[]):
     # parse handles
     for i, handle in enumerate(handles):
         for line in handle:
-            if line.startswith('#'):
+            if line.startswith(('#','Name\t')):
                 continue
             # unload line
             lData = line[:-1].split('\t')

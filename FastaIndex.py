@@ -80,7 +80,7 @@ class FastaIndex(object):
                 self.log("[WARNING] No sequence for: %s at line: %s\n"%(seqid, pi))
             # catch duplicates
             if seqid in self.id2stats:
-                self.log("[WARNING] Duplicated sequence ID: %sat line: %s\n"%(seqid, pi))
+                self.log("[WARNING] Duplicated sequence ID: %s at line: %s\n"%(seqid, pi))
             self.id2stats[seqid] = stats
             out.write("%s\t%s\n"%(seqid, "\t".join(map(str, stats))))
             
@@ -208,7 +208,7 @@ class FastaIndex(object):
             return self.get_reverse_complement(seq)
         return seq
         
-    def get_fasta(self, region="", contig="", start=None, stop=None):
+    def get_fasta(self, region="", contig="", start=None, stop=None, name=None):
         """Return FastA slice"""
         if region:
             if ':' in region:
@@ -224,7 +224,7 @@ class FastaIndex(object):
             self.log("Provide region or contig!\n")
             return            
         # get record
-        record = self.__getitem__(contig, start, stop)
+        record = self.__getitem__(contig, start, stop, name)
         return record
 
     def get_id(self, header):
@@ -340,6 +340,8 @@ class FastaIndex(object):
 
     def stats(self):
         """Return FastA statistics aka fasta_stats"""
+        if not self.id2stats:
+            return "[WARNING] No entries found!\n"
         longest = max(stats[0] for stats in self.id2stats.itervalues())
         lengths1000 = [x[0] for x in self.id2stats.itervalues() if x[0]>=1000]
         contigs1000 = len(lengths1000)
