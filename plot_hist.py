@@ -14,7 +14,7 @@ import matplotlib as mpl
 import numpy as np
 
 def histplot(ax, x, handle, bins, title, xlab, ylab, xlog, ylog, \
-             normed=False, alpha=0.75):
+             normed=False, cumulative=False, alpha=0.75):
     """
     """
     #fig = plt.figure()
@@ -24,7 +24,8 @@ def histplot(ax, x, handle, bins, title, xlab, ylab, xlog, ylog, \
     if ylog:
         ax.set_yscale('log', nonposy='clip')
     # the histogram of the data
-    n, bins, patches = ax.hist(x, bins, normed=normed, alpha=alpha, label=title)
+    n, bins, patches = ax.hist(x, bins, density=normed, alpha=alpha,
+                               cumulative=cumulative, label=title)
 
     # hist uses np.histogram under the hood to create 'n' and 'bins'.
     # np.histogram returns the bin edges, so there will be 50 probability
@@ -44,8 +45,8 @@ def histplot(ax, x, handle, bins, title, xlab, ylab, xlog, ylog, \
     return bins
  
 def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
-              vmax, vmin, collapse, normed, alpha, legendLoc, colors,\
-              verbose, dlimit=1):
+              vmax, vmin, collapse, normed, cumulative, alpha, legendLoc, colors,\
+              figsize=(15,15), verbose=1, dlimit=1):
     """
     """
     if verbose:
@@ -74,7 +75,7 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
     if verbose:
         sys.stderr.write(" %s columns x %s rows\n"%(ncol, nrow))
     #start figure
-    fig = plt.figure(figsize=(15, 15)) # set size
+    fig = plt.figure(figsize=figsize) # set size
     #http://matplotlib.org/users/customizing.html
     #mpl.rcParams['figure.subplot.wspace'] = 0.3
     mpl.rcParams['figure.subplot.hspace'] = 0.5
@@ -103,7 +104,7 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
             sys.stderr.write("[WARNING] Only %s data points for: %s\n"%(len(data), name))
             continue
         #plot
-        bins = histplot(ax, data, handle, bins, name, xlab, ylab, xlog, ylog, normed)
+        bins = histplot(ax, data, handle, bins, name, xlab, ylab, xlog, ylog, normed, cumulative, alpha)
         #add title
         if len(cols)==1 and title or collapse:
             ax.set_title(title)
@@ -158,23 +159,26 @@ def main():
                         help="min value       [%(default)s]")
     parser.add_argument("--collapse",      default=False, action="store_true",
                         help="collapse into single subplot")
+    parser.add_argument("--cumulative",  default=0, choices=[0, 1, -1], type=int, 
+                        help="cumulative histogram [%(default)s]")
     parser.add_argument("--normed",        default=0, choices=(0, 1), type=int,
                         help="normalise values")
     parser.add_argument("--alpha",         default=0.75, type=float,
                         help="plot alpha      [%(default)s]")
+    parser.add_argument("--figsize", default=(15, 15), nargs=2, type=int, 
+                        help="figure dimensions [%(default)s]")
     parser.add_argument("--colors",        nargs="+", default=['b', 'grey', 'r', 'y', 'g'],
                         help="plot alpha      [%(default)s]")    
     parser.add_argument("--legendLoc",     default=1, choices=(1, 2, 3, 4), type=int,
                         help="legend location (1=top right, 2=top left, 3=bottom left, 4=bottom right")
-    
 
     o = parser.parse_args()
     if o.verbose:
         sys.stderr.write( "Options: %s\n" % str(o) )
 
     plot_hist(o.input, o.output, o.col, o.names, o.bins, o.title, o.xlab, o.ylab, \
-              o.xlog, o.ylog, o.max, o.min, o.collapse, o.normed, o.alpha, o.legendLoc, \
-              o.colors, o.verbose)
+              o.xlog, o.ylog, o.max, o.min, o.collapse, o.normed, o.cumulative, o.alpha, o.legendLoc, \
+              o.colors, o.figsize, o.verbose)
               
 if __name__=='__main__': 
     t0  = datetime.now()
