@@ -53,6 +53,7 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
         sys.stderr.write( "Parsing data...\n" )
     x = [[] for i in range(len(cols))]
     for l in handle:
+        if l.startswith('#'): continue
         try:
             ldata = l[:-1].split('\t')
             for i, col in enumerate(cols):
