@@ -2,14 +2,15 @@
 desc="""
 
 TDB:
-- 
+- more sophisticated read capturing
+- python3 support
 
 CHANGELOG:
 v1.1
-- 
+- reports reads to tsv
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com
-Warsaw, 18/06/2018
+Warsaw/Mizerow, 18/06/2018
 """
 
 import os, sys
@@ -25,7 +26,15 @@ true, false, null = True, False, False
 
 def get_metadata(handle):
     """Return metadata"""
-    exec("meta="+handle['Meta']['User']['analysis_conf'][0])
+    #'''
+    #py27
+    exec("meta="+handle['Meta']['User']['analysis_conf'][0]); print(meta)
+    '''
+    #py3 https://stackoverflow.com/a/15087355/632242
+    namespace = {}
+    eval("meta = {}".format(handle['Meta']['User']['analysis_conf'][0]), namespace)
+    meta = namespace['meta']; print(meta)
+    #'''
     # meta['experiment']: ['sequencing', 'GUI', 'flowcell', 'mux_scan', 'kit']
     # meta['channel_states']['3'].keys() ['style', 'group', 'description', 'name', 'logic']
     # meta['histograms'].keys() ['read_length', 'read_median', 'event_length', 'read_event_count_weighted', 'event_mean']

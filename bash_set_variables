@@ -1,0 +1,11 @@
+#!/bin/bash
+# Save session variables
+
+FIFO=/tmp/your_variables
+[ -e $FIFO ] && cat $FIFO > /dev/null || mkfifo $FIFO
+
+# save number of variables that follow
+NVARS=2
+echo $NVARS > $FIFO
+echo ENV1=sth1 > $FIFO
+echo ENV2=sth2 > $FIFO
