@@ -1,11 +1,9 @@
 #!/bin/bash
-# Save session variables
 
-FIFO=/tmp/your_variables
+FIFO=/tmp/vars.lpryszcz
 [ -e $FIFO ] && cat $FIFO > /dev/null || mkfifo $FIFO
 
 # save number of variables that follow
-NVARS=2
+NVARS=1
 echo $NVARS > $FIFO
-echo ENV1=sth1 > $FIFO
-echo ENV2=sth2 > $FIFO
+echo DISPLAY=$DISPLAY > $FIFO
