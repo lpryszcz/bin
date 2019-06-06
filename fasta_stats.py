@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report FASTA statistics. Support gzipped files.
 
 Statistics are stored as .fai formatted file (http://www.htslib.org/doc/faidx.html),
