@@ -1,0 +1,383 @@
+#!/bin/bash
+#
+#  Copyright (c) 2013-2017, Centre for Genomic Regulation (CRG).
+#  Copyright (c) 2013-2017, Paolo Di Tommaso and the respective authors.
+#
+#  This file is part of Nextflow.
+#
+#  Nextflow is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Nextflow is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Nextflow.  If not, see <http://www.gnu.org/licenses/>.
+
+[[ "$NXF_DEBUG" == 'x' ]] && set -x
+NXF_VER=${NXF_VER:-'0.25.5'}
+NXF_ORG=${NXF_ORG:-'nextflow-io'}
+NXF_HOME=${NXF_HOME:-$HOME/.nextflow}
+NXF_PROT=${NXF_PROT:-'https'}
+NXF_BASE=${NXF_BASE:-$NXF_PROT://www.nextflow.io/releases}
+NXF_CLI="$0 $@"
+
+export NXF_CLI
+export NXF_ORG
+export NXF_HOME
+
+if [[ $TERM && $TERM != 'dumb' ]]; then
+if command -v tput &>/dev/null; then
+GREEN=$(tput setaf 2; tput bold)
+YELLOW=$(tput setaf 3)
+RED=$(tput setaf 1)
+NORMAL=$(tput sgr0)
+fi
+fi
+
+function echo_red() {
+    echo -e "$RED$*$NORMAL"
+}
+
+function echo_green() {
+    echo -e "$GREEN$*$NORMAL"
+}
+
+function echo_yellow() {
+    echo -e "$YELLOW$*$NORMAL"
+}
+
+function die() {
+  echo_red "$*"
+  exit 1
+}
+
+get_abs_filename() {
+  echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+}
+
+function get() {
+    if command -v curl &>/dev/null; then
+        GET="curl -fsSL $1 -o $2"
+    elif command -v wget &>/dev/null; then
+        GET="wget -q $1 -O $2"
+    else
+        echo_red "Error: cannot find 'curl' nor 'wget' utility --  please install one of them"
+        exit 1
+    fi
+
+    printf "Downloading nextflow dependencies. It may require a few seconds, please wait .. "
+    $GET; status=$?
+    printf "\r\033[K"
+    if [ $status -ne 0 ]; then
+        echo_red "Error: cannot download nextflow required file -- make sure you can connect to the internet"
+        echo ""
+        echo "Alternatively you can try to download this file:"
+        echo "    $1"
+        echo ""
+        echo "and save it as:"
+        echo "    ${3:-$2}"
+        echo ""
+        exit 1
+    fi
+}
+
+function make_temp() {
+    local base=${NXF_TEMP:=$PWD}
+    if [ "$(uname)" = 'Darwin' ]; then mktemp "${base}/nxf-tmp.XXXXX" || exit $?
+    else mktemp -t nxf-tmp.XXXXX -p "${base}" || exit $?
+    fi
+}
+
+function install() {
+    local tmpfile=$(make_temp)
+    local version=$(set +u; [[ $NXF_VER ]] && printf "v$NXF_VER" || printf 'latest')
+    get "$NXF_BASE/$version/nextflow" "$tmpfile" "$1" || exit $?
+    mv "$tmpfile" "$1" || exit $?
+    chmod +x "$1" || exit $?
+    bash "$1" -download || exit $?
+    echo ''
+    echo -e $'Nextflow installation completed. Please note:'
+    echo -e $'- the executable file `nextflow` has been created in the folder:' $(dirname $1)
+    if [[ ! "$PATH" =~ (^|:)"$(dirname $1)"(:|$) ]]; then
+    echo -e $'- you may complete the installation by moving it to a directory in your $PATH'
+    fi
+    echo ''
+}
+
+function launch_nextflow() {
+    # the launch command line
+    local cmdline="${launcher[@]} "
+    for x in "${args[@]}"; do
+        cmdline+="'$x' "
+    done
+
+    if [[ $NXF_MPIRUN ]]; then
+        local rank=''
+        [[ $SLURM_PROCID ]] && rank=$SLURM_PROCID
+        [[ $OMPI_COMM_WORLD_RANK ]] && rank=$OMPI_COMM_WORLD_RANK
+        if [[ ! $rank ]]; then
+          echo_red 'It looks you are not running in a MPI enabled environment -- cannot find `$OMPI_COMM_WORLD_RANK` nor `$SLURM_PROCID` variable';
+          exit 1;
+        fi
+        if [[ $SLURM_CPUS_PER_TASK && $SLURM_MEM_PER_CPU ]]; then
+            export NXF_CLUSTER_MAXCPUS=$SLURM_CPUS_PER_TASK
+            export NXF_CLUSTER_MAXMEMORY="$(($SLURM_MEM_PER_CPU*$SLURM_CPUS_PER_TASK))MB"
+        fi
+        if [[ $rank == 0 ]]; then
+            # sleep a few seconds in order to wait worker daemons to bootstrap
+            sleep ${NXF_SLEEP:-10}
+            export NXF_EXECUTOR='ignite'
+            export NXF_CLUSTER_SHUTDOWNONCOMPLETE='true'
+        else
+            cmdline="${launcher[@]} -log .nextflow_node_${rank}.log node ignite"
+        fi
+    # start in daemon mode
+    elif [[ "$bg" ]]; then
+      local pid_file="${NXF_PID_FILE:-.nextflow.pid}"
+      bash -c "exec $cmdline" &
+      disown
+      echo $! > "$pid_file"
+      exit 0
+    fi
+
+    # trampoline syntax -- https://github.com/puniverse/capsule/pull/71
+    exec bash -c "exec $cmdline"
+    exit 1
+}
+
+# check self-install
+if [ "$0" = "bash" ] || [ "$0" = "/bin/bash" ]; then
+    if [ -d nextflow ]; then
+        echo 'Please note:'
+        echo "- The install procedure needs to create a file named 'nextflow' in this folder, but a directory with this name already exists."
+        echo "- Please renamed/delete that directory, or execute the Nextflow install procedure in another folder."
+        echo ''
+        exit 1
+    fi
+    install "$PWD/nextflow"
+    exit 0
+fi
+
+
+# parse the command line
+bg=''
+declare -a jvmopts=()
+declare -a args=("$@")
+declare -a cli=(clone config drop help history info ls pull run view node console)
+cmd=''
+while [[ $# != 0 ]]; do
+    case $1 in
+    -D*)
+      if [[ ! "$cmd" ]]; then
+      jvmopts+=("$1")
+      fi
+      ;;
+    -bg)
+      bg=1
+      ;;
+    -download)
+      if [[ ! "$cmd" ]]; then
+      rm -rf "$NXF_HOME/framework/$NXF_VER" || exit $?
+      bash "$0" -version || exit $?
+      exit 0
+      fi
+      ;;
+    -self-update|self-update)
+      if [[ ! "$cmd" ]]; then
+      unset NXF_VER
+      install "$0";
+      exit 0
+      fi
+      ;;
+    -process.executor|-executor.name)
+      if [[ $2 && $2 == 'ignite' ]]; then
+      NXF_MODE='ignite'; shift;
+      fi
+      ;;
+    -with-extrae)
+      export EXTRAE_CONFIG_FILE=${EXTRAE_CONFIG_FILE:-$NXF_HOME/extrae/config}
+      rm -f TRACE.*
+      rm -rf set-0
+      ;;
+    -with-drmaa)
+      if [[ $2 && $2 != -* ]];
+      then NXF_DRMAA=$2; shift;
+      else NXF_DRMAA='us.levk:drmaa-gridengine:6.2u5'; fi
+      ;;
+    -with-mpi)
+      NXF_MODE='ignite'
+      NXF_MPIRUN='true'
+      ;;
+    *)
+      [[ $1 && $1 != -* && ! "$cmd" && ${cli[*]} =~ $1 ]] && cmd=$1
+      ;;
+    esac
+    shift
+done
+
+CAPSULE_LOG=${CAPSULE_LOG:=''}
+CAPSULE_RESET=${CAPSULE_RESET:=''}
+CAPSULE_CACHE_DIR=${CAPSULE_CACHE_DIR:="$NXF_HOME/capsule"}
+
+NXF_PACK=one
+NXF_MODE=${NXF_MODE:-''}
+NXF_JAR=${NXF_JAR:-nextflow-$NXF_VER-$NXF_PACK.jar}
+NXF_BIN=${NXF_BIN:-$NXF_HOME/framework/$NXF_VER/$NXF_JAR}
+NXF_PATH=$(dirname "$NXF_BIN")
+NXF_URL=${NXF_URL:-$NXF_BASE/v$NXF_VER/$NXF_JAR}
+NXF_GRAB=${NXF_GRAB:-''}
+NXF_CLASSPATH=${NXF_CLASSPATH:-''}
+NXF_MPIRUN=${NXF_MPIRUN:=''}
+NXF_HOST=${HOSTNAME:-localhost}
+[[ $NXF_LAUNCHER ]] || NXF_LAUNCHER=${NXF_HOME}/tmp/launcher/nextflow-${NXF_PACK}_${NXF_VER}/${NXF_HOST}
+
+if [[ $NXF_MODE == ignite ]]; then
+    # Fix JDK bug when there's a limit on the OS virtual memory
+    # https://bugs.openjdk.java.net/browse/JDK-8044054
+    # https://issues.apache.org/jira/browse/HADOOP-7154
+    export MALLOC_ARENA_MAX=4
+fi
+
+# Determine the path to this file
+if [[ $NXF_PACK = all ]]; then
+    NXF_BIN=$(which "$0" 2>/dev/null)
+    [ $? -gt 0 -a -f "$0" ] && NXF_BIN="./$0"
+fi
+
+# Determine the Java command to use to start the JVM.
+if [ ! -x "$JAVA_CMD" ] ; then
+    if [ -d "$JAVA_HOME" ] ; then
+        if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+            # IBM's JDK on AIX uses strange locations for the executables
+            JAVA_CMD="$JAVA_HOME/jre/sh/java"
+        else
+            JAVA_CMD="$JAVA_HOME/bin/java"
+        fi
+    elif [ -x /usr/libexec/java_home ]; then
+        JAVA_CMD="$(/usr/libexec/java_home -v 1.7+)/bin/java"
+    else
+        JAVA_CMD="$(which java)"
+    fi
+fi
+
+# Verify installed Java version
+if [ ! -d "$NXF_LAUNCHER" ]; then # <-- only the first time
+    JAVA_OUT="$($JAVA_CMD $NXF_OPTS -version 2>&1)"
+    if [ $? -ne 0 ]; then
+        echo_red "${JAVA_OUT:-Failed to launch the Java virtual machine}"
+        echo_yellow "Note: Nextflow is trying to use the Java VM defined by the following environment variables:\n JAVA_CMD: $JAVA_CMD\n NXF_OPTS: $NXF_OPTS\n"
+        exit 1
+    fi
+    echo "$JAVA_OUT" | awk '/version/ {print $3}' | grep '"1\.[7|8]\..*"' > /dev/null
+    if [ $? -ne 0 ]; then
+         echo_red "Error: cannot find Java or it's a wrong version -- please make sure that Java 7 or higher it's installed"
+         echo_yellow "Note: Nextflow is trying to use the Java VM defined by the following environment variables:\n JAVA_CMD: $JAVA_CMD\n JAVA_HOME: $JAVA_HOME\n"
+         exit 1
+    fi
+fi
+
+# Verify nextflow jar is available
+if [ ! -f "$NXF_BIN" ]; then
+    [ -f "$NXF_PATH" ] && rm "$NXF_PATH"
+    mkdir -p "$NXF_PATH" || exit $?
+    tmpfile=$(make_temp)
+    get "$NXF_URL" "$tmpfile" "$NXF_BIN"
+    mv "$tmpfile" "$NXF_BIN"
+fi
+
+check=".+:.+:.+"
+if [[ "$NXF_DRMAA" =~ $check ]]; then
+  # add drmaa library downloadable from maven to dependencies list
+  NXF_GRAB+=" $NXF_DRMAA"
+  NXF_MODE='drmaa'
+elif [[ "$NXF_DRMAA" && -f "$NXF_DRMAA" ]]; then
+  # add drmaa jar file to custom classpath
+  NXF_CLASSPATH+=":$NXF_DRMAA"
+  NXF_MODE='drmaa'
+elif [[ "$NXF_DRMAA" ]]; then
+  echo_red "Cannot find specified DRMAA library file: $NXF_DRMAA"
+  exit 1
+fi
+
+[[ "$cmd" == "console" ]] && NXF_MODE='console'
+[[ "$cmd" == "node" && ! "$NXF_MODE" ]] && NXF_MODE='ignite'
+
+COLUMNS=${COLUMNS:-`tty -s && tput cols 2>/dev/null || true`}
+JAVA_OPTS="-Dfile.encoding=UTF-8 -noverify -Dcapsule.trampoline -Dcapsule.java.cmd=$JAVA_CMD"
+if [[ $cmd == console ]]; then bg=1;
+else JAVA_OPTS+=" -Djava.awt.headless=true"
+fi
+
+[[ "$NXF_MODE" ]] && JAVA_OPTS+=" -Dcapsule.mode=$NXF_MODE"
+[[ "$JAVA_HOME" ]] && JAVA_OPTS+=" -Dcapsule.java.home=$JAVA_HOME"
+[[ "$CAPSULE_LOG" ]] && JAVA_OPTS+=" -Dcapsule.log=$CAPSULE_LOG"
+[[ "$CAPSULE_RESET" ]] && JAVA_OPTS+=" -Dcapsule.reset=true"
+[[ "$cmd" != "run" && "$cmd" != "node" ]] && JAVA_OPTS+=" -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+[[ "$NXF_OPTS" ]] && JAVA_OPTS+=" $NXF_OPTS"
+[[ "$NXF_CLASSPATH" ]] && export NXF_CLASSPATH
+[[ "$NXF_GRAB" ]] && export NXF_GRAB
+[[ "$COLUMNS" ]] && export COLUMNS
+[[ "$NXF_TEMP" ]] && JAVA_OPTS+=" -Djava.io.tmpdir=$NXF_TEMP"
+[[ "${jvmopts[@]}" ]] && JAVA_OPTS+=" ${jvmopts[@]}"
+# use drip to speedup startup time -- https://github.com/ninjudd/drip
+[[ "$NXF_DRIP" ]] && export DRIP_INIT='' && export DRIP_INIT_CLASS='nextflow.cli.DripMain'
+export JAVA_CMD
+export CAPSULE_CACHE_DIR
+
+# lookup the a `md5` command
+if hash md5sum 2>/dev/null; then MD5=md5sum;
+elif hash gmd5sum 2>/dev/null; then MD5=gmd5sum;
+elif hash md5 2>/dev/null; then MD5=md5;
+else MD5=''
+fi
+
+# when no md5 command is available fallback on default execution
+if [ ! "$MD5" ] || [ "$CAPSULE_RESET" ]; then
+    launcher=($("$JAVA_CMD" $JAVA_OPTS -jar "$NXF_BIN"))
+    launch_nextflow
+    exit 1
+fi
+
+# creates a md5 unique for the given variables
+env_md5() {
+cat <<EOF | $MD5 | cut -f1 -d' '
+$JAVA_CMD
+$JAVA_OPTS
+$NXF_HOME
+$NXF_VER
+$NXF_OPTS
+$NXF_GRAB
+$NXF_CLASSPATH
+$NXF_DRIP
+EOF
+}
+
+# checked if a cached classpath file exists and it newer that the nextflow boot jar file
+LAUNCH_FILE="${NXF_LAUNCHER}/classpath-$(env_md5)"
+if [ -s "$LAUNCH_FILE" ] && [ "$LAUNCH_FILE" -nt "$NXF_BIN" ]; then
+    launcher=($(cat "$LAUNCH_FILE"))
+else
+    # otherwise run the capsule and get the result classpath in the 'launcher' and save it to a file
+    launcher=($("$JAVA_CMD" $JAVA_OPTS -jar "$NXF_BIN"))
+    [[ $? -ne 0 ]] && echo_red 'Unable to initialize nextflow environment' && exit $?
+
+    # Don't show errors if the LAUNCH_FILE can't be created
+    if mkdir -p "${NXF_LAUNCHER}" 2>/dev/null; then
+        STR=''
+        for x in "${launcher[@]}"; do
+        [[ "$x" != "\"-Duser.dir=$PWD\"" ]] && STR+="$x "
+        done
+        printf "$STR">"$LAUNCH_FILE"
+    else
+        echo_yellow "Warning: Couldn't create cached classpath folder: $NXF_LAUNCHER -- Maybe NXF_HOME is not writable?"
+    fi
+
+fi
+
+# finally run it
+launch_nextflow
