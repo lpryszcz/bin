@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 desc="""Plot histogram
 """
 epilog="""Author:
@@ -12,6 +12,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
+from io import IOBase # type file
 
 def histplot(ax, x, handle, bins, title, xlab, ylab, xlog, ylog, \
              normed=False, cumulative=False, alpha=0.75):
@@ -118,7 +119,7 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
     if collapse:
         ax.legend(loc=legendLoc)
     #save or show
-    if type(out) is file and out.name=='<stdout>':
+    if isinstance(out, IOBase) and out.name=='<stdout>':
     	plt.show()
     else:
         fpath = out #handle.name+".png"
@@ -134,7 +135,7 @@ def main():
   
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.0')
-    parser.add_argument("-i", "--input",   default=sys.stdin, type=file,
+    parser.add_argument("-i", "--input",   default=sys.stdin, type=argparse.FileType("r"),
                         help="input           [stdin]")
     parser.add_argument("-o", "--output",  default=sys.stdout, 
                         help="input           [stdout]")

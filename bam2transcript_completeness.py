@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 desc="""Calculate completeness of transcripts
 
 Assumes sense read orientation (as in direct RNA-seq ONT). 
@@ -67,7 +67,7 @@ def load_intervals(fn, verbose=1, ftypefilter="gene"):
     # define numpy datatype
     dtype = np.dtype({'names':   ['start',  'end',    'strand', 'entry_id'], \
                       'formats': ['uint32', 'uint32', 'bool_', 'object']})
-    for chrom, data in chr2intervals.iteritems():
+    for chrom, data in chr2intervals.items():
         chr2intervals[chrom] = np.array(data, dtype=dtype)
     return chr2intervals, i
     

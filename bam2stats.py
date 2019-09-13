@@ -28,16 +28,27 @@ def bam2stats(fn, flag=3840):
             k2v[k] = int(k2v[k][0])
     # report if no reads mapped
     if not k2v['reads mapped']:
-        return "No reads mapped"
+        return "0"
+    text = []
+    text.append("{:,}\t{:,}\t".format(k2v['sequences'], k2v['total length']))
+    text.append("{:,}\t{:.2f}\t".format(k2v['reads mapped'], 100*k2v['reads mapped']/k2v['sequences']))
+    text.append("{:,}\t{:.2f}\t".format(k2v['bases mapped (cigar)'], 100*k2v['bases mapped (cigar)']/k2v['total length']))
+    text.append("{:,}\t{:,}\t".format(k2v['average length'], k2v['maximum length']))
+    text.append("{:.2f}".format(100-100*k2v['mismatches']/k2v['bases mapped (cigar)']))
+    return "".join(text)
+    '''
     text = []
     text.append("mapped: {:,} reads ({:.1f}%) & {:,} bases ({:.1f}%)".format(k2v['reads mapped'], 100*k2v['reads mapped']/k2v['sequences'], k2v['bases mapped (cigar)'], 100*k2v['bases mapped (cigar)']/k2v['total length']))
     text.append("avg read length: {:,} (max. {:,})".format(k2v['average length'], k2v['maximum length']))
     text.append("identity: {:.2f}%".format(100-100*k2v['mismatches']/k2v['bases mapped (cigar)'], )) #"identity: %.2f%"%(100-k2v['mismatches']/k2v['bases mapped (cigar)'], ))
-    return "; ".join(text)
-    
+    return "; ".join(text)'''
+
+out = sys.stdout
+header = "#name\treads\tbases\tmapped_reads\t[%]\tmapped_bases\t[%]\tavg_read_length\tmax_read_length\tidentity_[%]\n"
+out.write(header)
 for fn in sys.argv[1:]:
     if os.path.isfile(fn):
-        sys.stdout.write("%s: %s\n"%(fn, bam2stats(fn)))
+        out.write("%s\t%s\n"%(fn, bam2stats(fn)))
     
 '''
 CHK     4691e107        9942d94c        cd9ffd51
