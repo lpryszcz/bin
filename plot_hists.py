@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-desc="""Plot histogram
+desc="""Plot histogram from many files
 """
 epilog="""Author:
 l.p.pryszcz+git@gmail.com
@@ -14,7 +14,7 @@ import matplotlib as mpl
 import numpy as np
 from io import IOBase # type file
 
-def histplot(ax, x, handle, bins, title, xlab, ylab, xlog, ylog, \
+def histplot(ax, x, bins, title, xlab, ylab, xlog, ylog, \
              normed=False, cumulative=False, alpha=0.75):
     """
     """
@@ -45,26 +45,29 @@ def histplot(ax, x, handle, bins, title, xlab, ylab, xlog, ylog, \
     ax.grid(True)
     return bins
  
-def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
+def plot_hist(fnames, out, col, names, bins, title, xlab, ylab, xlog, ylog, \
               vmax, vmin, collapse, normed, cumulative, alpha, legendLoc, colors,\
               figsize=(15,15), verbose=1, dlimit=1):
     """
     """
+    print(col, fnames)
+    if not names:
+        names=fnames
     if verbose:
         sys.stderr.write( "Parsing data...\n" )
-    x = [[] for i in range(len(cols))]
-    for l in handle:
-        if l.startswith('#'): continue
-        try:
-            ldata = l[:-1].split('\t')
-            for i, col in enumerate(cols):
+    x = cols = [[] for fn in fnames]
+    for i, fn in enumerate(fnames):
+        for l in open(fn, 'r'):
+            if l.startswith('#'): continue
+            try:
+                ldata = l[:-1].split('\t')
                 if col>=len(ldata) or not ldata[col]:
                     continue
                 v=float(ldata[col])
                 if vmin<v<vmax:
                     x[i].append(v)
-        except:
-            sys.stderr.write("[Error] Cannot parse line: %s\n" % ",".join(l.split('\t')))
+            except:
+                sys.stderr.write("[Error] Cannot parse line: %s\n" % ",".join(l[:-1].split('\t')))
     if verbose:
         sys.stderr.write( " %s values loaded.\n" % len(x) )
     #define number of rows and columns
@@ -106,7 +109,7 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
             sys.stderr.write("[WARNING] Only %s data points for: %s\n"%(len(data), name))
             continue
         #plot
-        bins = histplot(ax, data, handle, bins, name, xlab, ylab, xlog, ylog, normed, cumulative, alpha)
+        bins = histplot(ax, data, bins, name, xlab, ylab, xlog, ylog, normed, cumulative, alpha)
         #add title
         if len(cols)==1 and title or collapse:
             ax.set_title(title)
@@ -135,15 +138,15 @@ def main():
   
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.0')
-    parser.add_argument("-i", "--input",   default=sys.stdin, type=argparse.FileType("r"),
-                        help="input           [stdin]")
+    parser.add_argument("-i", "--input",   nargs='+', #type=argparse.FileType("r"),
+                        help="input files")
     parser.add_argument("-o", "--output",  default=sys.stdout, 
                         help="input           [stdout]")
     parser.add_argument("-b", "--bins",    default=100, type=int,
                         help="number of bins  [%(default)s]")
-    parser.add_argument("-c", "--col",     default=[0], nargs="+", type=int,
-                        help="columns to use  [%(default)s]")
-    parser.add_argument("-n", "--names",   default="", nargs="+", 
+    parser.add_argument("-c", "--col",     default=0, type=int,
+                        help="column to use  [%(default)s]")
+    parser.add_argument("-n", "--names",   default=None, nargs="+", 
                         help="column names    [%(default)s]")
     parser.add_argument("-t", "--title",   default="Histogram", 
                         help="histogram title [%(default)s]")

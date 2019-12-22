@@ -1,0 +1,7 @@
+#!/bin/bash
+jnpl=/tmp/igv.jnpl
+if [ ! -s $jnpl ]; then wget -O $jnpl "http://broadinstitute.org/igv/projects/current/igv.jnlp"; fi
+javaws -J-Xmx2000m $jnpl &> /tmp/igv.log
+
+#~/src/IGV/igv.sh "$@" &> /tmp/igv.log &
+
