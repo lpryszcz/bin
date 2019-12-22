@@ -1,9 +1,8 @@
 #!/bin/bash
 
-FIFO=/tmp/vars.lpryszcz
-[ -e $FIFO ] && cat $FIFO > /dev/null || mkfifo $FIFO
+VARS=/tmp/vars.lpryszcz
 
 # save number of variables that follow
 NVARS=1
-echo $NVARS > $FIFO
-echo DISPLAY=$DISPLAY > $FIFO
+echo $NVARS >> $VARS
+echo "DISPLAY=$DISPLAY" >> $VARS
