@@ -23,16 +23,16 @@ def plot_2d(inputs, output, title, xlab, ylab, xmax, xmin, log, ndivide=20):
         bj = round(bj)+1
     else:
         bj = round(bj)+1
-    print len(inputs),bi,bj
+    print(len(inputs),bi,bj)
     #get figure
     plt.figure(figsize=(bj*4, bi*4))
     plt.subplots_adjust(hspace = .3, wspace = .3)    
     #process inputs    
     sys.stderr.write("Loading data...\n")
-    for ii,input in enumerate(inputs, 1):
+    for ii, handle in enumerate(inputs, 1):
         #load data
         x, y = [], []
-        for l in input:
+        for l in handle:
             l = l[:-1]
             if not l or l.startswith('#'):
                 continue
@@ -81,7 +81,7 @@ def main():
   
     parser.add_argument("-v", dest="verbose", default=False, action="store_true", help="verbose")    
     parser.add_argument('--version', action='version', version='1.0')
-    parser.add_argument("-i", dest="input",   default=[sys.stdin,], type=file, nargs="+",
+    parser.add_argument("-i", dest="input",   default=[sys.stdin,], type=argparse.FileType("r"), nargs="+",
                         help="input stream    [stdin]")
     parser.add_argument("-o", dest="output",  default=sys.stdout, type=argparse.FileType("w"), 
                         help="output stream   [stdout]")
