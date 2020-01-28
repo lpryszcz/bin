@@ -78,13 +78,13 @@ def plot_hist(handle, out, cols, names, bins, title, xlab, ylab, xlog, ylog, \
         sys.stderr.write(" %s columns x %s rows\n"%(ncol, nrow))
     #start figure
     fig = plt.figure(figsize=figsize) # set size
-    #http://matplotlib.org/users/customizing.html
+    '''#http://matplotlib.org/users/customizing.html
     #mpl.rcParams['figure.subplot.wspace'] = 0.3
     mpl.rcParams['figure.subplot.hspace'] = 0.5
     mpl.rcParams['axes.titlesize'] = 8
     mpl.rcParams['axes.labelsize'] = 6
     mpl.rcParams['xtick.labelsize'] = 5
-    mpl.rcParams['ytick.labelsize'] = 5
+    mpl.rcParams['ytick.labelsize'] = 5'''
     #add subplots
     #plt.rc('axes', color_cycle=colors) #['c', 'm', 'y', 'k']
     #mpl.rcParams['axes.color_cycle'] = colors
