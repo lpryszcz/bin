@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 desc="""Plot scatter plots from many files. First column has to be name of the feature.
-
-TBD
-- spaerman
 """
 epilog="""Author:
 l.p.pryszcz+git@gmail.com
