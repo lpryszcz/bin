@@ -1,0 +1,3 @@
+#!/bin/bash
+# Start alternative dropbox from ~/.dropbox-crg folder
+HOME=$HOME/.dropbox-crg dropbox start &
