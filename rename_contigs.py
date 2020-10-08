@@ -1,24 +1,54 @@
 #!/usr/bin/env python
-# Unify the fasta headers. Solve problems with | and other non-standard characters that cause some programs to fail. 
-# USAGE: cat contigs.fa | rename_contigs.py [scaffold] > renamed.fa
+desc="""Rename FastA headers with unique names. 
 
+By default contigXXXXXX is used, where XXXXXX is the number of contig within FastA file. 
+"""
+epilog="""Author: l.p.pryszcz+git@gmail.com
+Barcelona, 8/10/2020
+"""
 
-import os,sys
+import os, sys
 from datetime import datetime
-from Bio import SeqIO
 
-def main(basename="cotnig"):
-  
-  for i, r in enumerate(SeqIO.parse(sys.stdin, 'fasta'), 1):
-  	contig = "%s%5i" % (basename, i)
-  	contig = contig.replace(' ', '0')
-  	sys.stdout.write(">%s\n%s\n" % (contig, "\n".join(str(r.seq[j:j+60]) for j in range(0, len(r), 60))))
+def rename_contigs(name="contig", handle=sys.stdin, out=sys.stdout):
+    """Rename FastA headers"""
+    i = 0
+    for l in handle:
+        # replace headers
+        if l.startswith(">"):
+            i += 1
+            if not i%100: 
+                sys.stderr.write(" %s \r"%i)
+            out.write(">{}{:06d}\n".format(name, i))
+        else:
+            out.write(l)
+        
+def main():
+    import argparse
+    usage = "%(prog)s -v"
+    parser = argparse.ArgumentParser(description=desc, epilog=epilog, \
+                                      formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('--version', action='version', version='1.0b')
+    #parser.add_argument("-v", "--verbose", action="store_true", help="verbose")
+    parser.add_argument("-i", "--input", default=sys.stdin, type=argparse.FileType('r'),
+                        help="input stream [stdin]")
+    parser.add_argument("-o", "--output", default=sys.stdout, type=argparse.FileType('w'), 
+                        help="output stream [stdout]")
+    parser.add_argument("-n", "--name", default="contig",
+                        help="contig basename [%(default)s]") 
 
+    o = parser.parse_args()
+    #if o.verbose: sys.stderr.write("Options: %s\n"%str(o))
+        
+    rename_contigs(o.name, o.input, o.output)
+ 
 if __name__=='__main__': 
-  t0=datetime.now()
-  basename = "contig"
-  if len(sys.argv)>1:
-    basename = sys.argv[1]
-  main(basename)
-  dt=datetime.now()-t0
-  sys.stderr.write( "Time elapsed: %s\n" % dt )
+    t0 = datetime.now()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("\nCtrl-C pressed!      \n")
+    except IOError as e:
+        sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
+    dt = datetime.now()-t0
+    sys.stderr.write("#Time elapsed: %s\n"%dt)
