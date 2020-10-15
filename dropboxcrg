@@ -1,5 +1,0 @@
-#!/bin/bash
-
-export HOME="$HOME/data"
-dropbox start -i
-
