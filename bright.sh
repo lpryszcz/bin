@@ -2,7 +2,7 @@
 # https://askubuntu.com/a/1150409/37739
 
 MON="HDMI-1"    # Discover monitor name with: xrandr | grep " connected"
-STEP=5          # Step Up/Down brightnes by: 5 = ".05", 10 = ".10", etc.
+STEP=10          # Step Up/Down brightnes by: 5 = ".05", 10 = ".10", etc.
 
 CurrBright=$( xrandr --verbose --current | grep ^"$MON" -A5 | tail -n1 )
 CurrBright="${CurrBright##* }"  # Get brightness level with decimal place
