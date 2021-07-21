@@ -57,7 +57,7 @@ def format_value( s ):
 def add_sheet( wbk,fn,delimiter,splitFn ):
     """
     """
-    sname = fn.replace("/","_")
+    sname = fn.replace("/","_").replace("-","")
     if splitFn:
         sname = sname.split('.')[0]
     #add new sheet
