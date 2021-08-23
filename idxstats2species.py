@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Print stats about reads aligned to particular species.
 Contigs/chromosomes have to be named as: spcode_contigcode

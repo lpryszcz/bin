@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report CNVs (duplications & deletions) between reference and sample BAMs. 
 
 TBD:

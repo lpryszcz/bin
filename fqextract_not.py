@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Extract reads from fastq file that are not present in list.
 
 import gzip, sys

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Look for telomeric sequence in genomic reads from Illumina.
 USAGE:

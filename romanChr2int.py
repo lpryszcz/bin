@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Convert arabic chr (IV) into int (4).
 # Can handle chr. 
 

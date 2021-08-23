@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Retrieve SRA files for given SRA accessions.
 Currently handles only experiments accessions (SRX......).
 

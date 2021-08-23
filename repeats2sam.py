@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report exact repeats in chromosomes.
 Apply distance criteria as a function of repeat length:
  #f(x) = 133.7480609953 * EXP( 0.2011797391 * x )

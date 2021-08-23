@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report SAM entries with  indel of size >= indelTh. 
 NOTE: SAM has to be readname sorted. 
 """

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Detect premature termination codons (PTC) and frameshifts from exonerate alignments.
 Note, frameshifts are supressed for now.
 

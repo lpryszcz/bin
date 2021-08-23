@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report BED intervals matching regex expressions.
 
 NOTE: Support for --bothStrands is experimental. It should handle [] well,

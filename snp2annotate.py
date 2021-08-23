@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Annotate SNPs with gene(s) and functions.
 
 CHANGELOG:

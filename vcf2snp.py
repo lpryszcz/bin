@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Parses vcf file (SNPs/INDELs) and check whether:
 -coding

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Parse InterProScan tsv output and report GO for each gene.
 
 cat tsv | python tsv2go.py

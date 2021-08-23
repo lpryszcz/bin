@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 for f in *_R1.fastq.gz; do s=`echo $f | cut -d"_" -f1`; echo `date` $s; fastq2shuffledFasta.py -l31 -q20 > ../assemblies/identity_confirmation/mapsembler/$s.fa ${s}_*.gz 2> filterReads.log; done
 """

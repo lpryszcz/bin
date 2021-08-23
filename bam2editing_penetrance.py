@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report frequency of editing from individual reads. 
  
 CHANGELOG:

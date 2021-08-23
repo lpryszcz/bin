@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Parse SAM file and output only pairs with at least one read aligned.
 

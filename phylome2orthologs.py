@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Return orthologous groups for given species from a phylome.
 
 Require rooted_phylomes.py (cgenomics.crg.es:/home/services/web/phylomedb.org/wsgi/rooted_phylomes.py)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Generate phylomeDB stats file. Check no. of phylomes, trees, algs, proteins,
 species and genomes. In addition, checks for web-serwer stats from last week i.e.
 the most common query etc.

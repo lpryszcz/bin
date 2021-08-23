@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Generate Latex template based on xls file. 
 
 Author:

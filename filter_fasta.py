@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Filter fasta file according to given filter.
 """
 epilog="""Author:

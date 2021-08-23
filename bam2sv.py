@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Scan alignments (SAM/BAM) for structural variants.
 
 Detection of deletions, duplications and inversions from paired reads is implemented.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Convert to gb/embl to GFF.
 Not working
 USAGE: toGFF.py in.embl > out.gff

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Select subset of fastq files.
 Support single and paired-end and mate-pair libraries. 
 """

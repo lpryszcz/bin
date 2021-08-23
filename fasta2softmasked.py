@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Report .bed of softmasked sequences
 # USAGE: cat genome.fa | fasta2softmasked.py > repeats.bed
 

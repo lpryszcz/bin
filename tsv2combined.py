@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Combine GO terms for each gene. 
 # USAGE: cat biomart.txt | python tsv2combined.py > ensembl80.goterms.txt
 

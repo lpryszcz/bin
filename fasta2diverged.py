@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Return sequences diverged by given percentage compares to input.
 LOH sizes are drawn from log-normal distribution. 
 """

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Generate plot of raw counts from BED files. 
 
 First generate cov.bed files is:

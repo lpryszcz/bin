@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Convert files with RNA modifications into canonical FASTA.
 """
 epilog="""Author:

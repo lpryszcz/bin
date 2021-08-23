@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Converts binary Illumina files (.bcl) to FastQ. Designed to work as cron service.
 It proceeds only if given run has been sequenced (.bcl present),
 but not yet successfully converted (no .fastq files). 

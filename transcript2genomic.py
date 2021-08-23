@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 ###
 # convert transcript positions into genomic positions. 
 #

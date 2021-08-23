@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Report pairs in FR RF orientations
 
 # USAGE: samtools view -h repeats.bam | ./sam2inverted_repeats.py | samtools view -Sbu - | samtools view -Sb - repeats.inverted

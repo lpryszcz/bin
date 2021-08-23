@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Simulate R heterozygous genome(s) and report their statistics. 
 """
 epilog="""Author:

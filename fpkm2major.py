@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report genes with evidence of isoform switching. 
 For each gene, number of transcripts, cumulative expression,
 major isoforms for each condition and each major isoform are reported.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report random entries from FastQ/FastA file(s).
 Support uncompressed or BGZIP compressed files. 
 Headers need to have the same name in FastQ/FastA files. 

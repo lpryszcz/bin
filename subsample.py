@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Report up to N random lines from input that are divided by last column
 # USAGE: bedtools intersect -bed -F 0.6 -wb -a $f -b <(bedtools makewindows -g $ref.fai -w 1000 | grep chikungunya) | cut -f4,15 | subsample.py 1000 | cut -f1 | sort | uniq > $f.ids
 

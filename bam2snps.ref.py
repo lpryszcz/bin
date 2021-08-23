@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Identify SNP sites in mpileup out from BAM alignments. 
  
 CHANGELOG:

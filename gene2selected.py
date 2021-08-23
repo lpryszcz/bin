@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Select rows from given files based on first column entry. Ordered as example set. 
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com

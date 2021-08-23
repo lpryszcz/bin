@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Produce venn diagrams. So far only reporting overlapping entries. 
 # USAGE: venn.py file1 file2 [file3 ... fileN]
 

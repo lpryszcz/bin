@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Compute best reciprocal blast hits for two multifasta protein files.
 Build blast db and launch blastp in 2 directions. 
 Keep only best reciprocal matches.

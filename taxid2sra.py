@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Fetch all entries from SRA for given taxid.
 Save the biggest run per each SAMPLE (SRS) from given date. Paired first, if any. 
 

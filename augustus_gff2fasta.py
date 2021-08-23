@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Parse augustus GFF and save genes, cds and protein sequences.
 Not reporting flanking sequence so far.
 """

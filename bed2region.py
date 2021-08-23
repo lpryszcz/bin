@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Increase intervals from BED by N nucleotides, strand specific. 
 
 # USAGE: cat bed | bed2region.py 100000 > enlarged.bed

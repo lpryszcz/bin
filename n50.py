@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Calculate N50 of given int
 
 # USAGE: cat int.txt | n50.py [50]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Generate nice graph with coverage for multiple samples.
 
 First generate cov.bed files is:

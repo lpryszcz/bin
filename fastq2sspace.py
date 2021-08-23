@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Align pairs/mates onto contigs and run SSPACE scaffolder.
 Example:
 fastq2sspace.py -v -f contigs.fa -n pe300 pe600 pe5000 -1 ../../_archives/PL429.{3,6,50}00_read1*.fastq.gz -2 ../../_archives/PL429.{3,6,50}00_read2*.fastq.gz -i 300 600 5000 -s 0.15 0.25 0.5 -t FR FR RF -u 5000000

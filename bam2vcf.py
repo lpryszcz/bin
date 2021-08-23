@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Identify SNP sites in mpileup out from BAM alignments. 
 In addition calculates overall and each contig coverage. 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # USAGE: ./bed2cnv_plot.py cnv.100.bed Title
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Introduce SNPs into FastA.
 
 Heterozygous positions will be coded in small font. 

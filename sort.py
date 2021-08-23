@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Buffered stdin sorting.
 Don't see a way for this to work:/

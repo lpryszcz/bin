@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Report bed with contigs to chromosomes associations. Store only best!
 # USAGE: 
 #  lastal -P 4 chromosomes.fa contigs.fa $f | last-split - | maf-convert tab - | ./tab2chromosome.py > contigs.bed

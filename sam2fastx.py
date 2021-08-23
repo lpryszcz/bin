@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Convert sam to fastq/fastq.
 NOTE: sam has to be sorted by read name if paired output requested!
 """

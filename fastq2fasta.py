@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Convert FastQ to FASTA.
 
 Note, reads are reported in arbitrary order due to multiprocessing! 

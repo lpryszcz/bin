@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Convert sequence to reverse complement. Assumes FastA input / output. 
 
 # USAGE: cat fastq | fastx2reverse_complement.py [fastq]

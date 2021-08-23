@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Parse SAM file and output only pairs, in which at least one read from the pair is uniquely map.
 It requires XT:A:U and XT:A:R flags in sam alg (ie. BWA output these). 

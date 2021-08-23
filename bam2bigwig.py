@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Convert BAM to BigWig.
 Inspired by: https://www.biostars.org/p/64495/#64680
 Added support for non-UCSC genomes.

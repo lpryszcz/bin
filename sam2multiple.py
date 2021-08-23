@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report SAM entries with multiple matches. 
 NOTE: SAM has to be readname sorted. 
 """

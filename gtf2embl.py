@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report embl for gtf file.
 Note: require Biopython 1.62+
 """

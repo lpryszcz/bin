@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Retrieve one2one orthologs between species A and B, that have been duplicated only once.
 So A1 - B1 and A2 - B2 are orthologous, and there is no more orthologs/paralogs between these species.
 

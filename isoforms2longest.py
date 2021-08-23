@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Selecte longest isoform. Uses augustus annotation (.t1/.t2)
 
 USAGE: cat proteins.fa | isoforms2longest.py > proteins.longest.fa

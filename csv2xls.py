@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Convert multiple cvs files into xls.
 Each csv file becomes one sheet in xls.
 By default, tab-delimited (tabbed) files are processed. But it 

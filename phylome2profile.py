@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python2
 desc="""Get phylogenetic profile of orthologs for given list of proteins.
 
 problems to resolve:

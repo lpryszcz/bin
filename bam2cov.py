@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report coverage from BAM file. 
 Support spliced alignments and mapping quality filtering.
 By default ignores secondary alignments, duplicates and quality failed reads.

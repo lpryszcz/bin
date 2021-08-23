@@ -8,14 +8,15 @@ epilog="""Author: l.p.pryszcz+git@gmail.com
 Cologne, 15/04/2020
 """
 
-import itertools, h5py, mappy, math, os, scipy, sys, numpy as np
+import itertools, h5py, mappy, math, os, resource, scipy, sys, numpy as np
+import matplotlib.pyplot as plt
 from multiprocessing import Pool
 from ont_fast5_api.fast5_interface import get_fast5_file
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
 from scipy.signal import savgol_filter, find_peaks
-from mod_encode import logger, VERSION
+#from mod_encode import logger, VERSION
 #logger = lambda mssg: sys.stderr.write("%s\n"%mssg.rstrip())
 
 def plot_barcode_polyA(sig, s, e, e2, sig_step, sig_step_peaks_pos, sig_step_peaks_neg):
@@ -48,7 +49,7 @@ def get_refined_polyA_len(sig, sig_step, peak_width=150, p=0.001, max_iter=3):
     #print(max_iter, len(sig), peak_width, sig.std(), sig[:mid].std(), sig[mid2:].std(), p, np.median(sig[:mid]), np.median(sig[mid2:]))
     return len(sig)
  
-def get_barcode_start_end(sig, pos_peak_width=500, neg_peak_width=150, max_start=30000, 
+def get_barcode_start_end(sig, pos_peak_width=500, neg_peak_width=50, max_start=30000, 
                           max_barcode_neg_peaks=3, plot=False):
     "Return barcode start and end computer through convolution"
     sig = sig[:max_start]
@@ -61,6 +62,7 @@ def get_barcode_start_end(sig, pos_peak_width=500, neg_peak_width=150, max_start
     sig_step_peaks_pos, _ = find_peaks(sig_step, width=pos_peak_width) # barcode-polyA peak has to be large
     sig_step_peaks_neg, _ = find_peaks(-1*sig_step, width=neg_peak_width) # polyA-end and barcode start can be smaller
     if argmax in sig_step_peaks_pos[1:3]:
+        print("argmax")
         e = argmax
         prev_peak = sig_step_peaks_pos[np.argwhere(sig_step_peaks_pos[:3]==e)[0]-1]
         if not len(sig_step_peaks_neg[sig_step_peaks_neg>prev_peak]): return e, e+1, e+2, sig_step, False
@@ -152,6 +154,23 @@ def worker(args):
     warnings.filterwarnings('ignore')
     return [out for out in process_fast5(*args)]
 
+def memory_usage(childrenmem=True, div=1024.):
+    """Return memory usage in MB including children processes"""
+    mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / div
+    if childrenmem:
+        mem += resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / div
+    return mem
+        
+def logger(info, add_timestamp=1, add_memory=1, out=sys.stderr):
+    """Report nicely formatted stream to stderr"""
+    info = info.rstrip('\n')
+    memory = timestamp = ""
+    if add_timestamp:
+        timestamp = "[%s]"%str(datetime.now()).split(".")[0] #"[%s]"%datetime.ctime(datetime.now())
+    if add_memory:
+        memory = " [mem: %5.0f MB]"%memory_usage()
+    out.write("%s %s%s\n"%(timestamp, info, memory))
+
 def mod_polyA(indirs, fasta, outfn, mapq, threads, recursive,
               min_polyA_len=300, min_first_sample_template=2000):
     """Process Fast5 files from input directories and
@@ -195,7 +214,7 @@ def main():
     parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
                                       formatter_class=argparse.RawTextHelpFormatter)
   
-    parser.add_argument('--version', action='version', version=VERSION)   
+    parser.add_argument('--version', action='version', version='1.0a')   
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose")    
     parser.add_argument("-o", "--output", default="polyA.tsv.gz", help="output filename [%(default)s]")
     parser.add_argument("-i", "--indirs", nargs="+", help="input directory with Fast5 files")

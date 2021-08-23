@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Parses multiple blast files (for the same target) and print table
 combining best matches to all target sequences from all query file.
 

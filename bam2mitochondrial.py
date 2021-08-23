@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Print contigs that are significantly over-represented in terms of mapped reads.
 

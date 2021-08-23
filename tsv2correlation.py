@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Calculate correlation over particular columns
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com

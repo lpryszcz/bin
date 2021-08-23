@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc   = "Identify Copy Number Variants (CNVs)."
 epilog = """Takes two files containing gene and read counts info (bam2counts.py output).
 Note, gene counts has to be already normalised (RPKMs)! Use bam2counts.py for that;)

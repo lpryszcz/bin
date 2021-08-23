@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #Report alignement stats from tophat2 summary
 #USAGE: cat align_summary.txt | python tophat_summary2stats.py
 

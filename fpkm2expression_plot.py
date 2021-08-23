@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Generate expression plot similar to cummeRbund from .sf expression values.
 
 CHANGELOG:

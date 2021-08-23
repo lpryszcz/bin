@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Return number of reads aligned to each gene.
 
 Author:

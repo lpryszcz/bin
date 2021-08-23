@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #Report number of LOH over 100bp and the longest ones.
 
 import sys

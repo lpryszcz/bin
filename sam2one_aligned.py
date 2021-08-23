@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Filter pairs with at least one read aligned. 
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com

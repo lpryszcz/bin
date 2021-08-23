@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Insert SNPs from vcf into fasta.
 If coordinates are provided in header name (chrI:200-300) the script will use them!
 NOTE: coordinates are 0-based, half-open (BED,python) by default. 

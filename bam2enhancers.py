@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Identify enhanvers (eRNAs) from RNA-Seq.
 Enhancers are defined as genomic regions having similar level of expression. 
 

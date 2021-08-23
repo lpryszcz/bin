@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report heterozygous sites from bam alignments. 
 """
 epilog="""Author:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report differentially expressed genes and their annotation.
 
 v1.1:

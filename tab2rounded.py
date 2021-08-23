@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Round and normalise expression values
 
 # USAGE: cat txt | tab2rounded.py [1.0] > rounded.txt

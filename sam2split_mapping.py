@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Parse BWASW sam output and convert split matches into pair-end fastq.
 NOTE: sam has to be sorted by read name (default BWASW output)
 """

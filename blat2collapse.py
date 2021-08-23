@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Parse multi-fasta file and report sequences without overlap
 with already reported. Starts from the longest.

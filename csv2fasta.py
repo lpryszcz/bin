@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Retrieve fasta sequences from multifasta for given ids loaded from input file.
 
 Author:

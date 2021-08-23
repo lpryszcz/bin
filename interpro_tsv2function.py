@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Parse InterProScan tsv output and report predicted function for each gene/protein.
 If fasta file is given, it will also report annotated fasta file (.with_functions.fasta).
 

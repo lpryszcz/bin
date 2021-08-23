@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Generate RT signatures for modifications
 """
 epilog="""Author:

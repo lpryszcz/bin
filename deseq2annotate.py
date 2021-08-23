@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Annotate DESeq results. 
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com

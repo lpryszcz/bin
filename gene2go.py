@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Annotates genes having mapping to PFAM from given species with GO codes.
 Get http://www.geneontology.org/external2go/pfam2go
 """

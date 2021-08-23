@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 Parses SNPs against reference.
 -compare with reference (optionally)

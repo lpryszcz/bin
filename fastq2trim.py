@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Trim fastq alignments.
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com

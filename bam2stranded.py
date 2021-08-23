@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Split bam file into two, for + and - strand transcripts.
 BAM has to be sorted.
 

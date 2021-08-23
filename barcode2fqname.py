@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Process PE reads and insert barcode of given size (size) into fq name. 
 # New files are written in current directory! 
 # USAGE: barcode2fqname.py size reads_?.fq.gz

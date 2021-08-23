@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report CNVs from read counts in genome windows (BED). 
 """
 epilog="""Author:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Crosslink given proteomes and uniprot.
 Using md5 hashing to detect the same proteins.
 """

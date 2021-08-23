@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 
 USAGE: for f in *.bam; do echo `date` $f; samtools view $f -f67 -F12 | head -n100000 | insert_size_plot.py $f.insert_size 10000; done

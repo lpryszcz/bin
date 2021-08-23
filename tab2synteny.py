@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Report synteny stats from last tab file
 
 Note, it may fail at inversions that are in separate blocks

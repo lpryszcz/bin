@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Concatenate multiple fasta files into phylip alignment.
 """
 epilog="""Author:

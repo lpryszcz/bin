@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Parse bowtie2 local bam and report split reads for partially aligned reads.
 """
 epilog="""Author:

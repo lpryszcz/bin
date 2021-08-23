@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # convert exonerate gff into valid gtf
 
 #USAGE: cat exonerate.gff | exonerategff2gtf.py > gtf

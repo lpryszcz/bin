@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Rename FastA headers with unique names. 
 
 By default contigXXXXXX is used, where XXXXXX is the number of contig within FastA file. 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Select reads from SAM starting within BED intervals +/- n [5]
 # and report to seperate output files accordingly to BED name field
 # USAGE: sam2subset.py BAM BED [n]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Convert decypher output into BED.
 
 Decypher has to be run with following output format:

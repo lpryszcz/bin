@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 ### Fast `grep -f` implementation for GTF files. If -s, then IDs are split by `.`.
 # USAGE: grep.py [-s] file_with_elements file_to_grep
 

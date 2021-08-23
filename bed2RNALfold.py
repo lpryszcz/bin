@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Fold sequences from BED file and report visual representation. 
  
 CHANGELOG:

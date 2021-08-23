@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Generate sorted query ids list for mummerplot.
 Example:
 show-coords -r $ref.r.delta > $ref.r.coords

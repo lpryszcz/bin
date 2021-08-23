@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """print common SNP info
 
 USAGE: snp2common.py SNPs1 SNPs2 [...] SNPsN

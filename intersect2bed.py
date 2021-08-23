@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Decrease intervals from BED by N nucleotides, strand specific. 
 # and collapse overlapping intervals
 

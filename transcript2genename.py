@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Combine values for transcripts and report summed values for genes. 
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com

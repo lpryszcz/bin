@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Generate chromosome characteristics plot for testing for meiosis-associated 
 recombination. 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Convert gdata from gene mark into bedGraph.
 
 USAGE:

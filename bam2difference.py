@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report sites with differences between bam files. 
 """
 epilog="""AUTHOR:

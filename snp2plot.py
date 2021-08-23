@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Process SNPs report(s) and plot density on chromosomes given some window size (kb).
 It ignores contigs without SNPs and having size smaller than twice of the window.
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Parse BWA MEM sam output and report reads matching two contigs.
 """
 epilog="""Author:

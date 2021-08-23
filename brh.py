@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report orthologs in means of best reciprocal hits (BRH) between two proteomes.
 
 TBD:

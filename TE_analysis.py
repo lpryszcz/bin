@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 ###
 # Do similarity search (BLAST) of species-specific proteins against TE multifasta in TEdir.
 ###

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Report exact matches in fastq reads for repeats.
 
 Repeats are given as fasta.

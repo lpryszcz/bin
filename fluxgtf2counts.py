@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Retrieve and concatenate transcripts counts from flux capacitor GTF files. 
 """
 epilog="""Author:

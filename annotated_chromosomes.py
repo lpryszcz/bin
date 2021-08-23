@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Generate chromosome graphs for given genome.
 
 http://biopython.org/DIST/docs/tutorial/Tutorial.html#sec343

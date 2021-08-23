@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 desc="""Return orthologous groups for given species from a phylome.
 It adds orthologs (and in-paralogs) to the group until outgroup species found.
 
