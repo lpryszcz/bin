@@ -5,17 +5,8 @@ epilog="""Author: l.p.pryszcz+git@gmail.com
 Barcelona, 25/4/2022
 """
 
-import os
 import sys
-import pysam
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 from datetime import datetime
-
-
 import os
 import pysam
 import matplotlib.pyplot as plt
