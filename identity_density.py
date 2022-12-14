@@ -67,8 +67,8 @@ def main():
                         help="sample names [use file names]")
     parser.add_argument("-m", "--mapq", default=15, type=int, 
                         help="min. mapping quality [%(default)s]")
-    parser.add_argument("-t", "--title", default=15, type=int, 
-                        help="min. mapping quality [%(default)s]")
+    parser.add_argument("-t", "--title", default="Identity density", 
+                        help="figure title [%(default)s]")
     
     o = parser.parse_args()
     if o.verbose: 

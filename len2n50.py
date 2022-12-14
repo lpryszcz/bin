@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # Report N50 from contig lenghts
+# n50 of fasta file
+# > samtools faidx FASTA; cat FASTA.fai | len2n50.py
+# n50 of mapped reads (excluding secondary, supplementary & QC fail reads)
+# > samtools view -F 3844 BAM | awk '{print length($10)}' | len2n50.py
+# n50 of unmapped reads
+# > samtools view -f 4 BAM | awk '{print length($10)}' | len2n50.py
 
 import sys
 
