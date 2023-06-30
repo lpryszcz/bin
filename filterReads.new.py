@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 desc="""Filter QSEQ/FastQ reads. Store output as FastQ.
 Reads are clipped at first undetermined base (. in qseq or N in fastq)
 and at first base having qual below -q.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 desc="""Trim fastq alignments.
 """
 epilog="""Author: l.p.pryszcz+git@gmail.com
@@ -23,13 +23,13 @@ def main():
     parser.add_argument('--version', action='version', version='1.0b')   
     parser.add_argument("-v", "--verbose", default=False, action="store_true",
                         help="verbose")    
-    parser.add_argument("-i", "--input", default=sys.stdin, type=file, 
+    parser.add_argument("-i", "--input", default=sys.stdin, type=argparse.FileType('rt'), 
                         help="input stream    [stdin]")
-    parser.add_argument("-o", "--output", default=sys.stdout, type=argparse.FileType('w'), 
+    parser.add_argument("-o", "--output", default=sys.stdout, type=argparse.FileType('wt'), 
                         help="output stream   [stdout]")
     parser.add_argument("-s", "--start",  default=0, type=int, 
                         help="read start      [%(default)s]")
-    parser.add_argument("-e", "--end",   default=100000, type=int, 
+    parser.add_argument("-e", "--end",   default=10000000, type=int, 
                         help="read end        [%(default)s]")
     
     o = parser.parse_args()

@@ -5,16 +5,13 @@
 import gzip, os, sys
 from datetime import datetime
 from optparse import OptionParser
-  
-def getFastQ( file,minLen,qualityTh,ASCII_offset_33=True,pair='',sep='N' ):
+from fastq2shuffledFasta import get_records
+
+def getFastQ( rec,minLen,qualityTh,ASCII_offset_33=True,pair='',sep='N' ):
   """Process each line of GERALD output and Return FastQ str. Cut seq @ first '.' position.
   Also, check for quality if qualityTh defined.
   Return None if length of the seq < minLen or an error occured during line processing.
   """
-  name  = file.next()[:-1]
-  seq   = file.next()[:-1]
-  sepli = file.next()[:-1]
-  quals = file.next()[:-1]
   
   #format name - @HWI-ST227:145:C06RAACXX:7:1101:1156:2148 2:Y:0:AACT > @HWI-ST227:145:C06RAACXX:7:1101:1156:2148/2
   if len( name.split() ) > 1:
