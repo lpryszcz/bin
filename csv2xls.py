@@ -1,5 +1,5 @@
-#!/usr/bin/env python2
-"""Convert multiple cvs files into xls.
+#!/usr/bin/env python3
+desc="""Convert multiple cvs files into xls.
 Each csv file becomes one sheet in xls.
 By default, tab-delimited (tabbed) files are processed. But it 
 can be change with -d parameter.
@@ -10,14 +10,15 @@ xlwt (http://scienceoss.com/write-excel-files-with-python-using-xlwt/)
 Note: As Excell 97-2003 stores row number as 16 bit integer, 
 it can handle 65536 rows at max! There is not way around this:/
 
-Author:
+"""
+epilog="""Author:
 l.p.pryszcz+git@gmail.com
 
 Barcelona, 21/03/2012
 """
 
 import os, sys
-from optparse import OptionParser
+#from optparse import OptionParser
 from datetime import datetime
 
 #try to import module for xls handling
@@ -76,26 +77,29 @@ def add_sheet( wbk,fn,delimiter,splitFn ):
     return wbk
 
 def main():
-    
-    usage = "usage: %prog [options] csv1 [ csv2 ... csvN ]" 
-    parser = OptionParser( usage=usage,version="%prog 1.0" ) #allow_interspersed_args=True
-
-    parser.add_option("-o", dest="outfn",     default="out.xls",
-                      help="output fname     [%default]")
-    parser.add_option("-d", dest="delimiter", default="\t", 
+    import argparse
+    usage   = "%(prog)s -v" #usage=usage, 
+    parser  = argparse.ArgumentParser(description=desc, epilog=epilog, \
+                                      formatter_class=argparse.RawTextHelpFormatter)
+  
+    parser.add_argument("-i", "--fnames", nargs="+", 
+                      help="input csv files")
+    parser.add_argument("-o", "--outfn",     default="out.xls",
+                      help="output fname     [%(default)s]")
+    parser.add_argument("-d", "--delimiter", default="\t", 
                       help="column delimiter [tab]")
-    parser.add_option("-s", dest="splitFn",  default=False, action="store_true", 
+    parser.add_argument("-s", "--splitFn",  action="store_true", 
                       help="split fname (sheet name) by dot")
-    parser.add_option("-v", dest="verbose",  default=True, action="store_false")
+    parser.add_argument("-v", "--verbose", action="store_false")
     
-    ( o, args ) = parser.parse_args()
-    if o.verbose:
-        sys.stderr.write( "%s\nFiles to process: %s\n" % ( str(o),", ".join( args ) ) )
+    o = parser.parse_args()
+    if o.verbose: 
+        sys.stderr.write("Options: %s\n"%str(o))
     #quit if out file exists
     if os.path.isfile( o.outfn ):
         parser.error( "File exists: %s" % o.outfn )
     #check if files exists
-    for fn in args:
+    for fn in o.fnames:
         if not os.path.isfile( fn ):
             parser.error( "No such file: %s" )
         #check if no more than 65536 lines - xls cannot handle more!
@@ -108,7 +112,7 @@ def main():
     #define empty workbook
     wbk = Workbook()
     #add all files to workbook
-    for fn in args:
+    for fn in o.fnames:
         wbk = add_sheet( wbk,fn,o.delimiter,o.splitFn )
     #write workbook to disc
     wbk.save( o.outfn )

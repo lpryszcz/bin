@@ -5,17 +5,8 @@ epilog="""Author: l.p.pryszcz+git@gmail.com
 Barcelona, 25/4/2022
 """
 
-import os
 import sys
-import pysam
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 from datetime import datetime
-
-
 import os
 import pysam
 import matplotlib.pyplot as plt
@@ -43,13 +34,13 @@ def get_identities(bam, mapq=15):
         references.append(a.reference_name)
     return references, identities 
 
-def identity_density(outfn, bams, names=[], mapq=15, title=""):
+def identity_density(outfn, bams, names=[], mapq=15, title="", xlim=(0.7, 1.03)):
     """Plot density of alignment identities"""
     # get names
     if not names:
         names = [os.path.sep.join(bam[:-4].split(os.path.sep)[-2:]) for bam in bams]
     # start figure
-    fig, ax = plt.subplots(figsize=(12, 4))
+    fig, ax = plt.subplots(figsize=(6, 4))
     legend = []
     for bam, name in zip(bams, names):
         references, identities = get_identities(bam)
@@ -57,9 +48,9 @@ def identity_density(outfn, bams, names=[], mapq=15, title=""):
         sns.kdeplot(x=identities, ax=ax, label=label)
     ax.set_xlabel("Identity to reference")
     ax.legend()
+    if xlim: ax.set_xlim(xlim)
     if title: ax.set_title(title)
     fig.savefig(outfn)
-    #ax.set_xlim(0.6, )
 
 def main():
     import argparse
@@ -76,14 +67,16 @@ def main():
                         help="sample names [use file names]")
     parser.add_argument("-m", "--mapq", default=15, type=int, 
                         help="min. mapping quality [%(default)s]")
-    parser.add_argument("-t", "--title", default=15, type=int, 
-                        help="min. mapping quality [%(default)s]")
+    parser.add_argument("-t", "--title", default="Identity density", 
+                        help="figure title [%(default)s]")
+    parser.add_argument("-x", "--xlim", default=(0.7, 1.03), nargs="+", type=float, 
+                        help="xlim [auto]")
     
     o = parser.parse_args()
     if o.verbose: 
         sys.stderr.write("Options: %s\n"%str(o))
 
-    identity_density(o.out, o.bam, o.name, o.mapq, o.title)
+    identity_density(o.out, o.bam, o.name, o.mapq, o.title, o.xlim)
     
 if __name__=='__main__': 
     t0 = datetime.now()
