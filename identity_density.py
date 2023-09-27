@@ -29,7 +29,10 @@ def get_identities(bam, mapq=15):
             continue
         # NM: Total number of mismatches and gaps in the alignment
         k2v = {k: v for k, v in a.tags}
-        identity = 1-k2v['NM']/a.alen
+        # get skipped (intron) part
+        skipped = sum(i for o, i in a.cigar if o==3)
+        # get identity skipping introns
+        identity = 1-k2v['NM']/(a.alen-skipped)
         identities.append(identity)
         references.append(a.reference_name)
     return references, identities 
