@@ -6,7 +6,7 @@ mv /ssd/data/ont/*.fast5 /ssd/data/ont/_toRemove
 # sync everything once per day @ 6am
 if [ `date +%H` -eq 6 ]; then    
     rsync -av /ssd/data/ont/ /no_backup/enovoa/data/ont --exclude _toRemove \
-	  --exclude "*.fast5.bam" --exclude core-dump-db --exclude "*.tmp" \
+	  --exclude "*.fast5.bam" --exclude "*.tar.gz" --exclude core-dump-db --exclude "*.tmp" \
 	  --exclude "*_platform_qc*" --exclude intermediate --exclude queued_reads \
 	  --exclude persistence --exclude pings --exclude reads --exclude user_scripts
 # sync recent Fast5 files every hour
