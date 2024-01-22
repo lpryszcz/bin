@@ -29,7 +29,7 @@ def ncbi_fetch(queries, taxids, ignored_taxids, db, rettype, batchSize, retmax, 
 
     #add last bit of query
     if queryAdd:
-        query += queryAdd
+        query += " AND " + queryAdd
   
     #print query
     sys.stderr.write( "Query: %s\n" % query )
