@@ -9,6 +9,8 @@ find  -mindepth 2 -maxdepth 2 -type d -mtime +91|grep -vP "persistence|pings|rea
 while read d; do
     p=$(dirname $d);
     if [ $(find $p -name "*.toml"|wc -l) -eq 0 ]; then
-	du -sh $d; rsync -a $d /users/enovoa/data/ont/$p; rm -r $d;
+	du -sh $d;
+	rsync -a $d /users/enovoa/data/ont/$p;
+	rm -r $d;
     fi;
 done < runs.txt
