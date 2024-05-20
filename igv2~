@@ -1,4 +1,0 @@
-#!/bin/bash
-jnpl=/tmp/igv.jnpl
-wget -q -nc -O $jnpl "http://broadinstitute.org/igv/projects/current/igv.jnlp"
-javaws -J-Xmx20000m $jnpl &> /tmp/igv.log
