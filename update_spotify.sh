@@ -27,8 +27,8 @@ sed -i 's,^spotdl/,,;s,^,spotdl/,' ../`date +%F`.*.m3u
 #spotdl $ags --m3u ../FIB2020.m3u https://open.spotify.com/playlist/4QWtWxXa8Cc4RdqQTP7BV2
 #spotdl $ags --m3u ../VanLife.m3u https://open.spotify.com/playlist/37i9dQZF1DX2ogDiL6nZJr
 #spotdl $ags --m3u ../TotallyStressFree.m3u https://open.spotify.com/playlist/37i9dQZF1DWT7XSlwvR1ar
-#spotdl $ags --m3u ../SalsaChoke.m3u https://open.spotify.com/track/4OfK9MAPV8MvRWMxxPpU1m
 #spotdl $ags --m3u ../.m3u 
 #spotdl $ags --m3u ../.m3u
+# ulimit -n 40000 # you may need to edit /etc/security/limits.conf
 #spotdl $ags --m3u ../LikedSongs.m3u https://open.spotify.com/playlist/1jy5hPElIVzLBxryskljkc #saved --user-auth --client-id 69229da242084239b102dc3d113e1337 --client-secret dc69f1749c124de39e1782ad2b8b9034
 #sed -i 's,^spotdl/,,;s,^,spotdl/,' ../*.m3u
