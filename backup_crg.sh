@@ -5,7 +5,7 @@ mkdir -p _toRemove
 mv /ssd/data/ont/*.fast5 _toRemove
 # sync everything once per day @ 6am
 if [ `date +%H` -eq 6 ]; then
-    for d in /ssd/data/ont/ /ssd_backup/data/ont/; do
+    for d in /ssd/data/ont/ ; do
 	echo `date` $d
 	rsync -av $d /users/enovoa/data/ont --exclude _toRemove --exclude "*.fast5.bam" --exclude "*.tar.gz" \
 	  --exclude "*.tmp" --exclude core-dump-db --exclude intermediate --exclude queued_reads \
