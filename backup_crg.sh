@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # move all completed bulk dumps to _toRemove
+cd /ssd/data/ont
 mkdir -p _toRemove
-mv /ssd/data/ont/*.fast5 _toRemove
+mv *.fast5 _toRemove
 # sync everything once per day @ 6am
 if [ `date +%H` -eq 6 ]; then
     for d in /ssd/data/ont/ ; do
