@@ -12,8 +12,8 @@ if [ `date +%H` -eq 6 ]; then
 	  --exclude "*.tmp" --exclude core-dump-db --exclude intermediate --exclude queued_reads \
 	  --exclude persistence --exclude pings --exclude reads --exclude user_scripts
     done
-# sync recent Fast5 files every hour
+# sync recent pod5 files every hour
 else
-    find /ssd/data/ont/./ -mmin -61 -type f -name "*.fast5" -o -name "*.pod5" | grep -v _toRemove > /tmp/rsync_crg.txt
+    find -L /ssd/data/ont/./ -mmin -61 -type f -name "*.pod5" | grep -v _toRemove > /tmp/rsync_crg.txt
     rsync -av --files-from=/tmp/rsync_crg.txt / /users/enovoa/data/ont
 fi
